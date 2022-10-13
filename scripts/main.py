@@ -52,4 +52,5 @@ except OSError as e:
 
 heartbeat_thread = _thread.start_new_thread(heartbeat, ())
 
-import trap.py
+import trap
+trap.trap()
