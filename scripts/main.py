@@ -1,6 +1,7 @@
 #Main routine for pico1
 import time
-from machine import Pin
+import _thread
+import machine
 
 #Import my supporting code
 import utils.myid as myid, utils.wifi as wifi, utils.mqtt as mqtt
@@ -13,8 +14,8 @@ print("I am {}".format(pico))
 #Call wifi_connect with our hostname
 wifi_connected = wifi.wlan_connect(pico)
 
-def reconnect():
-    print('Failed to connect to the MQTT Broker. Reconnecting...')
+def restart():
+    print('Unrecoverable error, restarting...')
     time.sleep(5)
     machine.reset()
 
@@ -30,14 +31,12 @@ def on_message(topic, payload):
         heartbeat_topic = "pico/"+pico+"/heartbeat"
         mqtt.send_mqtt(client,heartbeat_topic,"Yes, I'm here")
 
-try:
-    client = mqtt.mqtt_connect(client_id=pico)
+def heartbeat():
     topic = 'pico/'+pico+'/status'
     message = pico + ' is Alive!'
     mqtt.send_mqtt(client,topic,message)
     #Bind function to callback
     client.set_callback(on_message)
-    #sub_topic = "pico/"+pico+"/#"
     print("Subscribing to channels...")
     client.subscribe("pico/"+pico+"/control")
     client.subscribe("pico/"+pico+"/poll")
@@ -45,7 +44,12 @@ try:
         client.check_msg()
         time.sleep(0.1)
 
+try:
+    client = mqtt.mqtt_connect(client_id=pico)
 except OSError as e:
     print("Failed to connect to MQ")
-    #reconnect()
+    reconnect()
 
+heartbeat_thread = _thread.start_new_thread(heartbeat, ())
+
+import trap.py
