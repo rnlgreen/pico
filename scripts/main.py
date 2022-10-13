@@ -48,7 +48,7 @@ try:
     client = mqtt.mqtt_connect(client_id=pico)
 except OSError as e:
     print("Failed to connect to MQ")
-    reconnect()
+    #reconnect()
 
 heartbeat_thread = _thread.start_new_thread(heartbeat, ())
 
