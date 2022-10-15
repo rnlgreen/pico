@@ -1,5 +1,5 @@
 #Python script to get the pico unique ID
-import machine
+import machine # type: ignore
 
 picos = {"e6614c311b462739":"pico1"}
 

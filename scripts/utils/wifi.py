@@ -1,5 +1,5 @@
 #Wi-Fi specific functions
-import network
+import network # type: ignore
 import time
 
 def wlan_connect(hostname):
