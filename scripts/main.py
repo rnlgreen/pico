@@ -1,7 +1,7 @@
 #Main routine for pico1
 import time
 import _thread
-import machine
+import machine # type: ignore
 
 #Import my supporting code
 import utils.myid as myid, utils.wifi as wifi, utils.mqtt as mqtt
@@ -33,11 +33,9 @@ def on_message(topic, payload):
         heartbeat_topic = "pico/"+pico+"/heartbeat"
         mqtt.send_mqtt(client,heartbeat_topic,"Yes, I'm here")
 
-try:
-    client = mqtt.mqtt_connect(client_id=pico)
-except OSError as e:
-    print("Failed to connect to MQ")
-    #reconnect()
+client = mqtt.mqtt_connect(client_id=pico)
+if not client:
+    print("We should probably reboot now...")
 
 #Say Hello
 topic = 'pico/'+pico+'/status'
@@ -48,15 +46,15 @@ mqtt.send_mqtt(client,topic,message)
 import trap
 
 #Subscribe to control and heartbeat channels
-client.set_callback(on_message)
+client.set_callback(on_message) # type: ignore
 print("Subscribing to channels...")
-client.subscribe("pico/"+pico+"/control")
-client.subscribe("pico/"+pico+"/poll")
+client.subscribe("pico/"+pico+"/control") # type: ignore
+client.subscribe("pico/"+pico+"/poll") # type: ignore
 
 while True:
     #Check the traps
     trap.trap()
     #Check for messages
-    client.check_msg()
+    client.check_msg() # type: ignore
     #Wait a bit
     time.sleep(0.2)
