@@ -1,8 +1,4 @@
-#Trigger script to record and report the status of the mouse trap 
-#Uses the tilt switches on GPIO 15 (pin 10) and GPIO 3 (pin 5)
-#Switches should be attached to the GPIO pin and to ground
-#Allows for some flutter on the horizontal
-
+#Test script for trap detection
 from machine import Pin, RTC as rtc
 from time import sleep, time
 

@@ -21,7 +21,7 @@ def restart():
 
 #define callback
 def on_message(topic, payload):
-    print("topic: {} received message = {}".format(str(topic.decode()),str(payload.decode())))
+    print("Received topic: {} message: {}".format(str(topic.decode()),str(payload.decode())))
     if str(topic.decode()) == "pico/"+pico+"/control":
         if str(payload.decode()) == "blink":
             blink(0.25,0.25)
@@ -59,5 +59,4 @@ while True:
     #Check for messages
     client.check_msg()
     #Wait a bit
-    time.sleep(1)
-
+    time.sleep(0.2)
