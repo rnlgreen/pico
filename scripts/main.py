@@ -15,7 +15,7 @@ print("I am {}".format(pico))
 wifi_connected = wifi.wlan_connect(pico)
 
 def restart():
-    print('Unrecoverable error, restarting...')
+    print('Restarting {} ...'.format(pico))
     time.sleep(5)
     machine.reset()
 
@@ -25,24 +25,13 @@ def on_message(topic, payload):
     if str(topic.decode()) == "pico/"+pico+"/control":
         if str(payload.decode()) == "blink":
             blink(0.25,0.25)
+        elif str(payload.decode()) == "restart":
+            restart()
         else:
             print("Unknown command: {}".format(str(payload.decode())))
     elif str(topic.decode()) == "pico/"+pico+"/poll":
         heartbeat_topic = "pico/"+pico+"/heartbeat"
         mqtt.send_mqtt(client,heartbeat_topic,"Yes, I'm here")
-
-def heartbeat():
-    topic = 'pico/'+pico+'/status'
-    message = pico + ' is Alive!'
-    mqtt.send_mqtt(client,topic,message)
-    #Bind function to callback
-    client.set_callback(on_message)
-    print("Subscribing to channels...")
-    client.subscribe("pico/"+pico+"/control")
-    client.subscribe("pico/"+pico+"/poll")
-    while True:
-        client.check_msg()
-        time.sleep(0.1)
 
 try:
     client = mqtt.mqtt_connect(client_id=pico)
@@ -50,7 +39,25 @@ except OSError as e:
     print("Failed to connect to MQ")
     #reconnect()
 
-heartbeat_thread = _thread.start_new_thread(heartbeat, ())
+#Say Hello
+topic = 'pico/'+pico+'/status'
+message = pico + ' is Alive!'
+mqtt.send_mqtt(client,topic,message)
 
+#Initialise the traps
 import trap
-trap.trap()
+
+#Subscribe to control and heartbeat channels
+client.set_callback(on_message)
+print("Subscribing to channels...")
+client.subscribe("pico/"+pico+"/control")
+client.subscribe("pico/"+pico+"/poll")
+
+while True:
+    #Check the traps
+    trap.trap()
+    #Check for messages
+    client.check_msg()
+    #Wait a bit
+    time.sleep(1)
+
