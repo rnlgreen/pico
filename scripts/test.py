@@ -1,5 +1,5 @@
 #Test script for trap detection
-from machine import Pin, RTC as rtc
+from machine import Pin, RTC as rtc, PWM # type: ignore
 from time import sleep, time
 
 traps = {
