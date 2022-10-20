@@ -1,12 +1,11 @@
-#Blink util
 from machine import Pin # type: ignore
-import time
+from time import sleep
 
 led = Pin('LED', Pin.OUT)
 
-def blink(on=1.0,off=1.0,loop=1):
+def blink(on=1,off=1,loop=1):
     for i in range(loop):
         led.value(1)
-        time.sleep(on)
+        sleep(on)
         led.value(0)
-        time.sleep(off)
+        sleep(off)

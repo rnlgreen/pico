@@ -35,12 +35,12 @@ Example::
 # Modified by Pablo Zinemanas to work on pycom boards (tested in WiPy).
 
 try:
-    import usocket as _socket
+    import usocket as _socket # type: ignore
 except ImportError:
     import socket as _socket
 
-import ssl
-import time
+#import ssl
+#import time
 
 __all__ = (
     "Error",
@@ -207,8 +207,8 @@ class FTP:
         if not sock:
             raise Error("Could not connect to %r" % (addr,))
 
-        if use_ssl:
-            sock = ssl.wrap_socket(sock)
+#        if use_ssl:
+#            sock = ssl.wrap_socket(sock)
         
         self.af = af
      

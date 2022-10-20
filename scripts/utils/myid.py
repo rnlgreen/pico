@@ -1,10 +1,10 @@
 #Python script to get the pico unique ID
-import machine # type: ignore
+from machine import unique_id # type: ignore
 
 picos = {"e6614c311b462739":"pico1"}
 
 def get_id():
-    s = machine.unique_id()
+    s = unique_id()
     myid = ""
     for b in s:
         myid = myid + hex(b)[2:]
