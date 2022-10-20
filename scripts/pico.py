@@ -75,8 +75,6 @@ else:
     client.subscribe("pico/"+pico+"/control") # type: ignore
     client.subscribe("pico/"+pico+"/poll") # type: ignore
 
-reload()
-
 #Now load and call the specific code for this pico
 main = __import__(pico)
 main.main(client)
