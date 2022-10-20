@@ -5,6 +5,7 @@
 #wlan_pass = "dodgyiot"
 ssid = "W3Z-83B3"
 wlan_pass = "Herdyhigh07"
+mqtt_server = "192.168.1.113"
 ftphost = "192.168.1.113"
 ftpuser = "pi"
 ftppw = "Pepperm1nt"
