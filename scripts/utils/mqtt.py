@@ -7,6 +7,7 @@ mqtt_server = 'condor'
 def mqtt_connect(client_id, mqtt_server=mqtt_server):
     print("Connecting to MQTT...")
     try:
+        print("Connecting as {} to {}".format(client_id, mqtt_server))
         client = MQTTClient(client_id, mqtt_server, keepalive=3600)
         client.connect()
         print('Connected to MQTT Broker {}'.format(mqtt_server))
