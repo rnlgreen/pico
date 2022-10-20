@@ -1,10 +1,8 @@
 #MQTT specific functions
 from umqtt.simple import MQTTClient # type: ignore
+import secrets
 
-#NOTE: ".local" seems to use mdns, but raw "condor" uses DNS
-mqtt_server = 'condor'
-
-def mqtt_connect(client_id, mqtt_server=mqtt_server):
+def mqtt_connect(client_id, mqtt_server=secrets.mqtt_server):
     print("Connecting to MQTT...")
     try:
         print("Connecting as {} to {}".format(client_id, mqtt_server))
