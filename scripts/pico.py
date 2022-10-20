@@ -30,7 +30,7 @@ def reload():
     import utils.ftp as ftp
     topic = 'pico/'+pico+'/status'
     #Move to the root FTP folder
-    ftp.cwd('pico')
+    ftp.cwd('pico/scripts')
     #Get all files for the root
     numfiles = ftp.get_allfiles(".")
     message = pico + ' copied ' + str(numfiles) + " files to root"
