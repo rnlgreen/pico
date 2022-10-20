@@ -12,7 +12,7 @@ def mqtt_connect(client_id, mqtt_server=mqtt_server):
         print('Connected to MQTT Broker {}'.format(mqtt_server))
         return client
     except:
-        print("Failed to connec to MQTT")
+        print("Failed to connect to MQTT")
         return False
 
 #send a message

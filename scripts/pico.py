@@ -1,4 +1,4 @@
-#Main routine for pico1
+#Main routine for all picos
 from time import sleep
 import _thread
 from machine import reset # type: ignore
@@ -50,20 +50,24 @@ def on_message(topic, payload):
         heartbeat_topic = "pico/"+pico+"/heartbeat"
         mqtt.send_mqtt(client,heartbeat_topic,"Yes, I'm here")
 
+#Try and connect to MQTT
 client = mqtt.mqtt_connect(client_id=pico)
-if not client:
+
+if client == False:
     print("We should probably reboot now...")
+else:
+    #Say Hello
+    topic = 'pico/'+pico+'/status'
+    message = pico + ' is Alive!'
 
-#Say Hello
-topic = 'pico/'+pico+'/status'
-message = pico + ' is Alive!'
-mqtt.send_mqtt(client,topic,message)
+    mqtt.send_mqtt(client,topic,message)
 
-#Subscribe to control and heartbeat channels
-client.set_callback(on_message) # type: ignore
-print("Subscribing to channels...")
-client.subscribe("pico/"+pico+"/control") # type: ignore
-client.subscribe("pico/"+pico+"/poll") # type: ignore
+    #Subscribe to control and heartbeat channels
+    client.set_callback(on_message) # type: ignore
+    print("Subscribing to channels...")
+    client.subscribe("pico/"+pico+"/control") # type: ignore
+    client.subscribe("pico/"+pico+"/poll") # type: ignore
 
-#Now load the specific code for this pico
-__import__(pico)
+#Now load and call the specific code for this pico
+main = __import__(pico)
+main.main(client)
