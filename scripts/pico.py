@@ -14,24 +14,31 @@ print("I am {}".format(pico))
 #Call wifi_connect with our hostname
 wifi_connected = wifi.wlan_connect(pico)
 
+#Send alert 
+def send_mqtt(topic,message):
+    print("{}: {}".format(topic,message))
+    if client != False:
+        mqtt.send_mqtt(client,topic,message)
+
 def restart():
     print('Restarting {} ...'.format(pico))
     sleep(5)
     reset()
 
 def reload():
+    print("Fetching latest code...")
     import utils.ftp as ftp
     topic = 'pico/'+pico+'/status'
     #Move to the root FTP folder
-    ftp.cwd('files')
+    ftp.cwd('pico')
     #Get all files for the root
     numfiles = ftp.get_allfiles(".")
     message = pico + ' copied ' + str(numfiles) + " files to root"
-    mqtt.send_mqtt(client,topic,message)
+    send_mqtt(topic,message)
     #Get all files for utils (get_allfiles will deal with changing directory)
     numfiles = ftp.get_allfiles("utils")
     message = pico + ' copied ' + str(numfiles) + " files to utils"
-    mqtt.send_mqtt(client,topic,message)
+    send_mqtt(topic,message)
     ftp.quit()
 
 #define callback
@@ -48,7 +55,7 @@ def on_message(topic, payload):
             print("Unknown command: {}".format(str(payload.decode())))
     elif str(topic.decode()) == "pico/"+pico+"/poll":
         heartbeat_topic = "pico/"+pico+"/heartbeat"
-        mqtt.send_mqtt(client,heartbeat_topic,"Yes, I'm here")
+        send_mqtt(heartbeat_topic,"Yes, I'm here")
 
 #Try and connect to MQTT
 client = mqtt.mqtt_connect(client_id=pico)
@@ -60,13 +67,15 @@ else:
     topic = 'pico/'+pico+'/status'
     message = pico + ' is Alive!'
 
-    mqtt.send_mqtt(client,topic,message)
+    send_mqtt(topic,message)
 
     #Subscribe to control and heartbeat channels
     client.set_callback(on_message) # type: ignore
     print("Subscribing to channels...")
     client.subscribe("pico/"+pico+"/control") # type: ignore
     client.subscribe("pico/"+pico+"/poll") # type: ignore
+
+reload()
 
 #Now load and call the specific code for this pico
 main = __import__(pico)
