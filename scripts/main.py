@@ -83,4 +83,4 @@ else:
 
 #Now load and call the specific code for this pico
 main = __import__(pico)
-main.main()
+main.main(client)
