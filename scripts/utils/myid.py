@@ -2,6 +2,10 @@
 from machine import unique_id # type: ignore
 
 picos = {"e6614c311b462739":"pico1"}
+where = {
+            "pico1": "loft", 
+            "pico2": "garage"
+        }
 
 def get_id():
     s = unique_id()
