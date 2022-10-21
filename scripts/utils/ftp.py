@@ -10,7 +10,7 @@ def get_textfile(folder,filename):
 
 def get_allfiles(folder):
     ftp.cwd(folder)
-    ftp.retrlines('LIST')
+    #ftp.retrlines('LIST')
     filenames = ftp.nlst()
     numfiles = 0
     for filename in filenames:
