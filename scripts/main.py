@@ -1,6 +1,5 @@
 #Main routine for all picos
 import time
-import _thread
 import machine # type: ignore
 
 #Import my supporting code
