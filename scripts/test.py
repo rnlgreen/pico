@@ -1,6 +1,6 @@
 #Test script for trap detection
 from machine import Pin, RTC as rtc, PWM # type: ignore
-from time import sleep, time
+import time
 
 traps = {
             "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0},
@@ -32,7 +32,7 @@ def trap():
                         print  ("{}: {} is sprung".format(dt,trap))
                 else:
                     print ("{}: {} already sprung".format(dt,trap))
-        sleep(0.25)
+        time.sleep(0.25)
 
 if __name__ == "__main__":
     trap()

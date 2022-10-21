@@ -1,7 +1,7 @@
 #Main routine for all picos
-from time import sleep
+import time
 import _thread
-from machine import reset # type: ignore
+import machine # type: ignore
 
 #Import my supporting code
 import utils.myid as myid, utils.wifi as wifi, utils.mqtt as mqtt
@@ -22,8 +22,8 @@ def send_mqtt(topic,message):
 
 def restart():
     print('Restarting {} ...'.format(pico))
-    sleep(5)
-    reset()
+    time.sleep(5)
+    machine.reset()
 
 def reload():
     print("Fetching latest code...")

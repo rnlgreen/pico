@@ -1,6 +1,6 @@
 #Main routine for Pico1
 #Initialise the traps
-from time import sleep
+import time
 import trap
 
 def main(client):
@@ -11,4 +11,4 @@ def main(client):
         if client != False:
             client.check_msg() # type: ignore
         #Wait a bit
-        sleep(0.2)
+        time.sleep(0.2)
