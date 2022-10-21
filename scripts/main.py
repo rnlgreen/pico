@@ -33,10 +33,11 @@ def reload():
     topic = 'pico/'+pico+'/status'
     message = pico + " fetching latest code..."
     send_mqtt(topic,message)
+    ### TO DO: ADD FTP SESSION CREATION AND AUTHENTICATION HERE IN CASE THE FTP TIMES OUT AND WE TRY ANOTHER RELOAD
     import utils.ftp as ftp
     topic = 'pico/'+pico+'/status'
     #Move to the root FTP folder
-    ftp.cwd('pico/scripts')
+    ftp.cwd('/pico/scripts')
     #Get all files for the root
     numfiles = ftp.get_allfiles(".")
     message = pico + ' copied ' + str(numfiles) + " files to root"
@@ -45,7 +46,7 @@ def reload():
     numfiles = ftp.get_allfiles("utils")
     message = pico + ' copied ' + str(numfiles) + " files to utils"
     send_mqtt(topic,message)
-    ftp.quit()
+#    ftp.quit()
 
 #define callback
 def on_message(topic, payload):
