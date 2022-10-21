@@ -35,18 +35,19 @@ def reload():
     message = pico + " fetching latest code..."
     send_mqtt(topic,message)
     import utils.ftp as ftp
-    if ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw):
+    session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
+    if session:
         #Move to the root FTP folder
-        ftp.cwd('/pico/scripts')
+        ftp.cwd(session,'/pico/scripts')
         #Get all files for the root
-        numfiles = ftp.get_allfiles(".")
+        numfiles = ftp.get_allfiles(session,".")
         message = pico + ' copied ' + str(numfiles) + " files to root"
         send_mqtt(topic,message)
         #Get all files for utils (get_allfiles will deal with changing directory)
-        numfiles = ftp.get_allfiles("utils")
+        numfiles = ftp.get_allfiles(session,"utils")
         message = pico + ' copied ' + str(numfiles) + " files to utils"
         send_mqtt(topic,message)
-        ftp.quit()
+        ftp.quit(session)
     else:
         print("FTP error occurred.")
         message = pico + " FTP error occurred"

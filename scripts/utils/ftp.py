@@ -1,23 +1,23 @@
-#Test FTP script
+#FTP Utils
 import utils.wifi as wifi
 from utils.ftplib import FTP
-import secrets
 
 def login(ftphost,ftpuser,ftppw):
     print("Opening FTP connection...")
     try:
         ftp = FTP(ftphost)
         ftp.login(ftpuser,ftppw)
-        return True
+        return ftp
     except Exception as e:
         print("Failed to connect to FTP server: {}".format(e))
+        return False
 
-def get_textfile(folder,filename):
+def get_textfile(ftp,folder,filename):
     fp = open(folder+"/"+filename, 'w')
     ftp.retrlines('RETR ' + filename, lambda s, w = fp.write: w(s + '\n'))
     fp.close()
 
-def get_allfiles(folder):
+def get_allfiles(ftp,folder):
     ftp.cwd(folder)
     #ftp.retrlines('LIST')
     filenames = ftp.nlst()
@@ -27,19 +27,15 @@ def get_allfiles(folder):
         try:
             ftp.size(filename)
             print("Getting file {}".format(filename))
-            get_textfile(folder,filename)
+            get_textfile(ftp,folder,filename)
             numfiles+=1
         except:
             print("Skipping '{}'".format(filename))
     return numfiles
 
-def cwd(folder):
+def cwd(ftp,folder):
     ftp.cwd(folder)
 
-def quit():
+def quit(ftp):
     ftp.quit()
-
-print("Opening FTP connection...")
-ftp = FTP(secrets.ftphost)
-ftp.login(secrets.ftpuser,secrets.ftppw)
 
