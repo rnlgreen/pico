@@ -22,11 +22,15 @@ def send_mqtt(topic,message):
 
 def restart():
     print('Restarting {} ...'.format(pico))
+    message = pico + " restarting in 5 seconds..."
+    send_mqtt(topic,message)
     time.sleep(5)
     machine.reset()
 
 def reload():
     print("Fetching latest code...")
+    message = pico + " fetching latest code..."
+    send_mqtt(topic,message)
     import utils.ftp as ftp
     topic = 'pico/'+pico+'/status'
     #Move to the root FTP folder
