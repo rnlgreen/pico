@@ -9,7 +9,8 @@ def wlan_connect(hostname):
     attempts = 0
     while attempts < 5 and not wlan.isconnected():
         print("Connecting to {}...".format(secrets.ssid))
-        wlan.config(dhcp_hostname = hostname)
+        #The following config should work but wasn't yet merged with the latest build of micropython
+        #wlan.config(dhcp_hostname = hostname)
         wlan.connect(secrets.ssid,secrets.wlan_pass)
         time.sleep(5)
         print(wlan.isconnected())
