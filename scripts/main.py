@@ -6,6 +6,7 @@ import machine # type: ignore
 #Import my supporting code
 import utils.myid as myid, utils.wifi as wifi, utils.mqtt as mqtt
 from utils.blink import blink
+import secrets
 
 #Get my ID
 pico = myid.get_id()
@@ -33,20 +34,23 @@ def reload():
     topic = 'pico/'+pico+'/status'
     message = pico + " fetching latest code..."
     send_mqtt(topic,message)
-    ### TO DO: ADD FTP SESSION CREATION AND AUTHENTICATION HERE IN CASE THE FTP TIMES OUT AND WE TRY ANOTHER RELOAD
     import utils.ftp as ftp
-    topic = 'pico/'+pico+'/status'
-    #Move to the root FTP folder
-    ftp.cwd('/pico/scripts')
-    #Get all files for the root
-    numfiles = ftp.get_allfiles(".")
-    message = pico + ' copied ' + str(numfiles) + " files to root"
-    send_mqtt(topic,message)
-    #Get all files for utils (get_allfiles will deal with changing directory)
-    numfiles = ftp.get_allfiles("utils")
-    message = pico + ' copied ' + str(numfiles) + " files to utils"
-    send_mqtt(topic,message)
-#    ftp.quit()
+    if ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw):
+        #Move to the root FTP folder
+        ftp.cwd('/pico/scripts')
+        #Get all files for the root
+        numfiles = ftp.get_allfiles(".")
+        message = pico + ' copied ' + str(numfiles) + " files to root"
+        send_mqtt(topic,message)
+        #Get all files for utils (get_allfiles will deal with changing directory)
+        numfiles = ftp.get_allfiles("utils")
+        message = pico + ' copied ' + str(numfiles) + " files to utils"
+        send_mqtt(topic,message)
+        ftp.quit()
+    else:
+        print("FTP error occurred.")
+        message = pico + " FTP error occurred"
+        send_mqtt(topic,message)
 
 #define callback
 def on_message(topic, payload):

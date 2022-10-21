@@ -3,6 +3,15 @@ import utils.wifi as wifi
 from utils.ftplib import FTP
 import secrets
 
+def login(ftphost,ftpuser,ftppw):
+    print("Opening FTP connection...")
+    try:
+        ftp = FTP(ftphost)
+        ftp.login(ftpuser,ftppw)
+        return True
+    except Exception as e:
+        print("Failed to connect to FTP server: {}".format(e))
+
 def get_textfile(folder,filename):
     fp = open(folder+"/"+filename, 'w')
     ftp.retrlines('RETR ' + filename, lambda s, w = fp.write: w(s + '\n'))
