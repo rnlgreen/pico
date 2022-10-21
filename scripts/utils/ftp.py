@@ -1,5 +1,4 @@
 #FTP Utils
-import utils.wifi as wifi
 from utils.ftplib import FTP
 
 def login(ftphost,ftpuser,ftppw):
