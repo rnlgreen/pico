@@ -30,6 +30,7 @@ def cwd(folder):
 def quit():
     ftp.quit()
 
+print("Opening FTP connection...")
 ftp = FTP(secrets.ftphost)
 ftp.login(secrets.ftpuser,secrets.ftppw)
 

@@ -22,6 +22,7 @@ def send_mqtt(topic,message):
 
 def restart():
     print('Restarting {} ...'.format(pico))
+    topic = 'pico/'+pico+'/status'
     message = pico + " restarting in 5 seconds..."
     send_mqtt(topic,message)
     time.sleep(5)
@@ -29,6 +30,7 @@ def restart():
 
 def reload():
     print("Fetching latest code...")
+    topic = 'pico/'+pico+'/status'
     message = pico + " fetching latest code..."
     send_mqtt(topic,message)
     import utils.ftp as ftp
@@ -81,4 +83,4 @@ else:
 
 #Now load and call the specific code for this pico
 main = __import__(pico)
-main.main(client)
+main.main()
