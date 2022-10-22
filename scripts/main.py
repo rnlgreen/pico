@@ -54,12 +54,12 @@ def reload():
         message = pico + " FTP error occurred"
         status(message)
 
-#define callback
+#process incoming control commands
 def on_message(topic, payload):
     print("Received topic: {} message: {}".format(str(topic.decode()),str(payload.decode())))
     if str(topic.decode()) == "pico/"+pico+"/control":
         if str(payload.decode()) == "blink":
-            blink(0.25,0.25)
+            blink(0.25,0.25,5)
         elif str(payload.decode()) == "reload":
             reload()
         elif str(payload.decode()) == "restart":
