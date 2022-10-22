@@ -49,6 +49,7 @@ def reload():
         message = pico + ' copied ' + str(numfiles) + " files to utils"
         status(message)
         ftp.quit(session)
+        status("Reload complete")
     else:
         message = pico + " FTP error occurred"
         status(message)
