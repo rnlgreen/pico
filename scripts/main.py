@@ -20,41 +20,42 @@ def send_mqtt(topic,message):
     if client != False:
         mqtt.send_mqtt(client,topic,message)
 
-def restart():
-    print('Restarting {} ...'.format(pico))
+#Print and send status messages
+def status(message):
+    print(message)
     topic = 'pico/'+pico+'/status'
-    message = pico + " restarting in 5 seconds..."
     send_mqtt(topic,message)
-    time.sleep(5)
+
+#Restart pico
+def restart():
+    status('Restarting {} ...'.format(pico))
+    time.sleep(1)
     machine.reset()
 
 def reload():
-    print("Fetching latest code...")
-    topic = 'pico/'+pico+'/status'
-    message = pico + " fetching latest code..."
-    send_mqtt(topic,message)
+    status("Fetching latest code...")
     import utils.ftp as ftp
     session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
+    status("Established FTP session, copying files...")
     if session:
         #Move to the root FTP folder
         ftp.cwd(session,'/pico/scripts')
         #Get all files for the root
         numfiles = ftp.get_allfiles(session,".")
         message = pico + ' copied ' + str(numfiles) + " files to root"
-        send_mqtt(topic,message)
+        status(message)
         #Get all files for utils (get_allfiles will deal with changing directory)
         numfiles = ftp.get_allfiles(session,"utils")
         message = pico + ' copied ' + str(numfiles) + " files to utils"
-        send_mqtt(topic,message)
+        status(message)
         ftp.quit(session)
     else:
-        print("FTP error occurred.")
         message = pico + " FTP error occurred"
-        send_mqtt(topic,message)
+        status(message)
 
 #define callback
 def on_message(topic, payload):
-    print("Received topic: {} message: {}".format(str(topic.decode()),str(payload.decode())))
+    status("Received topic: {} message: {}".format(str(topic.decode()),str(payload.decode())))
     if str(topic.decode()) == "pico/"+pico+"/control":
         if str(payload.decode()) == "blink":
             blink(0.25,0.25)
@@ -63,7 +64,7 @@ def on_message(topic, payload):
         elif str(payload.decode()) == "restart":
             restart()
         else:
-            print("Unknown command: {}".format(str(payload.decode())))
+            status("Unknown command: {}".format(str(payload.decode())))
     elif str(topic.decode()) == "pico/"+pico+"/poll":
         heartbeat_topic = "pico/"+pico+"/heartbeat"
         send_mqtt(heartbeat_topic,"Yes, I'm here")
@@ -72,17 +73,14 @@ def on_message(topic, payload):
 client = mqtt.mqtt_connect(client_id=pico)
 
 if client == False:
-    print("We should probably reboot now...")
+    status("We should probably reboot now...")
 else:
     #Say Hello
-    topic = 'pico/'+pico+'/status'
     message = pico + ' is Alive!'
-
-    send_mqtt(topic,message)
-
+    status(message)
     #Subscribe to control and heartbeat channels
     client.set_callback(on_message) # type: ignore
-    print("Subscribing to channels...")
+    status("Subscribing to channels...")
     client.subscribe("pico/"+pico+"/control") # type: ignore
     client.subscribe("pico/"+pico+"/poll") # type: ignore
 

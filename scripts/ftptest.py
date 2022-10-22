@@ -1,12 +1,19 @@
-#Test FTP script
-import utils.wifi as wifi
+#ftp test
+import secrets
 
-wifi.wlan_connect('pico1')
+def reload():
+    import utils.ftp as ftp
+    session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
+    if session:
+        #Move to the root FTP folder
+        ftp.cwd(session,'/pico/scripts')
+        #Get all files for the root
+        numfiles = ftp.get_allfiles(session,".")
+        #Get all files for utils (get_allfiles will deal with changing directory)
+        numfiles = ftp.get_allfiles(session,"utils")
+        ftp.quit(session)
+    else:
+        print("FTP error occurred.")
 
-import utils.ftp as ftp
-
-ftp.cwd('pico')
-ftp.get_allfiles(".")
-ftp.get_allfiles("utils")
-ftp.quit()
-
+if __name__ == "__main__":
+    reload()
