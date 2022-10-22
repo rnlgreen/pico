@@ -49,7 +49,7 @@ def reload():
         message = pico + ' copied ' + str(numfiles) + " files to utils"
         status(message)
         ftp.quit(session)
-        status("Reload complete")
+        status("{} reload complete".format(pico))
     else:
         message = pico + " FTP error occurred"
         status(message)
@@ -59,7 +59,7 @@ def on_message(topic, payload):
     print("Received topic: {} message: {}".format(str(topic.decode()),str(payload.decode())))
     if str(topic.decode()) == "pico/"+pico+"/control":
         if str(payload.decode()) == "blink":
-            blink(0.25,0.25,5)
+            blink(0.1,0.1,5)
         elif str(payload.decode()) == "reload":
             reload()
         elif str(payload.decode()) == "restart":
