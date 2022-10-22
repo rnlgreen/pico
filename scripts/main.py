@@ -85,5 +85,6 @@ else:
     client.subscribe("pico/"+pico+"/poll") # type: ignore
 
 #Now load and call the specific code for this pico
+status("Loading main for {}".format(pico))
 main = __import__(pico)
 main.main(client)
