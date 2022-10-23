@@ -50,7 +50,7 @@ class AM2320:
             crc = ustruct.unpack('<H', bytearray(buf[-2:]))[0]
             if (crc != self.crc16(buf[:-2])):
                 raise Exception("checksum error")
-        except Exception as e
+        except Exception as e:
             raise Exception("Error accessing I2C sensor: {}".format(e))
     def crc16(self, buf):
         crc = 0xFFFF
