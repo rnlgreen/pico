@@ -1,7 +1,7 @@
 #Python script to get the pico unique ID
 from machine import unique_id # type: ignore
 
-picos = {"e6614c311b462739":"pico1"}
+picos = {"e6614c311b462739":"pico2"}
 where = {
             "pico1": "loft", 
             "pico2": "garage"

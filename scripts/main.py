@@ -7,6 +7,8 @@ import utils.myid as myid, utils.wifi as wifi, utils.mqtt as mqtt
 from utils.blink import blink
 import secrets
 
+testmode = False
+
 #Get my ID
 pico = myid.get_id()
 print("I am {}".format(pico))
@@ -23,12 +25,13 @@ def send_mqtt(topic,message):
 #Print and send status messages
 def status(message):
     print(message)
+    message = pico + ": " + message
     topic = 'pico/'+pico+'/status'
     send_mqtt(topic,message)
 
 #Restart pico
 def restart():
-    status('Restarting {} ...'.format(pico))
+    status('Restarting ...')
     time.sleep(1)
     machine.reset()
 
@@ -42,16 +45,16 @@ def reload():
         ftp.cwd(session,'/pico/scripts')
         #Get all files for the root
         numfiles = ftp.get_allfiles(session,".")
-        message = pico + ' copied ' + str(numfiles) + " files to root"
+        message = 'Copied ' + str(numfiles) + " files to root"
         status(message)
         #Get all files for utils (get_allfiles will deal with changing directory)
         numfiles = ftp.get_allfiles(session,"utils")
-        message = pico + ' copied ' + str(numfiles) + " files to utils"
+        message = 'Copied ' + str(numfiles) + " files to utils"
         status(message)
         ftp.quit(session)
-        status("{} reload complete".format(pico))
+        status("Reload complete".format(pico))
     else:
-        message = pico + " FTP error occurred"
+        message = "FTP error occurred"
         status(message)
 
 #process incoming control commands
@@ -77,15 +80,15 @@ if client == False:
     status("We should probably reboot now...")
 else:
     #Say Hello
-    message = pico + ' is Alive!'
-    status(message)
+    status("I'm Alive!")
     #Subscribe to control and heartbeat channels
     client.set_callback(on_message) # type: ignore
     status("Subscribing to channels...")
     client.subscribe("pico/"+pico+"/control") # type: ignore
     client.subscribe("pico/"+pico+"/poll") # type: ignore
 
-#Now load and call the specific code for this pico
-status("Loading main for {}".format(pico))
-main = __import__(pico)
-main.main(client)
+if not testmode:
+    #Now load and call the specific code for this pico
+    status("Loading main")
+    main = __import__(pico)
+    main.main(client)

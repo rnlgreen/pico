@@ -40,15 +40,18 @@ class AM2320:
             self.i2c.writeto(address, b'')
         except OSError:
             pass
-        # read 4 registers starting at offset 0x00
-        self.i2c.writeto(address, b'\x03\x00\x04')
-        # wait at least 1.5ms
-        time.sleep_ms(2)
-        # read data
-        self.i2c.readfrom_mem_into(address, 0, buf)
-        crc = ustruct.unpack('<H', bytearray(buf[-2:]))[0]
-        if (crc != self.crc16(buf[:-2])):
-            raise Exception("checksum error")
+        try:
+            # read 4 registers starting at offset 0x00
+            self.i2c.writeto(address, b'\x03\x00\x04')
+            # wait at least 1.5ms
+            time.sleep_ms(2)
+            # read data
+            self.i2c.readfrom_mem_into(address, 0, buf)
+            crc = ustruct.unpack('<H', bytearray(buf[-2:]))[0]
+            if (crc != self.crc16(buf[:-2])):
+                raise Exception("checksum error")
+        except Exception as e
+            raise Exception("Error accessing I2C sensor: {}".format(e))
     def crc16(self, buf):
         crc = 0xFFFF
         for c in buf:
