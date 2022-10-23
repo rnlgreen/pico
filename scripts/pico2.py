@@ -52,7 +52,7 @@ def main(client = False):
             try:
                 sensor.measure()
                 send_measurement("temperature",sensor.temperature())
-                send_measurement("humiditiy",sensor.humidity())
+                send_measurement("humidity",sensor.humidity())
                 status("Measurements sent")
             except Exception as e:
                 status("Exception: {}".format(e))
