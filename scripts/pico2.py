@@ -37,7 +37,7 @@ def send_measurement(what,value):
 
 def main(client = False):
     try:
-        i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN))
+        i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=40000)
         sensor = am2320.AM2320(i2c)
     except Exception as e:
         status("Error setting up I2C: {}".format(e))
