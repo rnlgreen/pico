@@ -9,13 +9,6 @@ import secrets
 
 testmode = False
 
-#Get my ID
-pico = myid.get_id()
-print("I am {}".format(pico))
-
-#Call wifi_connect with our hostname
-wifi_connected = wifi.wlan_connect(pico)
-
 #Send alert 
 def send_mqtt(topic,message):
     print("{}: {}".format(topic,message))
@@ -62,6 +55,7 @@ def on_message(topic, payload):
     print("Received topic: {} message: {}".format(str(topic.decode()),str(payload.decode())))
     if str(topic.decode()) == "pico/"+pico+"/control":
         if str(payload.decode()) == "blink":
+            status("blinking")
             blink(0.1,0.1,5)
         elif str(payload.decode()) == "reload":
             reload()
@@ -73,19 +67,26 @@ def on_message(topic, payload):
         heartbeat_topic = "pico/"+pico+"/heartbeat"
         send_mqtt(heartbeat_topic,"Yes, I'm here")
 
-#Try and connect to MQTT
-client = mqtt.mqtt_connect(client_id=pico)
+#Get my ID
+pico = myid.get_id()
+print("I am {}".format(pico))
 
-if client == False:
-    status("We should probably reboot now...")
-else:
-    #Say Hello
-    status("I'm Alive!")
-    #Subscribe to control and heartbeat channels
-    client.set_callback(on_message) # type: ignore
-    status("Subscribing to channels...")
-    client.subscribe("pico/"+pico+"/control") # type: ignore
-    client.subscribe("pico/"+pico+"/poll") # type: ignore
+#Call wifi_connect with our hostname
+ipaddr = wifi.wlan_connect(pico)
+if ipaddr:
+    #Try and connect to MQTT
+    client = mqtt.mqtt_connect(client_id=pico)
+
+    if client == False:
+        status("We should probably reboot now...")
+    else:
+        #Say Hello
+        status("connected on {}".format(ipaddr))
+        #Subscribe to control and heartbeat channels
+        client.set_callback(on_message) # type: ignore
+        status("Subscribing to channels...")
+        client.subscribe("pico/"+pico+"/control") # type: ignore
+        client.subscribe("pico/"+pico+"/poll") # type: ignore
 
 if not testmode:
     #Now load and call the specific code for this pico

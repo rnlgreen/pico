@@ -16,7 +16,7 @@ def wlan_connect(hostname):
         print(wlan.isconnected())
     if wlan.isconnected():
         print(wlan.ifconfig())
-        return True
+        return wlan.ifconfig()[0]
     else:
         print("Failed to connect to WLAN")
         return False
