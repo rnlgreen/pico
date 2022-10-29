@@ -37,11 +37,13 @@ def reload():
         #Move to the root FTP folder
         ftp.cwd(session,'/pico/scripts')
         #Get all files for the root
-        numfiles = ftp.get_allfiles(session,".")
+#        numfiles = ftp.get_allfiles(session,".")
+        numfiles = ftp.get_changedfiles(session,".")
         message = 'Copied ' + str(numfiles) + " files to root"
         status(message)
         #Get all files for utils (get_allfiles will deal with changing directory)
-        numfiles = ftp.get_allfiles(session,"utils")
+#        numfiles = ftp.get_allfiles(session,"utils")
+        numfiles = ftp.get_changedfiles(session,"utils")
         message = 'Copied ' + str(numfiles) + " files to utils"
         status(message)
         ftp.quit(session)
