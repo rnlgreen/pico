@@ -21,17 +21,17 @@ As well as responding to polling messages received over MQTT, main.py also respo
 * 'restart' - causes the pico to execute the machine.restart() method to reboot the pico
 * 'datetime' - causes the pico to report back its local date and time, to verify the NTP sync worked
 
-pico[n].py These scripts contain code specific to the tasks I want individual pico modules to perform
+pico[n].py - These scripts contain code specific to the tasks I want individual pico modules to perform
 
-secrets.py Contains the various details to connect to Wi-Fi, MQTT and FTP services
+secrets.py - Contains the various details to connect to Wi-Fi, MQTT and FTP services
 
-trap.py I have a mouse trap instrumented with an infra-red beam to detect mice and a PWM motor to trigger the trap, along with a magnetic reed switch to detect when the trap is closed. This module handles all of that.
+trap.py - I have a mouse trap instrumented with an infra-red beam to detect mice and a PWM motor to trigger the trap, along with a magnetic reed switch to detect when the trap is closed. This module handles all of that.
 
-generate_shar256.sh Shell script to run on the Raspberry Pi hosting the FTP repositiory; generates text files containing the names of each python module and the SHA256 checksum of them. These text files are pulled down by main.py when it receives a "reload" command so that it can check which modules need updating compared to the local copies.
+generate_shar256.sh - Shell script to run on the Raspberry Pi hosting the FTP repositiory; generates text files containing the names of each python module and the SHA256 checksum of them. These text files are pulled down by main.py when it receives a "reload" command so that it can check which modules need updating compared to the local copies.
 
-lib/umqtt/simple.mpy Standard MicroPython MQTT library. Can be installed to a pico using: import mip mip.install("umqtt.simple")
+lib/umqtt/simple.mpy - Standard MicroPython MQTT library. Can be installed to a pico using: import mip mip.install("umqtt.simple")
 
-lib/ftplib.py MicroPython compatible ftplib module
+lib/ftplib.py - MicroPython compatible ftplib module
 
 utils/ The utils folder contains the following modules:
 * am2320.py - module for reporting the temperature and humiditiy from an AM2320 sensor
