@@ -1,5 +1,5 @@
 #FTP Utils
-from utils.ftplib import FTP
+from ftplib import FTP
 from utils.sha256 import check_sha256
 import utils.myid as myid
 import utils.mqtt as mqtt
