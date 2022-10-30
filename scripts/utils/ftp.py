@@ -1,28 +1,46 @@
 #FTP Utils
 from utils.ftplib import FTP
 from utils.sha256 import check_sha256
+import utils.myid as myid
+import utils.mqtt as mqtt
 
 def login(ftphost,ftpuser,ftppw):
-    print("Opening FTP connection...")
+    status("Opening FTP connection...")
     try:
         ftp = FTP(ftphost)
         ftp.login(ftpuser,ftppw)
         return ftp
     except Exception as e:
-        print("Failed to connect to FTP server: {}".format(e))
+        status("Failed to connect to FTP server: {}".format(e))
         return False
+
+#Send alert 
+def send_mqtt(topic,message):
+    print("{}: {}".format(topic,message))
+    if client != False:
+        mqtt.send_mqtt(client,topic,message)
+
+#status and send status messages
+def status(message):
+    print(message)
+    message = pico + ": " + message
+    topic = 'pico/'+pico+'/status'
+    send_mqtt(topic,message)
 
 def get_textfile(ftp,folder,filename):
     fp = open(folder+"/"+filename, 'w')
     ftp.retrlines('RETR ' + filename, lambda s, w = fp.write: w(s + '\n'))
     fp.close()
 
+def get_binaryfile(ftp,folder,filename):
+    with open(folder+"/"+filename, 'wb') as fp:
+        ftp.retrbinary('RETR ' + filename, fp.write)
+
 def get_sha256_list(ftp):
     lines = []
     ftp.retrlines('RETR sha256.txt', lines.append)
     sha256_values = {}
     for line in lines:
-        print("Splitting {}".format(line))
         sha256value,filename = line.strip().split('  ')
         sha256_values[filename] = sha256value
     return sha256_values
@@ -36,11 +54,12 @@ def get_allfiles(ftp,folder):
         #Try getting file size to see if it is a directory
         try:
             ftp.size(filename)
-            print("Getting file {}".format(filename))
-            get_textfile(ftp,folder,filename)
+            status("Getting file {}".format(filename))
+            #get_textfile(ftp,folder,filename)
+            get_binaryfile(ftp,folder,filename)
             numfiles+=1
         except:
-            print("Skipping '{}'".format(filename))
+            status("Skipping '{}'".format(filename))
     return numfiles
 
 def get_changedfiles(ftp,folder):
@@ -54,13 +73,13 @@ def get_changedfiles(ftp,folder):
             #Try getting file size to see if it is a directory
             try:
                 ftp.size(filename)
-                print("Getting file {}".format(folder+"/"+filename))
+                status("Getting file {}".format(folder+"/"+filename))
                 get_textfile(ftp,folder,filename)
                 numfiles+=1
             except:
-                print("File not found: '{}'".format(folder+"/"+filename))
+                status("File not found: '{}'".format(folder+"/"+filename))
         else:
-            print("Skipping identical file {}".format(folder+"/"+filename))
+            print("Skipping file {}".format(folder+"/"+filename))
     return numfiles
 
 def cwd(ftp,folder):
@@ -69,3 +88,6 @@ def cwd(ftp,folder):
 def quit(ftp):
     ftp.quit()
 
+#Try and connect to MQTT
+pico = myid.get_id()
+client = mqtt.mqtt_connect(client_id=pico+'-ftp')

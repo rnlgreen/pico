@@ -31,26 +31,29 @@ def restart():
 def reload():
     status("Fetching latest code...")
     import utils.ftp as ftp
-    session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
-    status("Established FTP session, copying files...")
-    if session:
-        #Move to the root FTP folder
-        ftp.cwd(session,'/pico/scripts')
-        #Get all files for the root
-#        numfiles = ftp.get_allfiles(session,".")
-        numfiles = ftp.get_changedfiles(session,".")
-        message = 'Copied ' + str(numfiles) + " files to root"
-        status(message)
-        #Get all files for utils (get_allfiles will deal with changing directory)
-#        numfiles = ftp.get_allfiles(session,"utils")
-        numfiles = ftp.get_changedfiles(session,"utils")
-        message = 'Copied ' + str(numfiles) + " files to utils"
-        status(message)
-        ftp.quit(session)
-        status("Reload complete".format(pico))
-    else:
-        message = "FTP error occurred"
-        status(message)
+    try:
+        session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
+        status("Comparing files...")
+        if session:
+            #Move to the root FTP folder
+            ftp.cwd(session,'/pico/scripts')
+            #Get all files for the root
+    #        numfiles = ftp.get_allfiles(session,".")
+            numfiles = ftp.get_changedfiles(session,".")
+            message = 'Copied ' + str(numfiles) + " files to root"
+            status(message)
+            #Get all files for utils (get_allfiles will deal with changing directory)
+    #        numfiles = ftp.get_allfiles(session,"utils")
+            numfiles = ftp.get_changedfiles(session,"utils")
+            message = 'Copied ' + str(numfiles) + " files to utils"
+            status(message)
+            ftp.quit(session)
+            status("Reload complete".format(pico))
+        else:
+            message = "FTP error occurred"
+            status(message)
+    except Exception as e:
+        status("Exception occurred: {}".format(e))
 
 #process incoming control commands
 def on_message(topic, payload):
