@@ -88,7 +88,7 @@ print("I am {}".format(pico))
 ipaddr = wifi.wlan_connect(pico)
 if ipaddr:
     #Sync the time up
-    ntp.settime()
+    ntp.set_time()
 
     #Try and connect to MQTT
     client = mqtt.mqtt_connect(client_id=pico)
