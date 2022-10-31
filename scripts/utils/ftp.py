@@ -74,7 +74,7 @@ def get_changedfiles(ftp,folder):
             try:
                 ftp.size(filename)
                 status("Getting file {}".format(folder+"/"+filename))
-                get_textfile(ftp,folder,filename)
+                get_binaryfile(ftp,folder,filename)
                 numfiles+=1
             except:
                 status("File not found: '{}'".format(folder+"/"+filename))
