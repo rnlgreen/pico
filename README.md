@@ -33,7 +33,7 @@ lib/umqtt/simple.mpy - Standard MicroPython MQTT library. Can be installed to a 
 
 lib/ftplib.py - MicroPython compatible ftplib module
 
-utils/ The utils folder contains the following modules:
+The utils folder contains the following modules:
 * am2320.py - module for reporting the temperature and humiditiy from an AM2320 sensor
 * blink.py - simple module used for making the on-board LED blink
 * ftp.py - wrapper functions to handle pulling back all modified source code from the FTP repositiory
@@ -42,3 +42,8 @@ utils/ The utils folder contains the following modules:
 * ntp.py - used to sync the real time clock with NTP
 * sha256.py - used to find the SHA256 checksum of local files when checking which scripts need to be updated from the FTP repository
 * wifi.py - used for connecting the pico to the local Wi-Fi
+
+<h5>Node-Red Dashboard</h5>
+This sample dashboard has timers showing how long it is since we last heard from each pico, a status log window the shows debug messages being sent by the picos via MQTT, and control buttons to send MQTT messages to the picos to cause them to blink, reload or restart.
+
+<img width="240" alt="dashboard" src="https://user-images.githubusercontent.com/34414575/199085816-7ab4b55d-5774-46e4-a21c-cf28e1bf287d.png">
