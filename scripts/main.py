@@ -12,8 +12,8 @@ testmode = False
 #Send alert 
 def send_mqtt(topic,message):
     print("{}: {}".format(topic,message))
-    if client != False:
-        mqtt.send_mqtt(client,topic,message)
+    if mqtt.client != False:
+        mqtt.send_mqtt(topic,message)
 
 #Print and send status messages
 def status(message):
@@ -25,6 +25,8 @@ def status(message):
 #Restart pico
 def restart():
     status('Restarting ...')
+    if mqtt.client != False:
+        mqtt.client.disconnect()
     time.sleep(1)
     reset()
 
@@ -92,22 +94,22 @@ if ipaddr:
         print("Failed to set the time")
 
     #Try and connect to MQTT
-    client = mqtt.mqtt_connect(client_id=pico)
+    mqtt.mqtt_connect(client_id=pico)
 
-    if client == False:
-        status("We should probably reboot now...")
+    if mqtt.client == False:
+        status("MQTT Connection failed...")
     else:
         #Say Hello
         status("{} booted at {}".format(pico,strftime()))
         status("connected on {}".format(ipaddr))
         #Subscribe to control and heartbeat channels
-        client.set_callback(on_message) # type: ignore
+        mqtt.client.set_callback(on_message) # type: ignore
         status("Subscribing to channels...")
-        client.subscribe("pico/"+pico+"/control") # type: ignore
-        client.subscribe("pico/"+pico+"/poll") # type: ignore
+        mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
+        mqtt.client.subscribe("pico/"+pico+"/poll") # type: ignore
 
 if not testmode:
     #Now load and call the specific code for this pico
     status("Loading main")
     main = __import__(pico)
-    main.main(client)
+    main.main()

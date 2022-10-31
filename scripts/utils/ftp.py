@@ -17,8 +17,8 @@ def login(ftphost,ftpuser,ftppw):
 #Send alert 
 def send_mqtt(topic,message):
     print("{}: {}".format(topic,message))
-    if client != False:
-        mqtt.send_mqtt(client,topic,message)
+    if mqtt.client != False:
+        mqtt.send_mqtt(topic,message)
 
 #status and send status messages
 def status(message):
@@ -90,4 +90,3 @@ def quit(ftp):
 
 #Try and connect to MQTT
 pico = myid.get_id()
-client = mqtt.mqtt_connect(client_id=pico+'-ftp')

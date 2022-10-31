@@ -2,7 +2,10 @@
 from umqtt.simple import MQTTClient # type: ignore
 import secrets
 
+client = False
+
 def mqtt_connect(client_id, mqtt_server=secrets.mqtt_server):
+    global client
     print("Connecting to MQTT...")
     try:
         print("Connecting as {} to {}".format(client_id, mqtt_server))
@@ -15,6 +18,6 @@ def mqtt_connect(client_id, mqtt_server=secrets.mqtt_server):
         return False
 
 #send a message
-def send_mqtt(client, topic, payload):
+def send_mqtt(topic, payload):
     print("Sending message '{}' to '{}'".format(topic,payload))
     client.publish(topic,payload)

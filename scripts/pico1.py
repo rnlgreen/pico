@@ -2,14 +2,15 @@
 #Initialise the traps
 import time
 import trap
+import utils.mqtt as mqtt
 
-def main(client = False):
+def main():
     while True:
         #Check the traps
         trap.trap()
         #Check for messages
-        if client != False:
-            client.check_msg() 
+        if mqtt.client != False:
+            mqtt.client.check_msg() 
         #Wait a bit
         time.sleep(0.2)
 

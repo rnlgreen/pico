@@ -25,17 +25,17 @@ def status(message):
 #Send alert 
 def send_mqtt(topic,message):
     print("{}: {}".format(topic,message))
-    if client != False:
-        mqtt.send_mqtt(client,topic,message)
+    if mqtt.client != False:
+        mqtt.send_mqtt(topic,message)
 
 #Send alert 
 def send_measurement(what,value):
     print("Sending measurement {}: {}".format(what, value))
     topic = what+"/"+where
-    if client != False:
-        mqtt.send_mqtt(client,topic,str(value))
+    if mqtt.client != False:
+        mqtt.send_mqtt(topic,str(value))
 
-def main(client = False):
+def main():
     try:
         i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=40000)
         sensor = am2320.AM2320(i2c)
@@ -57,15 +57,12 @@ def main(client = False):
             except Exception as e:
                 status("Exception: {}".format(e))
         #Check for messages
-        if client != False:
-            client.check_msg() 
+        if mqtt.client != False:
+            mqtt.client.check_msg() 
         time.sleep(0.2)
 
 pico = myid.get_id()
 where = myid.where[pico]
-
-#Try and connect to MQTT (so we get a global variable for client)
-client = mqtt.mqtt_connect(client_id=pico+'-sensor')
 
 if __name__ == "__main__":
     main()

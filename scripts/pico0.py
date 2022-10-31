@@ -1,11 +1,12 @@
 #pico3 main code
 import time
+import utils.mqtt as mqtt
 
-def main(client = False):
+def main():
     while True:
         #Check for messages
-        if client != False:
-            client.check_msg() 
+        if mqtt.client != False:
+            mqtt.client.check_msg() 
         time.sleep(0.2)
     
 if __name__ == "__main__":

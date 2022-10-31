@@ -35,8 +35,8 @@ def strftime():
 #Send alert 
 def send_mqtt(topic,message):
     print("{}: {}".format(topic,message))
-    if client != False:
-        mqtt.send_mqtt(client,topic,message)
+    if mqtt.client != False:
+        mqtt.send_mqtt(topic,message)
 
 #Send alert 
 def send_alert(sensor,message):
@@ -117,13 +117,6 @@ def trap():
             #    print ("{} already sprung".format(trap))
 
 pico = myid.get_id()
-
-#Try and connect to MQTT
-client = mqtt.mqtt_connect(client_id=pico+'-trap')
-if client == False:
-    status("Trap failed to connect to MQTT")
-else:
-    status("Trap MQTT initialised")
 
 if do_beam:
     beam = Pin(BEAM_PIN, Pin.IN, Pin.PULL_UP)
