@@ -33,23 +33,19 @@ def strftime():
     return timestring
 
 #Send alert 
-def send_mqtt(topic,message):
-    print("{}: {}".format(topic,message))
-    if mqtt.client != False:
-        mqtt.send_mqtt(topic,message)
-
-#Send alert 
 def send_alert(sensor,message):
     print("Sending alert {}".format(message))
-    topic = "pico/"+pico+"/alerts/"+sensor
-    send_mqtt(topic,message)
+    topic = "pico/"+myid.pico+"/alerts/"+sensor
+    if mqtt.client != False:
+        mqtt.send_mqtt(topic,message)
 
 #Print and send status messages
 def status(message):
     print(message)
-    message = pico + ": " + message
-    topic = 'pico/'+pico+'/status'
-    send_mqtt(topic,message)
+    message = myid.pico + ": " + message
+    topic = 'pico/'+myid.pico+'/status'
+    if mqtt.client != False:
+        mqtt.send_mqtt(topic,message)
 
 #Callback function for when the IR Beam state changes
 #pin_details contains something like Pin(22, mode=IN, pull=PULL_UP)
@@ -115,8 +111,6 @@ def trap():
                     send_alert (trap,":mouse_trap: {} sprung!!!".format(trap))
             #else:
             #    print ("{} already sprung".format(trap))
-
-pico = myid.get_id()
 
 if do_beam:
     beam = Pin(BEAM_PIN, Pin.IN, Pin.PULL_UP)

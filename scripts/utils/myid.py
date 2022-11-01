@@ -11,13 +11,15 @@ where = {
             "pico2": "garage"
         }
 
+pico = "unknown"
+
 def get_id():
+    global pico
     s = unique_id()
     myid = ""
     for b in s:
         myid = myid + hex(b)[2:]
     print("My ID is {}".format(myid))
     if myid in picos:
-        return picos[myid]
-    else:
-        return "pico-unknown"
+        pico = picos[myid]
+    return pico

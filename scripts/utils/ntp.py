@@ -3,9 +3,19 @@ import socket
 import time
 import struct
 import machine # type: ignore
+import utils.mqtt as mqtt
+import utils.myid as myid
 
 NTP_DELTA = 2208988800
 host = "0.uk.pool.ntp.org"
+
+#Print and send status messages
+def status(message):
+    print(message)
+    message = myid.pico + ": " + message
+    topic = 'pico/'+myid.pico+'/status'
+    if mqtt.client != False:
+        mqtt.send_mqtt(topic,message)
 
 def set_time():
     NTP_QUERY = bytearray(48)
@@ -13,15 +23,15 @@ def set_time():
     addr = socket.getaddrinfo(host, 123)[0][-1]
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        s.settimeout(2)
+        s.settimeout(10)
         res = s.sendto(NTP_QUERY, addr)
         msg = s.recv(48)
     except Exception as e:
-        print("Exception getting NTP: {}".format(e))
+        status("Exception getting NTP: {}".format(e))
         return False
     finally:
         s.close()
-    print("NTP fetch was succesful")
+    status("NTP fetch was successful")
     val = struct.unpack("!I", msg[40:44])[0]
     t = val - NTP_DELTA    
     tm = time.gmtime(t)

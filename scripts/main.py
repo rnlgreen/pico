@@ -9,7 +9,7 @@ import secrets
 
 testmode = False
 
-#Send alert 
+#Send message with specific topic
 def send_mqtt(topic,message):
     print("{}: {}".format(topic,message))
     if mqtt.client != False:
@@ -18,9 +18,10 @@ def send_mqtt(topic,message):
 #Print and send status messages
 def status(message):
     print(message)
-    message = pico + ": " + message
-    topic = 'pico/'+pico+'/status'
-    send_mqtt(topic,message)
+    message = myid.pico + ": " + message
+    topic = 'pico/'+myid.pico+'/status'
+    if mqtt.client != False:
+        mqtt.send_mqtt(topic,message)
 
 #Restart pico
 def restart():
@@ -89,22 +90,24 @@ print("I am {}".format(pico))
 #Call wifi_connect with our hostname
 ipaddr = wifi.wlan_connect(pico)
 if ipaddr:
-    #Sync the time up
-    if not ntp.set_time():
-        print("Failed to set the time")
-
     #Try and connect to MQTT
     mqtt.mqtt_connect(client_id=pico)
+
+    status("Connected on {}".format(ipaddr))
+    status("Attempting time sync...")
+
+    #Sync the time up
+    if not ntp.set_time():
+        status("Failed to set the time")
+    else:
+        status("Booted at {}".format(strftime()))
 
     if mqtt.client == False:
         status("MQTT Connection failed...")
     else:
-        #Say Hello
-        status("{} booted at {}".format(pico,strftime()))
-        status("connected on {}".format(ipaddr))
         #Subscribe to control and heartbeat channels
-        mqtt.client.set_callback(on_message) # type: ignore
         status("Subscribing to channels...")
+        mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/poll") # type: ignore
 

@@ -14,18 +14,13 @@ def login(ftphost,ftpuser,ftppw):
         status("Failed to connect to FTP server: {}".format(e))
         return False
 
-#Send alert 
-def send_mqtt(topic,message):
-    print("{}: {}".format(topic,message))
-    if mqtt.client != False:
-        mqtt.send_mqtt(topic,message)
-
 #status and send status messages
 def status(message):
     print(message)
-    message = pico + ": " + message
-    topic = 'pico/'+pico+'/status'
-    send_mqtt(topic,message)
+    message = myid.pico + ": " + message
+    topic = 'pico/'+myid.pico+'/status'
+    if mqtt.client != False:
+        mqtt.send_mqtt(topic,message)
 
 def get_textfile(ftp,folder,filename):
     fp = open(folder+"/"+filename, 'w')
@@ -87,6 +82,3 @@ def cwd(ftp,folder):
 
 def quit(ftp):
     ftp.quit()
-
-#Try and connect to MQTT
-pico = myid.get_id()
