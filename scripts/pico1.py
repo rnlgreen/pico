@@ -4,6 +4,9 @@ import time
 import trap
 import utils.mqtt as mqtt
 
+def get_status():
+    trap.get_status()
+
 def main():
     while True:
         #Check the traps

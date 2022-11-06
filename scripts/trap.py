@@ -15,6 +15,9 @@ do_servo = True
 BEAM_PIN = 22
 SERVO_PIN = 28
 
+start_angle = 85
+end_angle = 115
+
 traps = {
             "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0}
 }
@@ -47,6 +50,20 @@ def status(message):
     if mqtt.client != False:
         mqtt.send_mqtt(topic,message)
 
+def get_status():
+    if do_servo:
+        if done_servo:
+            status("Servo has been triggered")
+        else:
+            status("Servo still primed")
+
+    for trap in (traps):
+        #Pin will be high (1) if open, as we are using pull-up logic
+        if traps[trap]["button"].value() == 1:
+            status("{} is set".format(trap))
+        else:
+            status("{} is sprung".format(trap))
+
 #Callback function for when the IR Beam state changes
 #pin_details contains something like Pin(22, mode=IN, pull=PULL_UP)
 def break_beam_callback(pin_details):
@@ -60,9 +77,9 @@ def break_beam_callback(pin_details):
         if not done_servo:
             status("{}: Closing trap!".format(dt))
             send_alert("beam",":mouse: IR beam broken, closing trap!")
-            set_servo(180)
+            set_servo(end_angle)
             time.sleep(5)
-            set_servo(0)
+            set_servo(start_angle)
             done_servo = True
         #Otherwise send periodic notices of activity detected, although we shouldn't ever get here
         elif time.time() - ir_last_sent > 300:
@@ -96,6 +113,8 @@ def trap():
         #Pin will be high (1) if open, as we are using pull-up logic
         if traps[trap]["button"].value() == 1:
             if traps[trap]["sprung"]:
+                #Blink the LED - useful when testing the trap
+                blink(0.1,0.05,3)
                 traps[trap]["sprung"] = False
                 status ("{} is set".format(trap))
                 traps[trap]["spring trigger"] = 0
@@ -105,6 +124,8 @@ def trap():
             if not traps[trap]["sprung"]:
                 #Spring trigger is a counter to allow for some flutter and make sure it is closed and staying closed
                 traps[trap]["spring trigger"] += 1
+                #Blink the LED - useful when testing the trap
+                blink(0.1,0.05,3)
                 if (traps[trap]["spring trigger"] > 5):
                     traps[trap]["sprung"] = True
                     print  ("{}: {} is sprung".format(dt,trap))
@@ -121,7 +142,7 @@ if do_beam:
 
 if do_servo:
     done_servo = False
-    set_servo(0)
+    set_servo(start_angle)
     status("Servo initialised")
 
 if __name__ == "__main__":

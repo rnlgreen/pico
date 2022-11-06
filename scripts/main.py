@@ -33,6 +33,7 @@ def restart():
 
 def reload():
     status("Fetching latest code...")
+    totalfiles = 0
     import utils.ftp as ftp
     try:
         session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
@@ -42,10 +43,12 @@ def reload():
             ftp.cwd(session,'/pico/scripts')
             #Get all files for the root
             numfiles = ftp.get_changedfiles(session,".")
+            totalfiles += numfiles
             message = 'Copied ' + str(numfiles) + " files to root"
             status(message)
             #Get all files for utils (get_allfiles will deal with changing directory)
             numfiles = ftp.get_changedfiles(session,"utils")
+            totalfiles += numfiles
             message = 'Copied ' + str(numfiles) + " files to utils"
             status(message)
             ftp.quit(session)
@@ -55,6 +58,7 @@ def reload():
             status(message)
     except Exception as e:
         status("Exception occurred: {}".format(e))
+    return totalfiles
 
 #Return formatted time string
 def strftime():
@@ -77,6 +81,8 @@ def on_message(topic, payload):
         elif command == "datetime":
             thetime = strftime()
             status("Time is: {}".format(thetime))
+        elif command == "status":
+            main.get_status()            
         else:
             status("Unknown command: {}".format(str(payload.decode())))
     elif str(topic.decode()) == "pico/"+pico+"/poll":
@@ -101,6 +107,11 @@ if ipaddr:
         status("Failed to set the time")
     else:
         status("Booted at {}".format(strftime()))
+
+    #Get latest code
+    if reload() > 0:
+        status("New code loaded")
+        restart()
 
     if mqtt.client == False:
         status("MQTT Connection failed...")

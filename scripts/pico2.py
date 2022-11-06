@@ -35,6 +35,19 @@ def send_measurement(what,value):
     if mqtt.client != False:
         mqtt.send_mqtt(topic,str(value))
 
+#Return i2cscan to status commands
+def get_status():
+    i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=400000)
+    devices = i2c.scan()
+    if len(devices) == 0:
+        status("No I2C device found")
+    elif len(devices) > 1:
+        status("Multiple I2C devices found -")
+        for d in devices:
+            status("  0x{:02X}".format(d))
+    else:
+        status("I2C device found at 0x{:02X}".format(devices[0]))    
+
 def main():
     try:
         i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=40000)
