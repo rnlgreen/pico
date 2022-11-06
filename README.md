@@ -9,8 +9,9 @@ The scripts included in this repo are:
 main.py The main routine that is run by the pico when it is powered up. All picos run the same main.py, and it performs the following functions:
 * calls the get_id() function from my myid module to determine which of my picos this is
 * calls the wlan_connect() function from my wifi module to connect to wifi
-* calls the set_time() function from my ntp module to sync the real time clock
 * calls the mqtt_connect() function from my mqtt module to connect to my local MQTT server
+* calls the set_time() function from my ntp module to sync the real time clock
+* calls the reload() function to check for new code and then restart() if there is
 * sends status updates via MQTT (which are picked up by a Node-RED dashboard, which in turn sends alerts on to Slack channels)
 * subscribes to 'control' and 'poll' MQTT topics so that the Node-RED dashboard can send heartbeats and control commands
 * finally imports a specific module based on the name of this pico and calls main() in that module
@@ -20,6 +21,7 @@ As well as responding to polling messages received over MQTT, main.py also respo
 * 'reload' - causes the pico to FTP the latest set of python scripts from an FTP repository, using SHA256 checksums to work out which ones need updating
 * 'restart' - causes the pico to execute the machine.restart() method to reboot the pico
 * 'datetime' - causes the pico to report back its local date and time, to verify the NTP sync worked
+* 'status' - causes the pico to report back status of sensors etc.
 
 pico[n].py - These scripts contain code specific to the tasks I want individual pico modules to perform
 
