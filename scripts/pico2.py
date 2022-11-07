@@ -15,6 +15,9 @@ I2CID = 1
 SDAPIN = 26 #GPIO26
 SCLPIN = 27 #GPIO27
 
+last_temp = -1
+last_humidity = -1
+
 #Print and send status messages
 def status(message):
     print(message)
@@ -47,8 +50,11 @@ def get_status():
             status("  0x{:02X}".format(d))
     else:
         status("I2C device found at 0x{:02X}".format(devices[0]))    
+    status("Latest temperature = {}".format(last_temp))
+    status("Latest humidity: {}".format(last_humidity))
 
 def main():
+    global last_temp, last_humidity
     try:
         i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=40000)
         sensor = am2320.AM2320(i2c)
@@ -66,7 +72,9 @@ def main():
                 sensor.measure()
                 send_measurement("temperature",sensor.temperature())
                 send_measurement("humidity",sensor.humidity())
-                status("Measurements sent")
+                last_temp = sensor.temperature()
+                last_humidity = sensor.humidity()
+                #status("Measurements sent")
             except Exception as e:
                 status("Exception: {}".format(e))
         #Check for messages

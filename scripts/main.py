@@ -98,10 +98,9 @@ ipaddr = wifi.wlan_connect(pico)
 if ipaddr:
     #Try and connect to MQTT
     mqtt.mqtt_connect(client_id=pico)
-
     status("Connected on {}".format(ipaddr))
-    status("Attempting time sync...")
 
+    status("Attempting time sync...")
     #Sync the time up
     if not ntp.set_time():
         status("Failed to set the time")
