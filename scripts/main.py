@@ -39,17 +39,26 @@ def reload():
         session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
         status("Comparing files...")
         if session:
+            #Get all files for the root
             #Move to the root FTP folder
             ftp.cwd(session,'/pico/scripts')
-            #Get all files for the root
             numfiles = ftp.get_changedfiles(session,".")
             totalfiles += numfiles
             message = 'Copied ' + str(numfiles) + " files to root"
             status(message)
             #Get all files for utils (get_allfiles will deal with changing directory)
+            #Move back to the root FTP folder
+            ftp.cwd(session,'/pico/scripts')
             numfiles = ftp.get_changedfiles(session,"utils")
             totalfiles += numfiles
             message = 'Copied ' + str(numfiles) + " files to utils"
+            status(message)
+            #Get all files for lib (get_allfiles will deal with changing directory)
+            #Move back to the root FTP folder
+            ftp.cwd(session,'/pico/scripts')
+            numfiles = ftp.get_changedfiles(session,"lib")
+            totalfiles += numfiles
+            message = 'Copied ' + str(numfiles) + " files to lib"
             status(message)
             ftp.quit(session)
             status("Reload complete".format(pico))
@@ -82,7 +91,9 @@ def on_message(topic, payload):
             thetime = strftime()
             status("Time is: {}".format(thetime))
         elif command == "status":
-            main.get_status()            
+            main.get_status()
+        elif command.startswith("led"):
+            main.led_control(command)
         else:
             status("Unknown command: {}".format(str(payload.decode())))
     elif str(topic.decode()) == "pico/"+pico+"/poll":
