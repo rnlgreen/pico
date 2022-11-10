@@ -77,9 +77,11 @@ def strftime():
 
 #process incoming control commands
 def on_message(topic, payload):
-    print("Received topic: {} message: {}".format(str(topic.decode()),str(payload.decode())))
-    if str(topic.decode()) == "pico/"+pico+"/control":
-        command = str(payload.decode())
+    topic = str(topic.decode())
+    payload = str(payload.decode())
+    print("Received topic: {} message: {}".format(topic,payload))
+    if topic == "pico/"+pico+"/control":
+        command = payload
         if command == "blink":
             status("blinking")
             blink(0.1,0.1,5)
@@ -92,11 +94,11 @@ def on_message(topic, payload):
             status("Time is: {}".format(thetime))
         elif command == "status":
             main.get_status()
-        elif command.startswith("led"):
-            main.led_control(command)
         else:
-            status("Unknown command: {}".format(str(payload.decode())))
-    elif str(topic.decode()) == "pico/"+pico+"/poll":
+            status("Unknown command: {}".format(payload))
+    elif topic == "pico/"+pico+"/lights":
+        main.led_control(payload)
+    elif topic == "pico/"+pico+"/poll":
         heartbeat_topic = "pico/"+pico+"/heartbeat"
         send_mqtt(heartbeat_topic,"Yes, I'm here")
 
