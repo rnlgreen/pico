@@ -166,22 +166,33 @@ def plume(colour, steps=100):
                 current_colours += "{0:1.4f}: {1:3d}, {2:3d}, {3:3d}    ".format(fade, r, g, b)
         #status("{}".format(current_colours))
         strip.show()
+        if mqtt.client != False:
+            mqtt.client.check_msg() 
         time.sleep(dyndelay / 1000.0)  # dyndelay is in milliseconds from 10 to 1000
-    colour = colour
-    status("Exiting")
+        if stop:
+            break
+    status("Exiting plume")
 
 # Function to call plume continualyl with random colours
 def pluming(delay=60):
-    global colour
+    global colour, running, effect, stop
     status("Starting pluming with delay {}".format(delay))
+    running = True
+    effect = "pluming"
     while not stop:
         colour = contrasting_colour(colour) #pick a new colour
         status("Colour is: {}".format(colour))
         plume(colour) #Call plume with the new colour and the number of steps to take
         countdown = delay
+        print("countdown: {}".format(countdown))
         while not stop and countdown > 0:
+            if mqtt.client != False:
+                mqtt.client.check_msg() 
             time.sleep(1)
-            countdown -= 1
+            countdown = countdown - 1
+    running = False
+    stop = False
+    effect = ""
     status("Exiting pluming")
 
 def off():
@@ -197,10 +208,10 @@ def led_control(command=""):
         r, g, b = [int(x) for x in command[4:-1].split(", ")]
         set_all(r, g, b)
     else:
-        try:
-            led_functions[command]()
-        except Exception as e:
-            status("Exception: {}".format(e))
+#        try:
+        led_functions[command]()
+#        except Exception as e:
+#            status("Exception: {}".format(e))
 
 #Return status
 def get_status():
@@ -224,11 +235,12 @@ def main():
 
 pico = myid.get_id()
 
-numPixels = 288
+numPixels = 8
 #Create strip object
 #parameters: number of LEDs, state machine ID, GPIO number and mode (RGB or RGBW)
 status("Initialising strip")
-strip = Neopixel(numPixels, 0, 0, "GRB")
+#strip = Neopixel(numPixels, 0, 0, "GRB")
+strip = Neopixel(numPixels, 0, 0, "GRBW")
 strip.brightness(20)
 
 colour = [0, 0, 0]
