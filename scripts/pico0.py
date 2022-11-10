@@ -127,7 +127,7 @@ def rainbow():
         start = time.time()
         while not stop:
             elapsed = time.time()-start
-            if elapsed > 1:
+            if elapsed > 0.1:
                 if mqtt.client != False:
                     mqtt.client.check_msg() 
                 start = time.time()
@@ -146,7 +146,6 @@ def rainbow():
 # Function to fade a new colour in from the centre of the strip
 # Fades a new colour in from the centre of the strip
 def plume(colour, steps=100):
-    status("Starting with {}".format(colour))
     factor = 3 #defines how quickly the colour fades in, less than 3 doesn't complete the transition
     fr, fg, fb = list_to_rgb(colour)
     #Get the current state of the pixels to use for fading
@@ -171,25 +170,22 @@ def plume(colour, steps=100):
         time.sleep(dyndelay / 1000.0)  # dyndelay is in milliseconds from 10 to 1000
         if stop:
             break
-    status("Exiting plume")
 
 # Function to call plume continualyl with random colours
-def pluming(delay=60):
+def pluming(delay=10):
     global colour, running, effect, stop
     status("Starting pluming with delay {}".format(delay))
     running = True
     effect = "pluming"
     while not stop:
         colour = contrasting_colour(colour) #pick a new colour
-        status("Colour is: {}".format(colour))
         plume(colour) #Call plume with the new colour and the number of steps to take
         countdown = delay
-        print("countdown: {}".format(countdown))
         while not stop and countdown > 0:
             if mqtt.client != False:
                 mqtt.client.check_msg() 
             time.sleep(1)
-            countdown = countdown - 1
+            countdown -= 1
     running = False
     stop = False
     effect = ""
@@ -207,11 +203,20 @@ def led_control(command=""):
         #rgb(219, 132, 56)
         r, g, b = [int(x) for x in command[4:-1].split(", ")]
         set_all(r, g, b)
+    elif command.startswith("brightness:"):
+        _, b = command.split(":")
+        strip.brightness(int(b))
+        if not running:
+            r, g, b = list_to_rgb(colour)
+            set_all(r, g, b)
+    elif command.startswith("saturation:"):
+        _, s = command.split(":")
+        saturation = int(s)
     else:
-#        try:
-        led_functions[command]()
-#        except Exception as e:
-#            status("Exception: {}".format(e))
+        try:
+            led_functions[command]()
+        except Exception as e:
+            status("Exception: {}".format(e))
 
 #Return status
 def get_status():
