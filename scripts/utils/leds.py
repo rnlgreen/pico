@@ -173,7 +173,7 @@ def plume(colour, steps=100):
 def pluming(delay=10):
     global colour, running, effect, stop
     status("Starting pluming")
-    set_speed(75)
+    set_speed(90)
     running = True
     effect = "pluming"
     while not stop:
@@ -325,7 +325,7 @@ def splashing(num=5,colour_list=[],leave=False):
                     #status("New splash {}: origin {}; size: {}, speed: {}, colour: {}".
                     #         format(splash, splash_origin[splash], splash_size[splash], splash_speed[splash], splash_colour[splash]))
                 else:
-                    status("Dropping splash {}".format(splash))
+                    print("Dropping splash {}".format(splash))
                     num -= 1
                     splash_origin.pop(splash)
                     splash_colour.pop(splash)
@@ -394,6 +394,10 @@ def led_control(command=""):
         if not running:
             r, g, b, _ = list_to_rgb(colour)
             set_all(r, g, b)
+    elif command.startswith("speed:"):
+        _, s = command.split(":")
+        saturation = int(s)
+        set_speed(s)
     elif command.startswith("saturation:"):
         _, s = command.split(":")
         saturation = int(s)
