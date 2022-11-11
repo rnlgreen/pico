@@ -3,7 +3,10 @@ import time
 from machine import reset, RTC as rtc # type: ignore
 
 #Import my supporting code
-import utils.myid as myid, utils.wifi as wifi, utils.mqtt as mqtt, utils.ntp as ntp
+import utils.myid as myid
+import utils.wifi as wifi
+import utils.mqtt as mqtt
+import utils.ntp as ntp
 from utils.blink import blink
 import secrets
 
