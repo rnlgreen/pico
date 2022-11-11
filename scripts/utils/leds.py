@@ -2,7 +2,7 @@
 import time
 import utils.mqtt as mqtt
 import utils.myid as myid
-import utils.colours as colours
+from utils.colours import colours
 
 from lib.neopixel import Neopixel
 from math import sin, pi, radians, sqrt
@@ -196,11 +196,12 @@ def shimmer(shimmer_width=5,iterations=0):
     status("Starting shimmer")
     running = True
     effect = "shimmer"
-    set_speed(80)
+    set_speed(95)
     speedfactor = 1  # smaller is faster
-    if colour == [0, 0, 0]: #if the colour is black
+    if colour == [0, 0, 0] or colour == [0, 0, 0, 0]: #if the colour is black
         status("Setting colour to gold")
         colour = colours["gold"]
+    print("Colour is: {}".format(colour))
     limit_run = (iterations > 0)
     while not (stop or (limit_run and iterations == 0)):
         for j in range(shimmer_width):
@@ -365,8 +366,10 @@ def splashing(num=5,colour_list=[],leave=False):
 #Function to set the speed during demo sequences
 def set_speed(new_speed):
     global speed, dyndelay
-    speed = new_speed
-    dyndelay = int(1000 - 100 * sqrt(int(speed)))
+    if not speed == new_speed:
+        speed = new_speed
+        dyndelay = int(1000 - 100 * sqrt(int(speed)))
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/speed",str(speed))
 
 #Return current time in millisecnds
 def millis():
@@ -403,7 +406,7 @@ def led_control(command=""):
     else:
         if running:
             stop = True
-            time.sleep(1)
+            time.sleep(2)
         if not running:
             try:
                 effects[command]()
@@ -432,7 +435,7 @@ status("Initialising strip")
 strip = Neopixel(numPixels, 0, 0, "GRBW")
 strip.brightness(20)
 
-colour = [0, 0, 0, 0]
+colour = [0, 0, 0]
 saturation = 100
 speed = 90
 dyndelay = 0

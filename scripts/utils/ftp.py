@@ -3,6 +3,7 @@ from ftplib import FTP
 from utils.sha256 import check_sha256
 import utils.myid as myid
 import utils.mqtt as mqtt
+import os
 
 def login(ftphost,ftpuser,ftppw):
     status("Opening FTP connection...")
@@ -59,7 +60,6 @@ def get_allfiles(ftp,folder):
 
 def get_changedfiles(ftp,folder):
     ftp.cwd(folder)
-    filenames = ftp.nlst()
     numfiles = 0
     sha256_values = get_sha256_list(ftp)
     for filename in sha256_values:
@@ -73,8 +73,11 @@ def get_changedfiles(ftp,folder):
                 numfiles+=1
             except:
                 status("File not found: '{}'".format(folder+"/"+filename))
-        else:
-            print("Skipping file {}".format(folder+"/"+filename))
+    localfiles = os.listdir(folder)
+    for filename in localfiles:
+        if filename.endswith(".py") and not filename in sha256_values.keys():
+            status("Removing file {}".format(filename))
+            os.remove(folder+"/"+filename)
     return numfiles
 
 def cwd(ftp,folder):
