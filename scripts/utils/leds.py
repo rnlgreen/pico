@@ -196,7 +196,7 @@ def shimmer(shimmer_width=5,iterations=0):
     status("Starting shimmer")
     running = True
     effect = "shimmer"
-    set_speed(50)
+    set_speed(80)
     speedfactor = 1  # smaller is faster
     if colour == [0, 0, 0]: #if the colour is black
         status("Setting colour to gold")
@@ -383,7 +383,7 @@ def off():
 
 #LED control function to accept commands and launch effects
 def led_control(command=""):
-    global stop
+    global stop, saturation
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
         r, g, b = [int(x) for x in command[4:-1].split(", ")]
@@ -396,7 +396,6 @@ def led_control(command=""):
             set_all(r, g, b)
     elif command.startswith("speed:"):
         _, s = command.split(":")
-        saturation = int(s)
         set_speed(s)
     elif command.startswith("saturation:"):
         _, s = command.split(":")

@@ -1,7 +1,7 @@
 #Main routine for Pico1
 #Initialise the traps
 import time
-import trap
+import utils.trap as trap
 import utils.mqtt as mqtt
 
 def get_status():
