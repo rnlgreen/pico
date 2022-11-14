@@ -1,5 +1,6 @@
 #Main routine for all picos
 import time
+import gc
 from machine import reset, RTC as rtc # type: ignore
 
 #Import my supporting code
@@ -140,5 +141,20 @@ if ipaddr:
 if not testmode:
     #Now load and call the specific code for this pico
     status("Loading main")
-    main = __import__(pico)
-    main.main()
+    try:
+        main = __import__(pico)
+        gc.collect()
+        status("Free memory: {}".format(gc.mem_free()))
+        main.main()
+    except Exception as e:
+        import io
+        import sys
+        output = io.StringIO()
+        #status("main.py caught exception: {}".format(e))
+        sys.print_exception(e, output)
+        status("Main caught exception:\n{}".format(output.getvalue()))
+        #Now listen for control commands so we can restart after an exception
+        while True:
+            if mqtt.client != False:
+                mqtt.client.check_msg() 
+            time.sleep(0.2)

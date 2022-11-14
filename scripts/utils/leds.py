@@ -95,9 +95,10 @@ def contrasting_colour(colour=[]):
 #Set the whole strip to a new colour
 def set_all(r=0, g=0, b=0, w=0):
     global colour, pixel_colours
-    colour = [r, g, b, w]
-    strip.fill((r, g, b, w))
-    pixel_colours = [[r, g, b, w]] * numPixels
+    colour = [r, g, b]
+    strip.fill((r, g, b))
+    for p in range(numPixels):
+        pixel_colours[p] = [r, g, b]
     strip.show()
 
 #Set an individual pixel to a new colour
@@ -112,19 +113,52 @@ def get_pixel_rgb(i):
         status("Out of range pixel: {}".format(i))
         return 0,0,0,0
     else:
-        r, g, b, w = pixel_colours[i]
-        return r, g, b, w
+        r, g, b, _ = pixel_colours[i]
+        return r, g, b, 0
+
+#Function to set the speed during demo sequences
+def set_speed(new_speed):
+    global speed, dyndelay
+    if not speed == new_speed:
+        speed = new_speed
+        dyndelay = int(1000 - 100 * sqrt(int(speed)))
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/speed",str(speed))
+
+#Function to set the speed during demo sequences
+def set_brightness(new_brightness):
+    global brightness
+    if not brightness == new_brightness:
+        brightness = new_brightness
+        strip.brightness(brightness)
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness",str(brightness))
+
+#Function to set the speed during demo sequences
+def set_colour(new_colour):
+    global colour
+    if not colour == new_colour:
+        colour = new_colour
+        hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
+
+#RGB to hex, used to send updates back to Node-Red
+def rgb_to_hex(rgb):
+    return '#%02x%02x%02x' % rgb
+
+#Return current time in milliseconds
+def millis():
+    #return int(round(time.time() * 1000))
+    return time.ticks_ms()
+
+#Return elapsed time between two ticks
+def ticks_diff(start,now):
+    diff = time.ticks_diff(int(now),int(start))
+    return diff
 
 #Rotate the strip through a rainbow of colours
 def rainbow():
-    global running, effect, stop
+    now_running("Rainbow")
+    set_speed(75)
     hue = 0
-    effect = "rainbow"
-    status("Running {}...".format(effect))
-    set_speed(90)
-    running = True
-    if stop:
-        stop = False
     while not stop:
         check_mqtt()
         color = strip.colorHSV(hue, 255, 150)
@@ -134,12 +168,9 @@ def rainbow():
         hue += 150
         if hue > 65535:
             hue -= 65535
-        time.sleep(0.01)
-    status("Finished {}".format(effect))
+        time.sleep(dyndelay / 1000)
     set_all(0, 0, 0)
-    running = False
-    stop = False
-    effect = "None"
+    now_running("None")
 
 # Function to fade a new colour in from the centre of the strip
 # Fades a new colour in from the centre of the strip
@@ -171,11 +202,9 @@ def plume(colour, steps=100):
 
 # Function to call plume continualyl with random colours
 def pluming(delay=10):
-    global colour, running, effect, stop
-    status("Starting pluming")
-    set_speed(90)
-    running = True
-    effect = "pluming"
+    global colour
+    now_running("Pluming")
+    set_speed(85)
     while not stop:
         colour = contrasting_colour(colour) #pick a new colour
         plume(colour) #Call plume with the new colour and the number of steps to take
@@ -184,23 +213,18 @@ def pluming(delay=10):
             check_mqtt()
             time.sleep(1)
             countdown -= 1
-    set_all(0,0,0)
-    running = False
-    stop = False
-    effect = ""
-    status("Exiting pluming")
+    set_all(0, 0, 0)
+    now_running("None")
 
 #Lighting effect to create a twinkling/shimmer effect along the length of the lights
 def shimmer(shimmer_width=5,iterations=0):
-    global colour, running, effect, stop
-    status("Starting shimmer")
-    running = True
-    effect = "shimmer"
+    global colour
+    now_running("Shimmer")
     set_speed(95)
     speedfactor = 1  # smaller is faster
     if colour == [0, 0, 0] or colour == [0, 0, 0, 0]: #if the colour is black
         status("Setting colour to gold")
-        colour = colours["gold"]
+        set_colour(colours["gold"])
     print("Colour is: {}".format(colour))
     limit_run = (iterations > 0)
     while not (stop or (limit_run and iterations == 0)):
@@ -216,11 +240,8 @@ def shimmer(shimmer_width=5,iterations=0):
                 break
         if limit_run:
             iterations -= 1
-    set_all(0,0,0)
-    running = False
-    stop = False
-    effect = ""
-    status("Exiting shimmer")
+    set_all(0, 0, 0)
+    now_running("None")
 
 #Return splash parameters, used by splashing
 def get_splash(colour):
@@ -252,12 +273,10 @@ def get_splash(colour):
     return colour, origin, radius, speed
 
 #Start splashes
-def splashing(num=5,colour_list=[],leave=False):
-    global colour, running, effect, stop
-    status("Starting splashing")
-    running = True
+def splashing(num=5,colour_list=["-1"],leave=False):
+    global colour
+    now_running("Splashing")
     set_speed(50)
-    effect = "splashing"
     splash_colour = [0,0,0,0] * num
     splash_origin = [0] * num
     splash_size = [0] * num
@@ -302,7 +321,7 @@ def splashing(num=5,colour_list=[],leave=False):
         changed = [False] * LED_COUNT
 
         #Get the elapsed time since last time we were here
-        elapsed = millis() - t
+        elapsed = ticks_diff(t,millis())
         total_elapsed += elapsed
         iterations += 1
         t = millis()
@@ -357,36 +376,201 @@ def splashing(num=5,colour_list=[],leave=False):
         check_mqtt()
         time.sleep(0.005) # Sleep a little to give the CPU a break
     status("Average elapsed time: {}ms".format(total_elapsed / iterations))
-    set_all(0,0,0)
-    running = False
-    stop = False
-    effect = ""
-    status("Exiting splashing")
+    set_all(0, 0, 0)
+    now_running("None")
 
-#Function to set the speed during demo sequences
-def set_speed(new_speed):
-    global speed, dyndelay
-    if not speed == new_speed:
-        speed = new_speed
-        dyndelay = int(1000 - 100 * sqrt(int(speed)))
-        mqtt.send_mqtt("pico/"+myid.pico+"/status/speed",str(speed))
+#Like shimmer, but without the pixels moving along...
+def wobble(wobble_width=8,iterations=0):
+    now_running("Wobble")
+    limit_run = (iterations > 0)
+    #12 is the fewest steps to give us a reasonble sin wave and make it to 100% on or off
+    #10 doesn't quite make it to fully on or off, so might be a good choice
+    #(that's if the wavelength is 12 or greater)
+    steps = 12
+    speedfactor = 0.25
+    r360 = radians(360)
+    if colour == [0, 0, 0] or colour == [0, 0, 0, 0]: #if the colour is black
+        status("Setting colour to gold")
+        set_colour(colours["gold"])
+    while not (stop or (limit_run and iterations == 0)):
+        for j in range(steps):
+            #Angle from 0 to 360 over time
+            intensity_angle = (r360*j)/steps
+            #Factor to apply to the brightness over time, from 0 -> 1 -> 0 -> -1 -> 0
+            travel_factor   = sin(intensity_angle)
+            for i in range(numPixels):
+                #Angle from 0 to 360 along the width of the wobble
+                wave_angle = (r360*(i%wobble_width))/wobble_width
+                #Brightness factor along the width of the wobble, from 0 -> 1 -> 0 -> -1 -> 0
+                sin_angle  = sin(wave_angle)
+                #Combined percentage brightness for this pixel from 0 to 100 (or within that depending on the width and steps)
+                p = 50 * (1 + (sin_angle * travel_factor))
+                #Calculate the colour intensity for this pixel
+                r, g, b, w = list_to_rgb(colour, p)
+                set_pixel(i, r, g, b, w)
+            #Show the new waves
+            strip.show()
+            check_mqtt()
+            time.sleep(dyndelay * speedfactor / 1000.0)  # Needs to run a bit faster than others
+            if stop:
+                break
+        if limit_run:
+            iterations -= 1
+    set_all(0, 0, 0)
+    now_running("None")
 
-#Return current time in millisecnds
-def millis():
-    return int(round(time.time() * 1000))
+#One funtion to manage lots of twinkles
+def twinkling(num=0,colour_list=[]):
+    now_running("twinkling")
+    debug = False
+    if num == 0:
+        if colour_list == []: #fewer pixels needed if all white
+            numTwinkles = int(numPixels / 5) # some number of twinkles to do
+        else:
+            numTwinkles = int(numPixels / 3) # some number of twinkles to do
+    else:
+        numTwinkles = num
+
+    if colour_list == []:
+            colour_list = [[255, 255, 255, 255]]
+
+    twink_start    = [0] * numTwinkles
+    twink_end      = [0] * numTwinkles
+    twink_position = [-1]  * numTwinkles
+    twink_colour   = [[0,0,0,0]] * numTwinkles
+
+    #New flag to say whether a new twinkle is scheduled for 
+    twink_scheduled = [False] * numPixels
+
+    colour_index   = 0
+    old_speed = speed
+    count_lit = 0
+    twinkling_start = True
+
+    #Time to fade the pixels in and out, in milliseconds
+    fade_time = 250
+
+    status("{} twinkles".format(numTwinkles))
+
+    while not stop or count_lit > 0:
+        #start by clearing all pixels
+        r, g, b, w = list_to_rgb(colour)
+        #Can't use set_all here as it calls strip.show()
+        strip.fill((r, g, b))
+        count_lit = 0
+        m = millis()
+        for t in range(numTwinkles):
+            #If this twinkle has out lived it's life:
+            if ticks_diff(twink_end[t], m) > 0: #time to turn this one off
+                #Mark this pixel position as unscheduled
+                twink_scheduled[twink_position[t]] = False
+                if not stop:
+                    if t == 0 and debug:
+                        status("twinkle {} now off".format(t))
+                    if old_speed == speed: #same speed, so turn off and process as normal
+                        #Pick a new start time for this twinkle
+                        if twinkling_start: #quick start if first time around
+                            twink_start[t]    = int(m + (random.randint(0,250) * 100 / max(5, speed)))
+                            twink_duration    = int((random.randint(500,1000) * 100 / max(5, speed)))
+                            twink_end[t]      = twink_start[t] + twink_duration
+                        else:
+                            twink_start[t]    = int(m + (random.randint(250,500) * 100 / max(5, speed)))
+                            twink_duration    = int((random.randint(750,1250) * 100 / max(5, speed)))
+                            twink_end[t]      = twink_start[t] + twink_duration
+                        if t == 0:
+                            twink_position[t] = 0
+                            twink_scheduled[0] = True
+                        else:
+                            new_twinkle_position = random.randint(1, numPixels - 1)
+                            while twink_scheduled[new_twinkle_position]:
+                                new_twinkle_position = random.randint(1, numPixels - 1)
+                            twink_position[t] = new_twinkle_position
+                        #Mark this pixel position as scheduled to avoid driving the same position twice
+                        twink_scheduled[twink_position[t]] = True
+                        twink_colour[t]   = colour_list[colour_index]
+                        colour_index += 1
+                        if colour_index >= len(colour_list):
+                            colour_index = 0
+                    else: #just pick a new end time and keep it lit for now
+                        twink_end[t]      = twink_start[t] + int((random.randint(750,1250) * 100 / max(5, speed)))
+                        r, g, b, w = list_to_rgb(twink_colour[t])
+                        count_lit += 1
+            #if we are displaying this twinkle:
+            elif ticks_diff(twink_start[t],m) > 0:
+                if not old_speed == speed: #speed has changed so adjust the end time by a random proportion
+                    twink_end[t] =  twink_end[t] + int((random.randint(750,1250) * 100 / max(5, speed)) * random.uniform(0, 1))
+                #Now set the colour for this pixel
+                count_lit += 1
+                #Adjust the pixel intensity to fade in and out
+### FIX THIS NEXT LINE ###
+                if (twink_start[t] + fade_time) < m < (twink_end[t] - fade_time):
+                    if t == 0 and debug:
+                        print("twinkle 0 is fully on\t",end='')
+                    r, g, b, w = list_to_rgb(twink_colour[t])
+                else:
+                    if ticks_diff(twink_start[t],m) < fade_time:
+                        if t == 0:
+                            print("twinkle 0 fading in\t",end='')
+                        brightness = 100 * (m - twink_start[t]) / fade_time
+                    else:
+                        if t == 0:
+                            print("twinkle 0 fading out\t",end='')
+                        brightness = 100 * (twink_end[t] - m) / fade_time
+                    r, g, b, w = list_to_rgb(twink_colour[t],brightness)
+                if t == 0 and debug:
+                    print("{}\t{}\t{}\t{}".format(r, g, b, w))
+                set_pixel(twink_position[t],r, g, b, w)
+            else: #not time to turn this on yet, but might want to adjust the start time
+                if t == 0 and debug: 
+                    print("twinkle is off")
+                if stop: #set end time to 0 to avoid turning this on in the future
+                    twink_end[t] = 0
+                elif not old_speed  == speed: #speed has changed so adjust the end time by a random proportion
+                    twink_start[t] = twink_start[t] + int((random.randint(250,500) * 100 / max(5, speed)) * random.uniform(0, 1))
+
+        #Disable startup logic
+        twinkling_start = False
+
+        time.sleep(0.05)
+        strip.show()
+        check_mqtt()
+        old_speed = speed
+
+    now_running("None")
 
 #Stop running functions and if not running turn off
+#Called from Node-Red
 def off():
     global stop
     if running:
-        status("Stopping..")
+        status("off() called whilst running {}".format(effect))
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/running","stopping...")
         stop = True
     else:
         set_all(0,0,0)
 
+#Function to report now running 
+def now_running(new_effect):
+    global effect, stop, running, next_up
+    if new_effect == "None":
+        running = False
+        stop = False
+        if not effect == "None":
+            status("Completed {}".format(effect))
+        if not next_up == "None":
+            new_effect = next_up
+            next_up = "None"
+            led_control(new_effect)
+    else:
+        running = True
+        status("Starting {}".format(new_effect))
+    effect = new_effect
+    mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
+    status("Left now_running")
+
 #LED control function to accept commands and launch effects
 def led_control(command=""):
-    global stop, saturation
+    global stop, saturation, next_up
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
         r, g, b = [int(x) for x in command[4:-1].split(", ")]
@@ -399,20 +583,27 @@ def led_control(command=""):
             set_all(r, g, b)
     elif command.startswith("speed:"):
         _, s = command.split(":")
-        set_speed(s)
+        set_speed(int(s))
     elif command.startswith("saturation:"):
         _, s = command.split(":")
         saturation = int(s)
     else:
+        #If we are running and the command 
         if running:
-            stop = True
-            time.sleep(2)
-        if not running:
+            if not command == "off":
+                next_up = command
+            off()
+        else:
             try:
                 effects[command]()
             except Exception as e:
-                status("Exception: {}".format(e))
-
+                import io
+                import sys
+                output = io.StringIO()
+                #status("main.py caught exception: {}".format(e))
+                sys.print_exception(e, output)
+                status("Main caught exception:\n{}".format(output.getvalue()))
+        
 #Print and send status messages
 def status(message):
     print(message)
@@ -422,31 +613,41 @@ def status(message):
 
 #Check for new MQTT instructions
 def check_mqtt():
-    if mqtt.client != False:
+    if not mqtt.client == False:
         mqtt.client.check_msg() 
 
-
 numPixels = 16
+#numPixels = 288
 LED_COUNT = numPixels
+
 #Create strip object
 #parameters: number of LEDs, state machine ID, GPIO number and mode (RGB or RGBW)
 status("Initialising strip")
-#strip = Neopixel(numPixels, 0, 0, "GRB")
 strip = Neopixel(numPixels, 0, 0, "GRBW")
+#strip = Neopixel(numPixels, 0, 0, "GRB")
+
+#Set initial brightness
 strip.brightness(20)
 
 colour = [0, 0, 0]
+set_colour(colour)
 saturation = 100
 speed = 90
 dyndelay = 0
 set_speed(speed)
+brightness = 20
+set_brightness(brightness)
 pixel_colours = [[0, 0, 0, 0]] * numPixels
 stop = False
 running = False
-effect = ""
+effect = "None"
+next_up = "None"
+now_running(effect)
 
 effects = { "rainbow":   rainbow,
             "pluming":   pluming,
             "shimmer":   shimmer,
             "splashing": splashing,
+            "wobble":    wobble,
+            "twinkling": twinkling,
             "off":       off }

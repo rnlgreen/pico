@@ -1,5 +1,6 @@
 #pico0 main code
 import time
+import gc
 import utils.mqtt as mqtt
 import utils.myid as myid
 import utils.leds as leds
@@ -15,6 +16,11 @@ def get_status():
     status("running: {}".format(leds.running))
     status("effect: {}".format(leds.effect))
     status("stop: {}".format(leds.stop))
+    status("speed: {}".format(leds.speed))
+    status("dyndelay: {}".format(leds.dyndelay))
+    status("brightness: {}".format(leds.brightness))
+    gc.collect()
+    status("freemem: {}".format(gc.mem_free()))
 
 #LED control function to accept commands and launch effects
 def led_control(command=""):
