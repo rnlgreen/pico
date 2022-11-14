@@ -5,6 +5,8 @@ import utils.myid as myid
 import utils.mqtt as mqtt
 import os
 
+cleanup = False
+
 def login(ftphost,ftpuser,ftppw):
     status("Opening FTP connection...")
     try:
@@ -73,11 +75,12 @@ def get_changedfiles(ftp,folder):
                 numfiles+=1
             except:
                 status("File not found: '{}'".format(folder+"/"+filename))
-    localfiles = os.listdir(folder)
-    for filename in localfiles:
-        if filename.endswith(".py") and not filename in sha256_values.keys():
-            status("Removing file {}".format(filename))
-            os.remove(folder+"/"+filename)
+    if cleanup:
+        localfiles = os.listdir(folder)
+        for filename in localfiles:
+            if filename.endswith(".py") and not filename in sha256_values.keys():
+                status("Removing file {}".format(filename))
+                os.remove(folder+"/"+filename)
     return numfiles
 
 def cwd(ftp,folder):
