@@ -30,7 +30,7 @@ def led_control(command=""):
 def main():
     leds.off()
     if mqtt.client != False:
-        mqtt.client.subscribe("pico/"+myid.pico+"/lights") # type: ignore
+        mqtt.client.subscribe("pico/lights") # type: ignore
     while True:
         if mqtt.client != False:
             mqtt.client.check_msg() 

@@ -3,12 +3,14 @@ from machine import unique_id # type: ignore
 
 picos = {"e6614c311b462739":"pico0", 
          "e6614143288438": "pico1",
-         "e661413e7355437": "pico2"
+         "e661413e7355437": "pico2",
+         "e6614864d39a8536": "pico3"
         }
 where = {
             "pico0": "study", 
             "pico1": "loft",
-            "pico2": "garage"
+            "pico2": "garage",
+            "pico3": "kitchen"
         }
 
 pico = "unknown"

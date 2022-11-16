@@ -566,7 +566,6 @@ def now_running(new_effect):
         status("Starting {}".format(new_effect))
     effect = new_effect
     mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
-    status("Left now_running")
 
 #LED control function to accept commands and launch effects
 def led_control(command=""):
@@ -616,15 +615,15 @@ def check_mqtt():
     if not mqtt.client == False:
         mqtt.client.check_msg() 
 
-numPixels = 16
-#numPixels = 288
+#numPixels = 16
+numPixels = 288
 LED_COUNT = numPixels
 
 #Create strip object
 #parameters: number of LEDs, state machine ID, GPIO number and mode (RGB or RGBW)
 status("Initialising strip")
-strip = Neopixel(numPixels, 0, 0, "GRBW")
-#strip = Neopixel(numPixels, 0, 0, "GRB")
+#strip = Neopixel(numPixels, 0, 0, "GRBW")
+strip = Neopixel(numPixels, 0, 0, "GRB")
 
 #Set initial brightness
 strip.brightness(20)

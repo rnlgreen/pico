@@ -100,9 +100,9 @@ def on_message(topic, payload):
             main.get_status()
         else:
             status("Unknown command: {}".format(payload))
-    elif topic == "pico/"+pico+"/lights":
+    elif topic == "pico/lights":
         main.led_control(payload)
-    elif topic == "pico/"+pico+"/poll":
+    elif topic == "pico/poll":
         heartbeat_topic = "pico/"+pico+"/heartbeat"
         send_mqtt(heartbeat_topic,"Yes, I'm here")
 
@@ -115,7 +115,7 @@ ipaddr = wifi.wlan_connect(pico)
 if ipaddr:
     #Try and connect to MQTT
     mqtt.mqtt_connect(client_id=pico)
-    status("Connected on {}".format(ipaddr))
+    status("Wi-Fi connected on {}".format(ipaddr))
 
     status("Attempting time sync...")
     #Sync the time up
@@ -136,13 +136,16 @@ if ipaddr:
         status("Subscribing to channels...")
         mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
-        mqtt.client.subscribe("pico/"+pico+"/poll") # type: ignore
+        mqtt.client.subscribe("pico/poll") # type: ignore
 
 if not testmode:
     #Now load and call the specific code for this pico
     status("Loading main")
     try:
-        main = __import__(pico)
+        if pico in ("pico0","pico3","pico4","pico5"):
+            main = __import__("lights")
+        else:
+            main = __import__(pico)
         gc.collect()
         status("Free memory: {}".format(gc.mem_free()))
         main.main()

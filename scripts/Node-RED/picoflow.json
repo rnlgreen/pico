@@ -1,0 +1,724 @@
+[
+    {
+        "id": "fef338a2abd51c4c",
+        "type": "tab",
+        "label": "Pi Pico Control",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "96f20c153e32530c",
+        "type": "mqtt out",
+        "z": "fef338a2abd51c4c",
+        "name": "MQTT Send",
+        "topic": "",
+        "qos": "0",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "4a1e2f78d888beb3",
+        "x": 730,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "a9f814adda76edc6",
+        "type": "mqtt in",
+        "z": "fef338a2abd51c4c",
+        "name": "Pico heartbeat in",
+        "topic": "pico/+/heartbeat",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "4a1e2f78d888beb3",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 120,
+        "y": 600,
+        "wires": [
+            [
+                "b4ddc18347be5bb7"
+            ]
+        ]
+    },
+    {
+        "id": "15a5efd0c4b59785",
+        "type": "inject",
+        "z": "fef338a2abd51c4c",
+        "name": "pico/poll",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "60",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "1",
+        "topic": "pico/poll",
+        "payload": "Are you there?",
+        "payloadType": "str",
+        "x": 480,
+        "y": 260,
+        "wires": [
+            [
+                "96f20c153e32530c"
+            ]
+        ]
+    },
+    {
+        "id": "6e2ad20ef32d5411",
+        "type": "mqtt in",
+        "z": "fef338a2abd51c4c",
+        "name": "Pico status in",
+        "topic": "pico/+/status",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "4a1e2f78d888beb3",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 130,
+        "y": 460,
+        "wires": [
+            [
+                "51b868ce2ed4c2d6",
+                "b4ddc18347be5bb7"
+            ]
+        ]
+    },
+    {
+        "id": "150ed2d5a2ca2d1f",
+        "type": "function",
+        "z": "fef338a2abd51c4c",
+        "name": "Post to #home-security",
+        "func": "//CF59T4JNL is #monitor\n//C01BMM9C8Q4 is #home-security\nconst message = msg.payload\nmsg.payload = { \"channel\": \"C01BMM9C8Q4\", \"text\": message }\nreturn msg\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 340,
+        "wires": [
+            [
+                "07a9251819be258f"
+            ]
+        ]
+    },
+    {
+        "id": "2d139e3ffbb9b42d",
+        "type": "mqtt in",
+        "z": "fef338a2abd51c4c",
+        "name": "Pico Alerts",
+        "topic": "pico/+/alerts/+",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "4a1e2f78d888beb3",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 180,
+        "y": 340,
+        "wires": [
+            [
+                "150ed2d5a2ca2d1f"
+            ]
+        ]
+    },
+    {
+        "id": "07a9251819be258f",
+        "type": "http request",
+        "z": "fef338a2abd51c4c",
+        "name": "Post to Slack",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://slack.com/api/chat.postMessage",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [
+            {
+                "keyType": "other",
+                "keyValue": "Content-type",
+                "valueType": "other",
+                "valueValue": "application/json"
+            },
+            {
+                "keyType": "other",
+                "keyValue": "Authorization",
+                "valueType": "other",
+                "valueValue": "Bearer xoxb-327334714800-4202658677350-tR3mwjMOkObWJ1oykDfuM0Bh"
+            }
+        ],
+        "x": 730,
+        "y": 340,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "51b868ce2ed4c2d6",
+        "type": "function",
+        "z": "fef338a2abd51c4c",
+        "name": "Debug Log",
+        "func": "if(!msg.payload) return;\nvar convert = new ansiToHtml();\nconst CR = '\\r';\nconst LF = '\\n';\nconst CRLF = CR+LF;\nlet input = msg.payload + \"\";\ninput = input.replace(new RegExp(CR, 'g'), LF)\ninput = input.replace(new RegExp(CRLF, 'g'), LF)\n\nconst MAXLINES = 200;\nlet data = context.get(\"data\") || [];\nif(msg.topic==\"clear\") {\n    data = [];\n} else {\n    const lines = input.split(LF);\n    data.push(...lines)\n    data = data.slice(-MAXLINES);\n}\ncontext.set(\"data\", data);\n\nvar html = convert.toHtml(data.join(\"<br>\"))\nmsg.payload = html;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [
+            {
+                "var": "ansiToHtml",
+                "module": "ansi-to-html"
+            }
+        ],
+        "x": 590,
+        "y": 460,
+        "wires": [
+            [
+                "f9a0d838a9c6e744"
+            ]
+        ]
+    },
+    {
+        "id": "f9a0d838a9c6e744",
+        "type": "ui_template",
+        "z": "fef338a2abd51c4c",
+        "group": "f8200869c91aa0a1",
+        "name": "Log Window",
+        "order": 13,
+        "width": "6",
+        "height": "4",
+        "format": "\n<div id=\"shell\" style=\"font-family: monospace;\"></div>\n\n<script>\n(function(scope) {\n  scope.$watch('msg', function(msg) {\n    if (msg) {\n        debugger\n      $(\"#shell\").html(msg.payload);\n      $(\"#shell\").closest(\".nr-dashboard-template\").scrollTop(function() { return this.scrollHeight; });\n    }\n  });\n})(scope);\n</script>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 770,
+        "y": 460,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b47c2fa8585539e8",
+        "type": "ui_button",
+        "z": "fef338a2abd51c4c",
+        "name": "",
+        "group": "f8200869c91aa0a1",
+        "order": 14,
+        "width": "6",
+        "height": "1",
+        "passthru": false,
+        "label": "clear",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "str",
+        "topic": "clear",
+        "topicType": "str",
+        "x": 390,
+        "y": 420,
+        "wires": [
+            [
+                "51b868ce2ed4c2d6"
+            ]
+        ]
+    },
+    {
+        "id": "b4ddc18347be5bb7",
+        "type": "function",
+        "z": "fef338a2abd51c4c",
+        "name": "Heartbeat",
+        "func": "//If it is an incoming heartbeat then set the status to true\nvar d = new Date()\nvar now = d.getTime()\n\nif (msg.topic.match(/pico\\/.*/))\n{\n    const words = msg.topic.split(\"/\");\n    const pico = words[1];\n    context.set(pico, now);\n    msg.payload=\"set \" + pico + \" to \" + now;\n    return\n};\n\n//Must be a status poll so update the dashboard    \nvar msg0 = now - context.get(\"pico0\") < 65000 ? { color: \"lime\" } : { color: \"red\" };\nvar msg1 = now - context.get(\"pico1\") < 65000 ? { color: \"lime\" } : { color: \"red\" };\nvar msg2 = now - context.get(\"pico2\") < 65000 ? { color: \"lime\" } : { color: \"red\" };\nvar msg3 = now - context.get(\"pico3\") < 65000 ? { color: \"lime\" } : { color: \"red\" };\nvar msg4 = now - context.get(\"pico4\") < 65000 ? { color: \"lime\" } : { color: \"red\" };\nvar msg5 = now - context.get(\"pico5\") < 65000 ? { color: \"lime\" } : { color: \"red\" };\nvar msg6 = now - context.get(\"pico6\") < 65000 ? { color: \"lime\" } : { color: \"red\" };\nvar msg7 = now - context.get(\"pico7\") < 65000 ? { color: \"lime\" } : { color: \"red\" };\n\n return [msg0, msg1, msg2, msg3, msg4, msg5, msg6, msg7];\n \n",
+        "outputs": 8,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\ncontext.set('pico0',0);\ncontext.set('pico1',0);\ncontext.set('pico2',0);\ncontext.set('pico3',0);\ncontext.set('pico4',0);\ncontext.set('pico5',0);\ncontext.set('pico6',0);\ncontext.set('pico7',0);\n\n//Must be a status poll so update the dashboard    \nvar msg0 = { color: \"cyan\" };\nvar msg1 = { color: \"cyan\" };\nvar msg2 = { color: \"cyan\" };\nvar msg3 = { color: \"cyan\" };\nvar msg4 = { color: \"cyan\" };\nvar msg5 = { color: \"cyan\" };\nvar msg6 = { color: \"cyan\" };\nvar msg7 = { color: \"cyan\" };\n\nreturn [msg0, msg1, msg2, msg3, msg4, msg5, msg6, msg7];",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 660,
+        "wires": [
+            [
+                "4ee93a3d8b0ffa17"
+            ],
+            [
+                "becce253a813b799"
+            ],
+            [
+                "2f34fee6ec07a90f"
+            ],
+            [
+                "525213054d21e54d"
+            ],
+            [
+                "b63c15b6a1421801"
+            ],
+            [
+                "f2d3957ec00ed6d1"
+            ],
+            [
+                "3f8008bfaccdbb89"
+            ],
+            [
+                "070a512b6960e5ba"
+            ]
+        ]
+    },
+    {
+        "id": "4ee93a3d8b0ffa17",
+        "type": "ui_text",
+        "z": "fef338a2abd51c4c",
+        "group": "f73f8ee09f454925",
+        "order": 1,
+        "width": "2",
+        "height": "1",
+        "name": "",
+        "label": "pico0",
+        "format": "<font color={{msg.color}} ><i class=\"fa fa-circle\" style=\"font-size:24px;\"></i></font>",
+        "layout": "row-spread",
+        "className": "",
+        "x": 570,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "becce253a813b799",
+        "type": "ui_text",
+        "z": "fef338a2abd51c4c",
+        "group": "f73f8ee09f454925",
+        "order": 2,
+        "width": "2",
+        "height": "1",
+        "name": "",
+        "label": "pico1",
+        "format": "<font color={{msg.color}} ><i class=\"fa fa-circle\" style=\"font-size:24px;\"></i></font>",
+        "layout": "row-spread",
+        "className": "",
+        "x": 570,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "2f34fee6ec07a90f",
+        "type": "ui_text",
+        "z": "fef338a2abd51c4c",
+        "group": "f73f8ee09f454925",
+        "order": 3,
+        "width": "2",
+        "height": "1",
+        "name": "",
+        "label": "pico2",
+        "format": "<font color={{msg.color}} ><i class=\"fa fa-circle\" style=\"font-size:24px;\"></i></font>",
+        "layout": "row-spread",
+        "className": "",
+        "x": 570,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "525213054d21e54d",
+        "type": "ui_text",
+        "z": "fef338a2abd51c4c",
+        "group": "f73f8ee09f454925",
+        "order": 4,
+        "width": "2",
+        "height": "1",
+        "name": "",
+        "label": "pico3",
+        "format": "<font color={{msg.color}} ><i class=\"fa fa-circle\" style=\"font-size:24px;\"></i></font>",
+        "layout": "row-spread",
+        "className": "",
+        "x": 570,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "b63c15b6a1421801",
+        "type": "ui_text",
+        "z": "fef338a2abd51c4c",
+        "group": "f73f8ee09f454925",
+        "order": 5,
+        "width": "2",
+        "height": "1",
+        "name": "",
+        "label": "pico4",
+        "format": "<font color={{msg.color}} ><i class=\"fa fa-circle\" style=\"font-size:24px;\"></i></font>",
+        "layout": "row-spread",
+        "className": "",
+        "x": 570,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "f2d3957ec00ed6d1",
+        "type": "ui_text",
+        "z": "fef338a2abd51c4c",
+        "group": "f73f8ee09f454925",
+        "order": 6,
+        "width": "2",
+        "height": "1",
+        "name": "",
+        "label": "pico5",
+        "format": "<font color={{msg.color}} ><i class=\"fa fa-circle\" style=\"font-size:24px;\"></i></font>",
+        "layout": "row-spread",
+        "className": "",
+        "x": 570,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "3f8008bfaccdbb89",
+        "type": "ui_text",
+        "z": "fef338a2abd51c4c",
+        "group": "f73f8ee09f454925",
+        "order": 7,
+        "width": "2",
+        "height": "1",
+        "name": "",
+        "label": "pico6",
+        "format": "<font color={{msg.color}} ><i class=\"fa fa-circle\" style=\"font-size:24px;\"></i></font>",
+        "layout": "row-spread",
+        "className": "",
+        "x": 570,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "070a512b6960e5ba",
+        "type": "ui_text",
+        "z": "fef338a2abd51c4c",
+        "group": "f73f8ee09f454925",
+        "order": 8,
+        "width": "2",
+        "height": "1",
+        "name": "",
+        "label": "pico7",
+        "format": "<font color={{msg.color}} ><i class=\"fa fa-circle\" style=\"font-size:24px;\"></i></font>",
+        "layout": "row-spread",
+        "className": "",
+        "x": 570,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "462a7e7ac0032ec1",
+        "type": "inject",
+        "z": "fef338a2abd51c4c",
+        "name": "status",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "10",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "3",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 660,
+        "wires": [
+            [
+                "b4ddc18347be5bb7"
+            ]
+        ]
+    },
+    {
+        "id": "b49140b9339b2e08",
+        "type": "ui_template",
+        "z": "fef338a2abd51c4c",
+        "group": "f8200869c91aa0a1",
+        "name": "Blink",
+        "order": 1,
+        "width": "2",
+        "height": "1",
+        "format": "\n<md-button class=\"filled touched smallfont rounded\" style=\"background-color:#e67e22\" \n    ng-click=\"send({topic: 'pico/control', payload: 'blink'})\"> \n    Blink\n</md-button> \n\n",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": false,
+        "templateScope": "local",
+        "className": "",
+        "x": 190,
+        "y": 120,
+        "wires": [
+            [
+                "732a666d606f68ad"
+            ]
+        ]
+    },
+    {
+        "id": "732a666d606f68ad",
+        "type": "function",
+        "z": "fef338a2abd51c4c",
+        "name": "Control Message",
+        "func": "pico = flow.get(\"pico\")\nmsg.topic = 'pico/'+pico+'/control'\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 180,
+        "wires": [
+            [
+                "99c53277609c28d3",
+                "96f20c153e32530c"
+            ]
+        ]
+    },
+    {
+        "id": "b31f6fbd8d59edb2",
+        "type": "ui_dropdown",
+        "z": "fef338a2abd51c4c",
+        "name": "Pico Selection",
+        "label": "Pico",
+        "tooltip": "",
+        "place": "Select pico",
+        "group": "f73f8ee09f454925",
+        "order": 8,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "multiple": false,
+        "options": [
+            {
+                "label": "pico0",
+                "value": "pico0",
+                "type": "str"
+            },
+            {
+                "label": "pico1",
+                "value": "pico1",
+                "type": "str"
+            },
+            {
+                "label": "pico2",
+                "value": "pico2",
+                "type": "str"
+            },
+            {
+                "label": "pico3",
+                "value": "pico3",
+                "type": "str"
+            },
+            {
+                "label": "pico4",
+                "value": "pico4",
+                "type": "str"
+            },
+            {
+                "label": "pico5",
+                "value": "pico5",
+                "type": "str"
+            },
+            {
+                "label": "pico6",
+                "value": "pico6",
+                "type": "str"
+            },
+            {
+                "label": "pico7",
+                "value": "pico7",
+                "type": "str"
+            }
+        ],
+        "payload": "",
+        "topic": "topic",
+        "topicType": "msg",
+        "className": "",
+        "x": 160,
+        "y": 60,
+        "wires": [
+            [
+                "37012fd3c6548152"
+            ]
+        ]
+    },
+    {
+        "id": "37012fd3c6548152",
+        "type": "function",
+        "z": "fef338a2abd51c4c",
+        "name": "Pico Select",
+        "func": "flow.set(\"pico\",msg.payload)\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "// Code added here will be run once\n// whenever the node is started.\nflow.set(\"pico\",\"pico0\")\n",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 60,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "99c53277609c28d3",
+        "type": "debug",
+        "z": "fef338a2abd51c4c",
+        "name": "debug 17",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 720,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "b875d576a04088de",
+        "type": "ui_template",
+        "z": "fef338a2abd51c4c",
+        "group": "f8200869c91aa0a1",
+        "name": "Reload",
+        "order": 1,
+        "width": "2",
+        "height": "1",
+        "format": "\n<md-button class=\"filled touched smallfont rounded\" style=\"background-color:#e67e22\" \n    ng-click=\"send({topic: 'pico/control', payload: 'reload'})\"> \n    Reload\n</md-button> \n\n",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": false,
+        "templateScope": "local",
+        "className": "",
+        "x": 180,
+        "y": 160,
+        "wires": [
+            [
+                "732a666d606f68ad"
+            ]
+        ]
+    },
+    {
+        "id": "e9cb2b53a7828adf",
+        "type": "ui_template",
+        "z": "fef338a2abd51c4c",
+        "group": "f8200869c91aa0a1",
+        "name": "Restart",
+        "order": 1,
+        "width": "2",
+        "height": "1",
+        "format": "\n<md-button class=\"filled touched smallfont rounded\" style=\"background-color:#e67e22\" \n    ng-click=\"send({topic: 'pico/control', payload: 'restart'})\"> \n    Restart\n</md-button> \n\n",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": false,
+        "templateScope": "local",
+        "className": "",
+        "x": 180,
+        "y": 200,
+        "wires": [
+            [
+                "732a666d606f68ad"
+            ]
+        ]
+    },
+    {
+        "id": "c7144f081ff8ebbb",
+        "type": "ui_template",
+        "z": "fef338a2abd51c4c",
+        "group": "f8200869c91aa0a1",
+        "name": "Status",
+        "order": 1,
+        "width": "2",
+        "height": "1",
+        "format": "\n<md-button class=\"filled touched smallfont rounded\" style=\"background-color:#e67e22\" \n    ng-click=\"send({topic: 'pico/control', payload: 'status'})\"> \n    Status\n</md-button> \n\n",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": false,
+        "templateScope": "local",
+        "className": "",
+        "x": 190,
+        "y": 240,
+        "wires": [
+            [
+                "732a666d606f68ad"
+            ]
+        ]
+    },
+    {
+        "id": "4a1e2f78d888beb3",
+        "type": "mqtt-broker",
+        "name": "Condor-Mosquitto",
+        "broker": "10.0.0.50",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "f8200869c91aa0a1",
+        "type": "ui_group",
+        "name": "Pico",
+        "tab": "2bcceaf45df2f955",
+        "order": 2,
+        "disp": false,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "f73f8ee09f454925",
+        "type": "ui_group",
+        "name": "LEDs",
+        "tab": "2bcceaf45df2f955",
+        "order": 1,
+        "disp": false,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "2bcceaf45df2f955",
+        "type": "ui_tab",
+        "name": "Pico",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]

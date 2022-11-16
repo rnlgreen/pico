@@ -15,7 +15,8 @@ def mqtt_connect(client_id, mqtt_server=secrets.mqtt_server):
         return client
     except:
         print("Failed to connect to MQTT")
-        return False
+        client = False
+        return client
 
 #send a message
 def send_mqtt(topic, payload):
