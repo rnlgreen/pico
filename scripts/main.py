@@ -84,7 +84,7 @@ def on_message(topic, payload):
     topic = str(topic.decode())
     payload = str(payload.decode())
     print("Received topic: {} message: {}".format(topic,payload))
-    if topic == "pico/"+pico+"/control":
+    if topic == "pico/"+pico+"/control" or topic == "pico/all/control":
         command = payload
         if command == "blink":
             status("blinking")
@@ -136,16 +136,14 @@ if ipaddr:
         status("Subscribing to channels...")
         mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
+        mqtt.client.subscribe("pico/all/control") # type: ignore
         mqtt.client.subscribe("pico/poll") # type: ignore
 
 if not testmode:
     #Now load and call the specific code for this pico
     status("Loading main")
     try:
-        if pico in ("pico0","pico3","pico4","pico5"):
-            main = __import__("lights")
-        else:
-            main = __import__(pico)
+        main = __import__(pico)
         gc.collect()
         status("Free memory: {}".format(gc.mem_free()))
         main.main()

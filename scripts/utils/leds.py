@@ -98,7 +98,7 @@ def set_all(r=0, g=0, b=0, w=0):
     colour = [r, g, b]
     strip.fill((r, g, b))
     for p in range(numPixels):
-        pixel_colours[p] = [r, g, b]
+        pixel_colours[p] = [r, g, b, w]
     strip.show()
 
 #Set an individual pixel to a new colour
@@ -316,9 +316,9 @@ def splashing(num=5,colour_list=["-1"],leave=False):
             for p in range(numPixels):
                 led_colours[p] = list(get_pixel_rgb(p))
         else:
-            led_colours = [[0, 0, 0, 0]] * LED_COUNT
+            led_colours = [[0, 0, 0, 0]] * numPixels
         
-        changed = [False] * LED_COUNT
+        changed = [False] * numPixels
 
         #Get the elapsed time since last time we were here
         elapsed = ticks_diff(t,millis())
@@ -543,7 +543,6 @@ def twinkling(num=0,colour_list=[]):
 def off():
     global stop
     if running:
-        status("off() called whilst running {}".format(effect))
         mqtt.send_mqtt("pico/"+myid.pico+"/status/running","stopping...")
         stop = True
     else:
@@ -615,33 +614,38 @@ def check_mqtt():
     if not mqtt.client == False:
         mqtt.client.check_msg() 
 
-#numPixels = 16
-numPixels = 288
-LED_COUNT = numPixels
+def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
+    global numPixels
+    global strip
+    global pixel_colours
 
-#Create strip object
-#parameters: number of LEDs, state machine ID, GPIO number and mode (RGB or RGBW)
-status("Initialising strip")
-#strip = Neopixel(numPixels, 0, 0, "GRBW")
-strip = Neopixel(numPixels, 0, 0, "GRB")
+    numPixels = pixels
 
-#Set initial brightness
-strip.brightness(20)
+    #Create strip object
+    #parameters: number of LEDs, state machine ID, GPIO number and mode (RGB or RGBW)
+    status("Initialising strip")
+    #strip = Neopixel(numPixels, 0, 0, "GRBW")
+    strip = Neopixel(numPixels, 0, GPIO, strip_type)
 
+    #Set initial brightness and colour
+    strip.brightness(20)
+
+    pixel_colours = [[0, 0, 0, 0]] * numPixels
+
+    set_colour(colour)
+    set_speed(speed)
+    now_running("None")
+
+numPixels = 0
 colour = [0, 0, 0]
-set_colour(colour)
 saturation = 100
 speed = 90
 dyndelay = 0
-set_speed(speed)
 brightness = 20
-set_brightness(brightness)
-pixel_colours = [[0, 0, 0, 0]] * numPixels
 stop = False
 running = False
 effect = "None"
 next_up = "None"
-now_running(effect)
 
 effects = { "rainbow":   rainbow,
             "pluming":   pluming,
