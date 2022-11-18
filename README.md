@@ -27,25 +27,25 @@ pico[n].py - These scripts contain code specific to the tasks I want individual 
 
 secrets.py - Contains the various details to connect to Wi-Fi, MQTT and FTP services
 
-trap.py - I have a mouse trap instrumented with an infra-red beam to detect mice and a PWM motor to trigger the trap, along with a magnetic reed switch to detect when the trap is closed. This module handles all of that.
-
 generate_shar256.sh - Shell script to run on the Raspberry Pi hosting the FTP repositiory; generates text files containing the names of each python module and the SHA256 checksum of them. These text files are pulled down by main.py when it receives a "reload" command so that it can check which modules need updating compared to the local copies.
 
 lib/umqtt/simple.mpy - Standard MicroPython MQTT library. Can be installed to a pico using: import mip mip.install("umqtt.simple")
 
 lib/ftplib.py - MicroPython compatible ftplib module
 
+lib/neopixel.py - Neopixel library to drive WS2812 LED strips
+
 The utils folder contains the following modules:
 * am2320.py - module for reporting the temperature and humiditiy from an AM2320 sensor
 * blink.py - simple module used for making the on-board LED blink
+* colours.py - used by leds.py, contains RGB settings for lots of colours
 * ftp.py - wrapper functions to handle pulling back all modified source code from the FTP repositiory
+* i2cscan.py - just a test script for scanning the I2C bus for devices
+* leds.py - routines for driving WS2812B lights using the noepixel library
 * mqtt.py - wrapper functions for connecting to MQTT and sending messages
 * myid.py - returns the name of this pico based on the the machine unique_id property
 * ntp.py - used to sync the real time clock with NTP
 * sha256.py - used to find the SHA256 checksum of local files when checking which scripts need to be updated from the FTP repository
+* trap.py - I have a mouse trap instrumented with an infra-red beam to detect mice and a PWM motor to trigger the trap, along with a magnetic reed switch to detect when the trap is closed. This module handles all of that.
 * wifi.py - used for connecting the pico to the local Wi-Fi
 
-<h5>Node-Red Dashboard</h5>
-This sample dashboard has timers showing how long it is since we last heard from each pico, a status log window the shows debug messages being sent by the picos via MQTT, and control buttons to send MQTT messages to the picos to cause them to blink, reload or restart.
-
-<img width="240" alt="dashboard" src="https://user-images.githubusercontent.com/34414575/199085816-7ab4b55d-5774-46e4-a21c-cf28e1bf287d.png">
