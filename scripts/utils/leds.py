@@ -5,8 +5,7 @@ import utils.myid as myid
 from utils.colours import colours
 
 from lib.neopixel import Neopixel
-from math import sin, pi, radians, sqrt
-#import colorsys
+from math import sin, radians, sqrt
 import random
 
 # Convert a list [1, 2, 3] to integer values, and adjust for brightness
@@ -159,15 +158,20 @@ def rainbow():
     now_running("Rainbow")
     set_speed(75)
     hue = 0
+    t = millis()
     while not stop:
         check_mqtt()
-        color = strip.colorHSV(hue, 255, 150)
+        colour = strip.colorHSV(hue, 255, 255)
         #Returns list (r, g, b)
-        strip.fill(color)
+        strip.fill(colour)
         strip.show()
         hue += 150
         if hue > 65535:
             hue -= 65535
+#        if ticks_diff(t, millis()) > 1000:
+#            hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
+#            mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
+#            t = millis()
         time.sleep(dyndelay / 1000)
     set_all(0, 0, 0)
     now_running("None")
@@ -547,6 +551,8 @@ def off():
         stop = True
     else:
         set_all(0,0,0)
+        hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
 
 #Function to report now running 
 def now_running(new_effect):
@@ -560,6 +566,8 @@ def now_running(new_effect):
             new_effect = next_up
             next_up = "None"
             led_control(new_effect)
+        else:
+            off()
     else:
         running = True
         status("Starting {}".format(new_effect))
