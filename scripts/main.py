@@ -154,8 +154,8 @@ if not testmode:
         #status("main.py caught exception: {}".format(e))
         sys.print_exception(e, output)
         status("Main caught exception:\n{}".format(output.getvalue()))
-        #Now listen for control commands so we can restart after an exception
-        while True:
-            if mqtt.client != False:
-                mqtt.client.check_msg() 
-            time.sleep(0.2)
+        #Now pause a while then restart
+        time.sleep(10)
+        #Assume MQTT might be broken
+        mqtt.client = False
+        restart()
