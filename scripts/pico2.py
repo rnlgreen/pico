@@ -68,15 +68,17 @@ def main():
     while True:
         if time.time() - last_sent >= 60:
             last_sent = time.time()
+            got_reading = False
             try:
                 sensor.measure()
+                got_reading = True
+            except Exception as e:
+                status("Exception: {}".format(e))
+            if got_reading:
                 send_measurement("temperature",sensor.temperature())
                 send_measurement("humidity",sensor.humidity())
                 last_temp = sensor.temperature()
                 last_humidity = sensor.humidity()
-                #status("Measurements sent")
-            except Exception as e:
-                status("Exception: {}".format(e))
         #Check for messages
         if mqtt.client != False:
             mqtt.client.check_msg() 

@@ -241,8 +241,11 @@ def led_control(command=""):
     global stop, saturation, next_up
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
-        r, g, b = [int(x) for x in command[4:-1].split(", ")]
-        set_all(r, g, b)
+        try:
+            r, g, b = [int(x) for x in command[4:-1].split(", ")]
+            set_all(r, g, b)
+        except:
+            status("Invalid RGB command: {}".format(command))
     elif command.startswith("brightness:"):
         _, b = command.split(":")
         strip.brightness(int(b))

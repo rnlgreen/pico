@@ -153,7 +153,10 @@ if not testmode:
         output = io.StringIO()
         #status("main.py caught exception: {}".format(e))
         sys.print_exception(e, output)
-        status("Main caught exception:\n{}".format(output.getvalue()))
+        try:
+            status("Main caught exception:\n{}".format(output.getvalue()))
+        except:
+            pass
         #Now pause a while then restart
         time.sleep(10)
         #Assume MQTT might be broken
