@@ -79,6 +79,16 @@ def strftime():
     timestring="%04d-%02d-%02d %02d:%02d:%02d"%(timestamp[0:3] + timestamp[4:7])
     return timestring
 
+#Attempt NTP sync
+def do_ntp_sync():
+    #Sync the time up
+    if not ntp.set_time():
+        status("Failed to set the time")
+        return False
+    else:
+        status("Time set to {}".format(strftime()))
+        return True
+
 #process incoming control commands
 def on_message(topic, payload):
     topic = str(topic.decode())
@@ -121,11 +131,7 @@ if ipaddr:
     status("Wi-Fi connected on {}".format(ipaddr))
 
     status("Attempting time sync...")
-    #Sync the time up
-    if not ntp.set_time():
-        status("Failed to set the time")
-    else:
-        status("Booted at {}".format(strftime()))
+    ntp_sync = do_ntp_sync()
 
     blink(0.1,0.1,4)
 
@@ -146,6 +152,10 @@ if ipaddr:
 
 if not testmode:
     blink(0.2,0.2,5)
+    if not ntp_sync:
+        #Retry NTP sync
+        ntp_sync = do_ntp_sync()
+
     #Now load and call the specific code for this pico
     status("Loading main")
     try:

@@ -144,6 +144,7 @@ def set_colour(new_colour):
     global colour
     if not colour == new_colour:
         colour = new_colour
+        set_all(colour[0],colour[1],colour[2])
         hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
         mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
 
@@ -247,18 +248,17 @@ def now_running(new_effect):
 
 #LED control function to accept commands and launch effects
 def led_control(command=""):
-    global stop, saturation, brightness, next_up
+    global stop, saturation, next_up
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
         try:
             r, g, b = [int(x) for x in command[4:-1].split(", ")]
-            set_all(r, g, b)
+            set_colour([r, g, b])
         except:
             status("Invalid RGB command: {}".format(command))
     elif command.startswith("brightness:"):
         _, b = command.split(":")
-        brightness = int(b)
-        strip.brightness(brightness)
+        set_brightness(int(b))
         if not running:
             r, g, b, _ = list_to_rgb(colour)
             set_all(r, g, b)
@@ -311,20 +311,20 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     strip = Neopixel(numPixels, 0, GPIO, strip_type)
 
     #Set initial brightness and colour
-    strip.brightness(brightness)
+    set_brightness(20)
 
     pixel_colours = [[0, 0, 0, 0]] * numPixels
 
-    set_colour(colour)
+    set_colour([0, 255, 255])
     set_speed(speed)
-    now_running("None")
+    #now_running("None")
 
 numPixels = 0
 colour = [0, 0, 0]
 saturation = 100
 speed = 90
 dyndelay = 0
-brightness = 20
+brightness = 0
 stop = False
 running = False
 lightsoff = True

@@ -54,7 +54,6 @@ def readLight(photoGP=photoPIN):
 #Control LEDs based on light and time of day
 def manage_lights():
     lightlevel = readLight()
-    send_measurement("light",lightlevel)
     #Check time of day first
     hour = utime.localtime()[3]
     #Turn on or adjust brightness for low light level, unless it is late
@@ -83,14 +82,21 @@ def main():
 
     if mqtt.client != False:
         mqtt.client.subscribe("pico/lights") # type: ignore
-    last_light = time.time()
+    last_reading = time.time()
+    last_lights = time.time()
     while True:
         if mqtt.client != False:
             mqtt.client.check_msg() 
-        #Manage LEDs based on 
-        if time.time() - last_light >= 1:
+        #Publish light level every 5 seconds
+        if time.time() - last_reading >= 5:
+            lightlevel = readLight()
+            send_measurement("light",lightlevel)
+            last_reading = time.time()
+        #Manage light level every second
+        if time.time() - last_lights >= 1:
+            #Manage LEDs based on light level and time of day
             manage_lights()
-            last_light = time.time()
+            last_lights = time.time()
         time.sleep(0.2)
 
 pico = myid.get_id()
