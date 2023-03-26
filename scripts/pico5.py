@@ -64,7 +64,7 @@ def manage_lights():
                 if leds.colour == [0, 0, 0]:
                     send_control("rgb(0, 255, 255)")
             #New brightness somethnig between 10 and 80 step 5
-            new_brightness = min(80,max(10,(round(lightlevel/5) * 10) - 10))
+            new_brightness = min(80,max(10,(round((lightlevel*2)/5) * 5) - 10))
             if leds.brightness != new_brightness:
                 status("Brightness {} -> {}".format(leds.brightness,new_brightness))
                 send_control("brightness:{}".format(new_brightness))
