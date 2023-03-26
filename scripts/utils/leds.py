@@ -93,12 +93,16 @@ def contrasting_colour(colour=[]):
 
 #Set the whole strip to a new colour
 def set_all(r=0, g=0, b=0, w=0):
-    global colour, pixel_colours
+    global colour, pixel_colours, lightsoff
     colour = [r, g, b]
     strip.fill((r, g, b))
     for p in range(numPixels):
         pixel_colours[p] = [r, g, b, w]
     strip.show()
+    if colour == [0, 0, 0]:
+        lightsoff = True
+    else:
+        lightsoff = False
 
 #Set an individual pixel to a new colour
 def set_pixel(i=0, r=0, g=0, b=0, w=0):
@@ -125,11 +129,15 @@ def set_speed(new_speed):
 
 #Function to set the speed during demo sequences
 def set_brightness(new_brightness):
-    global brightness
+    global brightness, lightsoff
     if not brightness == new_brightness:
         brightness = new_brightness
         strip.brightness(brightness)
         mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness",str(brightness))
+        if brightness == 0:
+            lightsoff = True
+        else:
+            lightsoff = False
 
 #Function to set the speed during demo sequences
 def set_colour(new_colour):
@@ -207,7 +215,7 @@ def xmas():
 #Stop running functions and if not running turn off
 #Called from Node-Red
 def off():
-    global stop
+    global stop, lightsoff
     if running:
         mqtt.send_mqtt("pico/"+myid.pico+"/status/running","stopping...")
         stop = True
@@ -215,6 +223,7 @@ def off():
         set_all(0,0,0)
         hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
         mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
+        lightsoff = True
 
 #Function to report now running 
 def now_running(new_effect):
@@ -238,7 +247,7 @@ def now_running(new_effect):
 
 #LED control function to accept commands and launch effects
 def led_control(command=""):
-    global stop, saturation, next_up
+    global stop, saturation, brightness, next_up
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
         try:
@@ -248,7 +257,8 @@ def led_control(command=""):
             status("Invalid RGB command: {}".format(command))
     elif command.startswith("brightness:"):
         _, b = command.split(":")
-        strip.brightness(int(b))
+        brightness = int(b)
+        strip.brightness(brightness)
         if not running:
             r, g, b, _ = list_to_rgb(colour)
             set_all(r, g, b)
@@ -301,7 +311,7 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     strip = Neopixel(numPixels, 0, GPIO, strip_type)
 
     #Set initial brightness and colour
-    strip.brightness(20)
+    strip.brightness(brightness)
 
     pixel_colours = [[0, 0, 0, 0]] * numPixels
 
@@ -317,6 +327,7 @@ dyndelay = 0
 brightness = 20
 stop = False
 running = False
+lightsoff = True
 effect = "None"
 next_up = "None"
 

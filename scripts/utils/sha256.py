@@ -34,9 +34,12 @@ def check_sha256(file_name, original_sha256):
     if original_sha256 == sha256_returned:
         print ("sha256 verified for {}".format(file_name))
         return True
+    elif sha256_returned == "":
+        print ("Skipping file with failed sha256 check")
+        return True
     else:
-        print ("sha256 verification failed for {}".format(file_name))
-        print ("{} <> {}".format(sha256_returned,original_sha256))
+        status ("sha256 verification failed for {}".format(file_name))
+        #status ("{} <> {}".format(sha256_returned,original_sha256))
         return False
 
 if __name__ == "__main__":

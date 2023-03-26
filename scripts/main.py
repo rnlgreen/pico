@@ -106,8 +106,11 @@ def on_message(topic, payload):
         heartbeat_topic = "pico/"+pico+"/heartbeat"
         send_mqtt(heartbeat_topic,"Yes, I'm here")
 
+blink(0.1,0.1,3)
+
 #Get my ID
 pico = myid.get_id()
+
 print("I am {}".format(pico))
 
 #Call wifi_connect with our hostname
@@ -123,6 +126,8 @@ if ipaddr:
         status("Failed to set the time")
     else:
         status("Booted at {}".format(strftime()))
+
+    blink(0.1,0.1,4)
 
     #Get latest code
     if reload() > 0:
@@ -140,6 +145,7 @@ if ipaddr:
         mqtt.client.subscribe("pico/poll") # type: ignore
 
 if not testmode:
+    blink(0.2,0.2,5)
     #Now load and call the specific code for this pico
     status("Loading main")
     try:

@@ -5,7 +5,7 @@ import utils.mqtt as mqtt
 import utils.myid as myid
 import utils.leds as leds
 import utils.am2320 as am2320
-from machine import I2C, Pin # type: ignore
+from machine import I2C, Pin, ADC # type: ignore
 
 #Pins from left to right:
 #1: Voltage in, 3-5 VDC
@@ -16,6 +16,7 @@ from machine import I2C, Pin # type: ignore
 I2CID = 1
 SDAPIN = 26 #GPIO26
 SCLPIN = 27 #GPIO27
+photoPIN = 28 #GPIO28, Pin 34
 
 last_temp = -1
 last_humidity = -1
@@ -34,6 +35,7 @@ def send_measurement(what,value):
     if mqtt.client != False:
         mqtt.send_mqtt(topic,str(value))
 
+#Report current status of lights and sensors etc.
 def get_status():
     status("running: {}".format(leds.running))
     status("effect: {}".format(leds.effect))
@@ -56,10 +58,18 @@ def get_status():
         status("I2C device found at 0x{:02X}".format(devices[0]))    
     status("Latest temperature = {}".format(last_temp))
     status("Latest humidity: {}".format(last_humidity))
+    status("Light level: {}".format(readLight()))
 
 #LED control function to accept commands and launch effects
 def led_control(command=""):
     leds.led_control(command)
+
+#Measure light levels
+def readLight(photoGP=photoPIN):
+    photoRes = ADC(Pin(photoGP))
+    light = photoRes.read_u16()
+    light = round(light/65535*100,2)
+    return light
 
 #Called my main.py
 def main():
@@ -81,6 +91,7 @@ def main():
     if mqtt.client != False:
         mqtt.client.subscribe("pico/lights") # type: ignore
     last_sent = time.time() - 60
+    last_light = time.time() - 60
 
     while True:
         if time.time() - last_sent >= 60:
@@ -94,6 +105,10 @@ def main():
                 #status("Measurements sent")
             except Exception as e:
                 status("Exception: {}".format(e))
+        if time.time() - last_light >= 5:
+            send_measurement("light",readLight())
+            last_light = time.time()
+
         #Check for messages
         if mqtt.client != False:
             mqtt.client.check_msg() 
