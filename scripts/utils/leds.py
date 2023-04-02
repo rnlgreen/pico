@@ -338,7 +338,8 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     set_brightness(0)
     set_colour([0, 255, 255])
     set_speed(speed)
-    mqtt.send_mqtt("pico/"+myid.pico+"/status/auto","false")
+    mqtt.send_mqtt("pico/"+myid.pico+"/status/auto","off")
+    mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness","0")
     #now_running("None")
 
 numPixels = 0
