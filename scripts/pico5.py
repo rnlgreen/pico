@@ -15,6 +15,13 @@ def status(message):
     topic = 'pico/'+myid.pico+'/status'
     mqtt.send_mqtt(topic,message)
 
+#Print and send status messages
+def debug(message):
+    print(message)
+    message = myid.pico + ": " + message
+    topic = 'pico/'+myid.pico+'/debug'
+    mqtt.send_mqtt(topic,message)
+
 def send_control(payload):
     topic = 'pico/lights'
     mqtt.send_mqtt(topic,payload)
@@ -60,7 +67,7 @@ def rolling_average():
     latest = readLight()
     readings += [latest]
     avg = sum(readings)/len(readings)
-    #status("Latest: {} Average: {}".format(latest,avg))
+    debug("Latest: {} Average: {}".format(latest,avg))
     return(avg)
 
 #Control LEDs based on light and time of day
@@ -75,9 +82,10 @@ def manage_lights():
                 status("Turning lights on")
                 if leds.colour == [0, 0, 0]:
                     send_control("rgb(0, 255, 255)")
-            #New brightness somethnig between 10 and 80 step 5
+            #New brightness something between 10 and 80 step 5
             new_brightness = min(80,max(10,(round((lightlevel*2)/5) * 5) - 10))
             if leds.brightness != new_brightness:
+                debug("Old brightness: {} -> New brightness: {}".format(leds.brightness,new_brightness))
                 status("Brightness {} -> {}".format(leds.brightness,new_brightness))
                 send_control("brightness:{}".format(new_brightness))
     #Turn off for high light levels
@@ -106,12 +114,13 @@ def main():
             send_measurement("light",lightlevel)
             last_reading = time.time()
         #Manage light level every second
-        if leds.auto and (time.time() - last_lights >= 1):
-            #Manage LEDs based on light level and time of day
-            manage_lights()
+        if time.time() - last_lights >= 1:
             last_lights = time.time()
-        else:
-            rolling_average()
+            if leds.auto:
+                #Manage LEDs based on light level and time of day
+                manage_lights()
+            else:
+                rolling_average()
         time.sleep(0.2)
 
 pico = myid.get_id()

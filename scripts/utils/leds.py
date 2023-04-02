@@ -289,7 +289,7 @@ def led_control(command="",arg=""):
         saturation = int(s)
     elif command == "auto":
         status("Setting auto to {}".format(arg))
-        if arg == "false":
+        if arg == "off":
             auto = False
         else:
             auto = True
@@ -338,6 +338,7 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     set_brightness(0)
     set_colour([0, 255, 255])
     set_speed(speed)
+    mqtt.send_mqtt("pico/"+myid.pico+"/status/auto","false")
     #now_running("None")
 
 numPixels = 0

@@ -38,7 +38,7 @@ def check_sha256(file_name, original_sha256):
         print ("Skipping file with failed sha256 check")
         return True
     else:
-        status ("sha256 verification failed for {}".format(file_name))
+        status ("sha256 mismatch on {}".format(file_name))
         #status ("{} <> {}".format(sha256_returned,original_sha256))
         return False
 
