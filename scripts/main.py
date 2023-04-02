@@ -112,6 +112,8 @@ def on_message(topic, payload):
             status("Unknown command: {}".format(payload))
     elif topic == "pico/lights":
         main.led_control(payload)
+    elif topic == "pico/lights/auto":
+        main.led_control("auto",payload)
     elif topic == "pico/poll":
         heartbeat_topic = "pico/"+pico+"/heartbeat"
         send_mqtt(heartbeat_topic,"Yes, I'm here")

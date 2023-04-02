@@ -8,20 +8,14 @@ from lib.neopixel import Neopixel
 from math import sin, radians, sqrt
 import random
     
-# Convert a list [1, 2, 3] to integer values, and adjust for brightness
-def list_to_rgb(c, p=100):
-    #Add in value for white if we didn't get one
-    if len(c) == 3:
-        c += [0]
-
-    r, g, b, w = [min(255, int(int(x) * (p / 100.0))) for x in c]
-
+# Convert a list [1, 2, 3] to integer values, and adjust for saturation
+def list_to_rgb(c):
+    r, g, b = c
     if not saturation == 100:
         h, s, v = rgb_to_hsv(r, g, b)
         s = saturation / 100
         r, g, b = hsv_to_rgb(h, s, v)
-    
-    return r, g, b, w
+    return r, g, b, 0
 
 #rgb to hsv conversion - this works, but using colorsys.rgb_to_hsv is slightly quicker especially when doing rgb->hsv->rgb
 def rgb_to_hsv(r, g, b):
@@ -133,11 +127,36 @@ def set_brightness(new_brightness):
     if not brightness == new_brightness:
         brightness = new_brightness
         strip.brightness(brightness)
-        mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness",str(brightness))
+        if not running:
+            r, g, b, _ = list_to_rgb(colour)
+            #need to call set_all as this is what updates pixels with the new brightness level
+            #set_all includes a call to strip.show()
+            set_all(r, g, b)
         if brightness == 0:
             lightsoff = True
         else:
             lightsoff = False
+
+# Fade to new brightness
+def new_brightness(new_level):
+    old_level = brightness
+    if new_level != old_level:
+        #status("Fading from {} to {}".format(old_level,new_level))
+        sleeptime = 1.5 #number of seconds to make the transition
+        sleepstep = (sleeptime / abs(new_level - old_level))
+        if old_level < new_level:
+            start = old_level + 1
+            end = new_level + 1
+            step = 1
+        else:
+            start = old_level - 1
+            end = new_level - 1
+            step = -1
+        for new_brightness in range(start, end, step):
+            set_brightness(new_brightness)
+            time.sleep(sleepstep)
+        #status("Fade complete")
+    mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness",str(brightness))
 
 #Function to set the speed during demo sequences
 def set_colour(new_colour):
@@ -221,9 +240,12 @@ def off():
         mqtt.send_mqtt("pico/"+myid.pico+"/status/running","stopping...")
         stop = True
     else:
-        set_all(0,0,0)
-        hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
-        mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
+        new_brightness(0)
+        #set_all(0,0,0)
+        #hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
+        #mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
+        strip.clear()
+        strip.show()
         lightsoff = True
 
 #Function to report now running 
@@ -247,8 +269,8 @@ def now_running(new_effect):
     mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
 
 #LED control function to accept commands and launch effects
-def led_control(command=""):
-    global stop, saturation, next_up
+def led_control(command="",arg=""):
+    global stop, saturation, next_up, auto
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
         try:
@@ -258,16 +280,19 @@ def led_control(command=""):
             status("Invalid RGB command: {}".format(command))
     elif command.startswith("brightness:"):
         _, b = command.split(":")
-        set_brightness(int(b))
-        if not running:
-            r, g, b, _ = list_to_rgb(colour)
-            set_all(r, g, b)
+        new_brightness(int(b))
     elif command.startswith("speed:"):
         _, s = command.split(":")
         set_speed(int(s))
     elif command.startswith("saturation:"):
         _, s = command.split(":")
         saturation = int(s)
+    elif command == "auto":
+        status("Setting auto to {}".format(arg))
+        if arg == "false":
+            auto = False
+        else:
+            auto = True
     else:
         #If we are running and the command 
         if running:
@@ -309,27 +334,25 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     status("Initialising strip")
     #strip = Neopixel(numPixels, 0, 0, "GRBW")
     strip = Neopixel(numPixels, 0, GPIO, strip_type)
-
-    #Set initial brightness and colour
-    set_brightness(20)
-
     pixel_colours = [[0, 0, 0, 0]] * numPixels
-
+    set_brightness(0)
     set_colour([0, 255, 255])
     set_speed(speed)
     #now_running("None")
 
 numPixels = 0
+pixel_colours = []
 colour = [0, 0, 0]
 saturation = 100
 speed = 90
 dyndelay = 0
-brightness = 0
+brightness = -1
 stop = False
 running = False
 lightsoff = True
 effect = "None"
 next_up = "None"
+auto = False
 
 effects = { "rainbow":  rainbow,
             "xmas":     xmas,

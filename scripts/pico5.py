@@ -30,6 +30,7 @@ def get_status():
     status("colour: {}".format(leds.colour))
     status("lightsoff: {}".format(leds.lightsoff))
     status("Light level: {}".format(readLight()))
+    status("Auto control: {}".format(leds.auto))
     gc.collect()
     status("freemem: {}".format(gc.mem_free()))
 
@@ -41,8 +42,8 @@ def send_measurement(what,value):
         mqtt.send_mqtt(topic,str(value))
 
 #LED control function to accept commands and launch effects
-def led_control(command=""):
-    leds.led_control(command)
+def led_control(command="",arg=""):
+    leds.led_control(command,arg)
 
 #Measure light levels
 def readLight(photoGP=photoPIN):
@@ -51,9 +52,20 @@ def readLight(photoGP=photoPIN):
     light = round(light/65535*100,2)
     return light
 
+readings = [0.0] * 10
+#Returns the rolling average for light readings
+def rolling_average():
+    global readings
+    readings.pop(0)
+    latest = readLight()
+    readings += [latest]
+    avg = sum(readings)/len(readings)
+    #status("Latest: {} Average: {}".format(latest,avg))
+    return(avg)
+
 #Control LEDs based on light and time of day
 def manage_lights():
-    lightlevel = readLight()
+    lightlevel = rolling_average()
     #Check time of day first
     hour = utime.localtime()[3]
     #Turn on or adjust brightness for low light level, unless it is late
@@ -81,7 +93,8 @@ def main():
     leds.init_strip(strip_type,pixels,GPIO)
 
     if mqtt.client != False:
-        mqtt.client.subscribe("pico/lights") # type: ignore
+        mqtt.client.subscribe("pico/lights") 
+        mqtt.client.subscribe("pico/lights/+") 
     last_reading = time.time()
     last_lights = time.time()
     while True:
@@ -93,10 +106,12 @@ def main():
             send_measurement("light",lightlevel)
             last_reading = time.time()
         #Manage light level every second
-        if time.time() - last_lights >= 1:
+        if leds.auto and (time.time() - last_lights >= 1):
             #Manage LEDs based on light level and time of day
             manage_lights()
             last_lights = time.time()
+        else:
+            rolling_average()
         time.sleep(0.2)
 
 pico = myid.get_id()
