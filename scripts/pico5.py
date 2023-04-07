@@ -59,7 +59,7 @@ def readLight(photoGP=photoPIN):
     light = round(light/65535*100,2)
     return light
 
-readings = [0.0] * 10
+readings = [readLight()] * 10
 #Returns the rolling average for light readings
 def rolling_average():
     global readings
@@ -71,10 +71,12 @@ def rolling_average():
     return(avg)
 
 #Control LEDs based on light and time of day
+#Returns True if lights were updated so we can slow the rate of changes
 def manage_lights():
     lightlevel = rolling_average()
     #Check time of day first
     hour = utime.localtime()[3]
+    updated = False
     #Turn on or adjust brightness for low light level, unless it is late
     if 6 <= hour <= 21: #from 06:00 to 21:59 (or 07:00 to 22:59 in Summer as pico runs in GMT)
         if lightlevel < 45:
@@ -82,16 +84,23 @@ def manage_lights():
                 status("Turning lights on")
                 if leds.colour == [0, 0, 0]:
                     send_control("rgb(0, 255, 255)")
-            #New brightness something between 10 and 80 step 5
-            new_brightness = min(80,max(10,(round((lightlevel*2)/5) * 5) - 10))
+                    updated = True
+                #Set brightness to 50% of target, we'll see if we need brighter as the rolling average catches up
+                new_brightness = min(80,max(10,(round((lightlevel)/5) * 5) - 10))
+            else:
+                #New brightness something between 10 and 80 step 5
+                new_brightness = min(80,max(10,(round((lightlevel*2)/5) * 5) - 10))
             if leds.brightness != new_brightness:
                 debug("Old brightness: {} -> New brightness: {}".format(leds.brightness,new_brightness))
                 status("Brightness {} -> {}".format(leds.brightness,new_brightness))
                 send_control("brightness:{}".format(new_brightness))
+                updated = True
     #Turn off for high light levels
     if lightlevel > 55 and not leds.lightsoff:
         status("Turning lights off")
         send_control("off")
+        updated = True
+    return updated
 
 #Called my main.py
 def main():
@@ -105,6 +114,7 @@ def main():
         mqtt.client.subscribe("pico/lights/+") 
     last_reading = time.time()
     last_lights = time.time()
+    updated = False #Flag to limit lighting auto updates to every other second
     while True:
         if mqtt.client != False:
             mqtt.client.check_msg() 
@@ -117,8 +127,13 @@ def main():
         if time.time() - last_lights >= 1:
             last_lights = time.time()
             if leds.auto:
-                #Manage LEDs based on light level and time of day
-                manage_lights()
+                if not updated: #If we updated last time the lights won't have finished fading yet
+                    #Manage LEDs based on light level and time of day
+                    updated = manage_lights()
+                else:
+                    debug("Skipping lighting update this time")
+                    updated = False
+                    rolling_average()
             else:
                 rolling_average()
         time.sleep(0.2)
