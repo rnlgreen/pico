@@ -36,36 +36,26 @@ def restart():
     reset()
 
 def reload():
-    status("Fetching latest code...")
+    status("Checking for new code...")
     totalfiles = 0
     import utils.ftp as ftp
     try:
         session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
-        status("Comparing files...")
+        #status("Comparing files...")
         if session:
-            #Get all files for the root
-            #Move to the root FTP folder
-            ftp.cwd(session,'/pico/scripts')
-            numfiles = ftp.get_changedfiles(session,".")
-            totalfiles += numfiles
-            message = 'Copied ' + str(numfiles) + " files to root"
-            status(message)
-            #Get all files for utils (get_allfiles will deal with changing directory)
-            #Move back to the root FTP folder
-            ftp.cwd(session,'/pico/scripts')
-            numfiles = ftp.get_changedfiles(session,"utils")
-            totalfiles += numfiles
-            message = 'Copied ' + str(numfiles) + " files to utils"
-            status(message)
-            #Get all files for lib (get_allfiles will deal with changing directory)
-            #Move back to the root FTP folder
-            ftp.cwd(session,'/pico/scripts')
-            numfiles = ftp.get_changedfiles(session,"lib")
-            totalfiles += numfiles
-            message = 'Copied ' + str(numfiles) + " files to lib"
-            status(message)
+            #Check all the folders for new files
+            for source in (".", "utils", "lib"):
+                ftp.cwd(session,'/pico/scripts')
+                numfiles = ftp.get_changedfiles(session,source)
+                totalfiles += numfiles
+                #message = 'Copied ' + str(numfiles) + " files to " + source
+                #if numfiles > 0:
+                #    status(message)
             ftp.quit(session)
-            status("Reload complete".format(pico))
+            if totalfiles > 0:
+                status("Reload complete".format(pico))
+            else:
+                status("No new files found")
         else:
             message = "FTP error occurred"
             status(message)
@@ -83,10 +73,10 @@ def strftime():
 def do_ntp_sync():
     #Sync the time up
     if not ntp.set_time():
-        status("Failed to set the time")
+        status("Failed to set time")
         return False
     else:
-        status("Time set to {}".format(strftime()))
+        status("{}".format(strftime()))
         return True
 
 #process incoming control commands
@@ -130,7 +120,7 @@ ipaddr = wifi.wlan_connect(pico)
 if ipaddr:
     #Try and connect to MQTT
     mqtt.mqtt_connect(client_id=pico)
-    status("Wi-Fi connected on {}".format(ipaddr))
+    status("Wi-Fi: {}".format(ipaddr))
 
     status("Attempting time sync...")
     ntp_sync = do_ntp_sync()
@@ -146,7 +136,7 @@ if ipaddr:
         status("MQTT Connection failed...")
     else:
         #Subscribe to control and heartbeat channels
-        status("Subscribing to channels...")
+        status("Subscribing to MQTT...")
         mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/all/control") # type: ignore
@@ -159,11 +149,11 @@ if not testmode:
         ntp_sync = do_ntp_sync()
 
     #Now load and call the specific code for this pico
-    status("Loading main")
+    status("Loading main...")
     try:
         main = __import__(pico)
         gc.collect()
-        status("Free memory: {}".format(gc.mem_free()))
+        #status("Free memory: {}".format(gc.mem_free()))
         main.main()
     except Exception as e:
         import io

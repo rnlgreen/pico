@@ -31,7 +31,7 @@ def set_time():
         return False
     finally:
         s.close()
-    status("NTP fetch was successful")
+    #status("NTP fetch was successful")
     val = struct.unpack("!I", msg[40:44])[0]
     t = val - NTP_DELTA    
     tm = time.gmtime(t)

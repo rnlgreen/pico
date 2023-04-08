@@ -8,7 +8,7 @@ import os
 cleanup = False
 
 def login(ftphost,ftpuser,ftppw):
-    status("Opening FTP connection...")
+    #status("Opening FTP connection...")
     try:
         ftp = FTP(ftphost)
         ftp.login(ftpuser,ftppw)
@@ -52,12 +52,12 @@ def get_allfiles(ftp,folder):
         #Try getting file size to see if it is a directory
         try:
             ftp.size(filename)
-            status("Getting file {}".format(filename))
+            status("Getting {}".format(filename))
             #get_textfile(ftp,folder,filename)
             get_binaryfile(ftp,folder,filename)
             numfiles+=1
         except:
-            status("Skipping '{}'".format(filename))
+            status("Failed '{}'".format(filename))
     return numfiles
 
 def get_changedfiles(ftp,folder):
@@ -70,7 +70,7 @@ def get_changedfiles(ftp,folder):
             #Try getting file size to see if it is a directory
             try:
                 ftp.size(filename)
-                status("Getting file {}".format(folder+"/"+filename))
+                status("Getting {}".format(folder+"/"+filename))
                 get_binaryfile(ftp,folder,filename)
                 numfiles+=1
             except:
