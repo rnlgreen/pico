@@ -7,6 +7,7 @@ import utils.leds as leds
 from machine import Pin, ADC # type: ignore
 
 photoPIN = 26 #GPIO26, Pin 31
+debug = False
 
 #Print and send status messages
 def status(message):
@@ -18,9 +19,10 @@ def status(message):
 #Print and send status messages
 def debug(message):
     print(message)
-    message = myid.pico + ": " + message
-    topic = 'pico/'+myid.pico+'/debug'
-    mqtt.send_mqtt(topic,message)
+    if debug:
+        message = myid.pico + ": " + message
+        topic = 'pico/'+myid.pico+'/debug'
+        mqtt.send_mqtt(topic,message)
 
 def send_control(payload):
     topic = 'pico/lights'
