@@ -29,19 +29,19 @@ def status(message):
 
 #Restart pico
 def restart():
-    status('Restarting ...')
+    status('Restarting ')
     if mqtt.client != False:
         mqtt.client.disconnect()
     time.sleep(1)
     reset()
 
 def reload():
-    status("Checking for new code...")
+    status("Checking for new code")
     totalfiles = 0
     import utils.ftp as ftp
     try:
         session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
-        #status("Comparing files...")
+        #status("Comparing files")
         if session:
             #Check all the folders for new files
             for source in (".", "utils", "lib"):
@@ -122,7 +122,7 @@ if ipaddr:
     mqtt.mqtt_connect(client_id=pico)
     status("Wi-Fi: {}".format(ipaddr))
 
-    status("Attempting time sync...")
+    status("Attempting time sync")
     ntp_sync = do_ntp_sync()
 
     blink(0.1,0.1,4)
@@ -133,10 +133,10 @@ if ipaddr:
         restart()
 
     if mqtt.client == False:
-        status("MQTT Connection failed...")
+        status("MQTT Connection failed")
     else:
         #Subscribe to control and heartbeat channels
-        status("Subscribing to MQTT...")
+        status("Subscribing to MQTT")
         mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/all/control") # type: ignore
@@ -149,7 +149,7 @@ if not testmode:
         ntp_sync = do_ntp_sync()
 
     #Now load and call the specific code for this pico
-    status("Loading main...")
+    status("Loading main")
     try:
         main = __import__(pico)
         gc.collect()

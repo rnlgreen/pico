@@ -6,7 +6,7 @@ client = False
 
 def mqtt_connect(client_id, mqtt_server=secrets.mqtt_server):
     global client
-    print("Connecting to MQTT...")
+    print("Connecting to MQTT")
     try:
         print("Connecting as {} to {}".format(client_id, mqtt_server))
         client = MQTTClient(client_id, mqtt_server, keepalive=3600)

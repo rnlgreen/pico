@@ -8,7 +8,7 @@ import os
 cleanup = False
 
 def login(ftphost,ftpuser,ftppw):
-    #status("Opening FTP connection...")
+    #status("Opening FTP connection")
     try:
         ftp = FTP(ftphost)
         ftp.login(ftpuser,ftppw)
