@@ -29,7 +29,6 @@ def send_control(payload):
     mqtt.send_mqtt(topic,payload)
 
 def get_status():
-    status("hour: {}".format(utime.localtime()[3]))
     status("running: {}".format(leds.running))
     status("effect: {}".format(leds.effect))
     status("stop: {}".format(leds.stop))
@@ -78,9 +77,15 @@ def manage_lights():
     lightlevel = rolling_average()
     #Check time of day first
     hour = utime.localtime()[3]
+    #Check month to approximate daylight savings time
+    month = utime.localtime()[1]
+    if (month > 3 and month < 11):
+        hour += 1
+        if (hour == 23):
+            hour = 0
     updated = False
     #Turn on or adjust brightness for low light level, unless it is late
-    if 6 <= hour <= 21: #from 06:00 to 21:59 (or 07:00 to 22:59 in Summer as pico runs in GMT)
+    if hour >= 6 or hour < 2 : #from 06:00 to 01:59
         if lightlevel < 45:
             if leds.lightsoff:
                 status("Turning lights on")
@@ -97,8 +102,12 @@ def manage_lights():
                 status("Brightness {} -> {}".format(leds.brightness,new_brightness))
                 send_control("brightness:{}".format(new_brightness))
                 updated = True
-    #Turn off for high light levels
-    if lightlevel > 55 and not leds.lightsoff:
+        #Turn off for high light levels
+        if lightlevel > 55 and not leds.lightsoff:
+            status("Turning lights off")
+            send_control("off")
+            updated = True
+    elif not leds.lightsoff: #If out of control hours then turn off
         status("Turning lights off")
         send_control("off")
         updated = True
