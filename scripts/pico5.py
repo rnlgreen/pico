@@ -9,6 +9,9 @@ from machine import Pin, ADC # type: ignore
 photoPIN = 26 #GPIO26, Pin 31
 debugging = True
 
+MIN_BRIGHTNESS = 15
+MAX_BRIGHTNESS = 80
+
 #Print and send status messages
 def status(message):
     print(message)
@@ -73,14 +76,14 @@ def rolling_average():
 
 #Returns new brightness level
 def get_brightness(lightlevel):
-    b = min(80,max(10,(round((lightlevel * 2)/5) * 5) - 10))
+    b = min(MAX_BRIGHTNESS,max(MIN_BRIGHTNESS,(round((lightlevel * 2)/5) * 5) - 10))
     return b
 
 #Calculate how close the new brightness is to a threshold
 def check_hysteresis(lightlevel):
     l = lightlevel / 2.5
     h = 0.5 - abs(l - round(l,0))
-    debug("Hysteresis {} -> {}".format(lightlevel,h))
+    #debug("Hysteresis {} -> {}".format(lightlevel,h))
     return(h)
 
 #Control LEDs based on light and time of day
@@ -100,36 +103,33 @@ def manage_lights():
     updated = False
     #Only manage lights between certain hours
     DIM = 45
-    BRIGHT = 50 #(was 55)
+    BRIGHT = 55 #(was 55)
     if hour >= 6 or hour < 2 : #from 06:00 to 01:59
         #Turn off for high light levels
         if lightlevel > BRIGHT and not leds.lightsoff:
             status("Turning lights off")
+            debug("lightlevel: {}".format(lightlevel))
             send_control("off")
             updated = True
         #Turn on or adjust for low light levels
         elif lightlevel < DIM:
-            #If the lights are off then we've just dropped below DIM and need to turn them on
-            if leds.lightsoff:
-                status("Turning lights on")
-                if leds.colour == [0, 0, 0]:
-                    send_control("rgb(0, 255, 255)")
-                    updated = True
-                ##Set brightness to 50% of target, we'll see if we need brighter as the rolling average catches up
-                #new_brightness = get_brightness(lightlevel/2)
-            #Otherwise just calculate a new brightness level
-            #else:
             #New brightness something between 10 and 80 step 5
             new_brightness = get_brightness(lightlevel)
             #If the brightness level has changed check for hysteresis 
+            h = check_hysteresis(lightlevel)
             if leds.brightness != new_brightness:
-                if abs(new_brightness - leds.brightness) > 5 \
-                or check_hysteresis(lightlevel) > 0.1:
+                #Only change for large steps or significant hysteresis
+                if abs(new_brightness - leds.brightness) > 5 or  h > 0.1:
+                    #If the lights are off then we need to turn them on
+                    if leds.lightsoff:
+                        status("Turning lights on")
+                        if leds.colour == [0, 0, 0]:
+                            send_control("rgb(0, 255, 255)")
                     status("Brightness {} -> {}".format(leds.brightness,new_brightness))
                     send_control("brightness:{}".format(new_brightness))
                     updated = True
                 else:
-                    debug("Skipping light change from {} to {} to avoid flutter, brightness: {}".format(leds.brightness,new_brightness,lightlevel))
+                    debug("Skipping brightness change {} -> {} to avoid flutter ({}), brightness: {}".format(leds.brightness,new_brightness,h,lightlevel))
     elif not leds.lightsoff: #If out of control hours then turn off
         status("Turning lights off")
         send_control("off")
