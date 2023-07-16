@@ -7,7 +7,8 @@ picos = {
             "e661413e7355437": "pico2",
             "e6614864d39a8536": "pico3",
             "e6614864d3938134": "pico4",
-            "e6614c311b107623": "pico5"
+            "e6614c311b107623": "pico5",
+            "e6614c311b667426": "pico6"
         }
 where = {
             "pico0": "lounge", 
@@ -15,7 +16,8 @@ where = {
             "pico2": "garage",
             "pico3": "kitchen",
             "pico4": "kitchen",
-            "pico5": "kitchen"
+            "pico5": "kitchen",
+            "pico6": "garage"
         }
 
 pico = "unknown"

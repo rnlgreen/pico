@@ -1,12 +1,96 @@
 #Utility functions to do pretty things with a WS2812 LED strip
-import time
+import time, utime # type: ignore
 import utils.mqtt as mqtt
 import utils.myid as myid
+import utils.light as light
+
 from utils.colours import colours
 
 from lib.neopixel import Neopixel
 from math import sin, radians, sqrt
 import random
+
+debugging = True
+
+#Print and send status messages
+def debug(message):
+    print(message)
+    if debugging:
+        message = myid.pico + ": " + message
+        topic = 'pico/'+myid.pico+'/debug'
+        mqtt.send_mqtt(topic,message)
+
+#Send control message to MQTT
+def send_control(payload):
+    topic = 'pico/lights'
+    mqtt.send_mqtt(topic,payload)
+
+#Routine to manage LED brightness
+# #Control LEDs based on light and time of day
+#Returns True if lights were updated so we can slow the rate of changes
+def manage_lights():
+    #Get the latest rolling average light level
+    lightlevel = light.rolling_average()
+    #Publish light level every 5 seconds
+    if time.time() - light.last_reading >= 5:
+        lightlevel = light.readLight()
+        light.send_measurement(where,"light",lightlevel)
+        light.last_reading = time.time()
+    #Check time of day first
+    hour = utime.localtime()[3]
+    #Check month to approximate daylight savings time
+    month = utime.localtime()[1]
+    if (month > 3 and month < 11):
+        hour += 1
+        if (hour == 23):
+            hour = 0
+    #Flag whether we changed the lights or not
+    updated = False
+    #Only manage lights between certain hours
+    DIM = 45
+    BRIGHT = 55 #(was 55)
+    if hour >= 6 or hour < 2 : #from 06:00 to 01:59
+        #Turn off for high light levels
+        if lightlevel > BRIGHT and not lightsoff:
+            status("Turning lights off")
+            debug("lightlevel: {}".format(lightlevel))
+            if running: #Remember if we were running a lighting effect before we turn off
+                previously_running = effect
+            else:
+                previously_running = ""
+            send_control("off")
+            updated = True
+        #Turn on or adjust for low light levels
+        elif lightlevel < DIM:
+            #New brightness something between 10 and 80 step 5
+            new_brightness = light.get_brightness(lightlevel)
+            #If the brightness level has changed check for hysteresis 
+            h = light.check_hysteresis(lightlevel)
+            if brightness != new_brightness:
+                #Only change for large steps or significant hysteresis
+                if abs(new_brightness - brightness) > 5 or  h > 0.1:
+                    #If the lights are off then we need to turn them on
+                    if lightsoff:
+                        status("Turning lights on")
+                        if not previously_running == "":
+                            send_control(previously_running)
+                        else:
+                            if colour == [0, 0, 0]:
+                                send_control("rgb(0, 255, 255)")
+                    status("Brightness {} -> {}".format(brightness,new_brightness))
+                    send_control("brightness:{}".format(new_brightness))
+                    updated = True
+                else:
+                    debug("Skipping brightness change {} -> {} to avoid flutter ({}), brightness: {}".format(brightness,new_brightness,h,lightlevel))
+    elif not lightsoff: #If out of control hours then turn off
+        status("Turning lights off")
+        if running: #Remember if we were running a lighting effect before we turn off
+            previously_running = effect
+        else:
+            previously_running = ""
+        send_control("off")
+        updated = True
+    return updated
     
 # Convert a list [1, 2, 3] to integer values, and adjust for saturation
 def list_to_rgb(c):
@@ -196,10 +280,11 @@ def rainbow():
         hue += 150
         if hue > 65535:
             hue -= 65535
-#        if ticks_diff(t, millis()) > 1000:
-#            hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
-#            mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
-#            t = millis()
+        #Only pico5 controls the brightness using the light sensor
+        if myid.pico == "pico5":
+            if ticks_diff(t, millis()) > 1000:
+                manage_lights()
+                t = millis()
         time.sleep(dyndelay / 1000)
     set_all(0, 0, 0)
     now_running("None")
@@ -224,10 +309,11 @@ def xmas():
         hue += 64
         if hue > 65535:
             hue -= 65535
-#        if ticks_diff(t, millis()) > 1000:
-#            hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
-#            mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
-#            t = millis()
+        #Only pico5 controls the brightness using the light sensor
+        if myid.pico == "pico5":
+            if ticks_diff(t, millis()) > 1000:
+                manage_lights()
+                t = millis()
         time.sleep(dyndelay / 1000)
     set_all(0, 0, 0)
     now_running("None")
@@ -358,7 +444,11 @@ lightsoff = True
 effect = "None"
 next_up = "None"
 auto = True
+previously_running = ""
+last_lights = 0
 
 effects = { "rainbow":  rainbow,
             "xmas":     xmas,
             "off":      off }
+
+where = myid.where[myid.pico]
