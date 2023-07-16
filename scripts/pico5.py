@@ -6,7 +6,7 @@ import utils.myid as myid
 import utils.leds as leds
 import utils.light as light
 
-debugging = True
+debugging = False
 
 #Print and send status messages
 def status(message):
@@ -35,6 +35,7 @@ def get_status():
     status("dyndelay: {}".format(leds.dyndelay))
     status("brightness: {}".format(leds.brightness))
     status("colour: {}".format(leds.colour))
+    status("hue: {}".format(leds.hue))
     status("lightsoff: {}".format(leds.lightsoff))
     status("Light level: {}".format(light.readLight()))
     status("Auto control: {}".format(leds.auto))
@@ -52,6 +53,7 @@ def main():
     pixels = 72
     GPIO = 28
     leds.init_strip(strip_type,pixels,GPIO)
+    leds.master = True
 
     if mqtt.client != False:
         mqtt.client.subscribe("pico/lights") 

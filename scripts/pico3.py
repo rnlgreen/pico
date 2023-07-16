@@ -19,6 +19,10 @@ def get_status():
     status("speed: {}".format(leds.speed))
     status("dyndelay: {}".format(leds.dyndelay))
     status("brightness: {}".format(leds.brightness))
+    status("colour: {}".format(leds.colour))
+    status("hue: {}".format(leds.hue))
+    status("lightsoff: {}".format(leds.lightsoff))
+    status("Light level: {}".format(light.readLight()))
     gc.collect()
     status("freemem: {}".format(gc.mem_free()))
 

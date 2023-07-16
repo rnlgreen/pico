@@ -10,7 +10,7 @@ from lib.neopixel import Neopixel
 from math import sin, radians, sqrt
 import random
 
-debugging = True
+debugging = False
 
 #Print and send status messages
 def debug(message):
@@ -29,68 +29,70 @@ def send_control(payload):
 # #Control LEDs based on light and time of day
 #Returns True if lights were updated so we can slow the rate of changes
 def manage_lights():
-    global previously_running
+    global previously_running, auto
     #Get the latest rolling average light level
     lightlevel = light.rolling_average()
-    #Publish light level every 5 seconds
-    if time.time() - light.last_reading >= 5:
-        lightlevel = light.readLight()
-        light.send_measurement(where,"light",lightlevel)
-        light.last_reading = time.time()
-    #Check time of day first
-    hour = utime.localtime()[3]
-    #Check month to approximate daylight savings time
-    month = utime.localtime()[1]
-    if (month > 3 and month < 11):
-        hour += 1
-        if (hour == 23):
-            hour = 0
     #Flag whether we changed the lights or not
     updated = False
-    #Only manage lights between certain hours
-    DIM = 45
-    BRIGHT = 55 #(was 55)
-    if hour >= 6 or hour < 2 : #from 06:00 to 01:59
-        #Turn off for high light levels
-        if lightlevel > BRIGHT and not lightsoff:
+
+    if auto:
+        #Publish light level every 5 seconds
+        if time.time() - light.last_reading >= 5:
+            lightlevel = light.readLight()
+            light.send_measurement(where,"light",lightlevel)
+            light.last_reading = time.time()
+        #Check time of day first
+        hour = utime.localtime()[3]
+        #Check month to approximate daylight savings time
+        month = utime.localtime()[1]
+        if (month > 3 and month < 11):
+            hour += 1
+            if (hour == 23):
+                hour = 0
+        #Only manage lights between certain hours
+        DIM = 45
+        BRIGHT = 55 #(was 55)
+        if hour >= 6 or hour < 2 : #from 06:00 to 01:59
+            #Turn off for high light levels
+            if lightlevel > BRIGHT and not lightsoff:
+                status("Turning lights off")
+                debug("lightlevel: {}".format(lightlevel))
+                if running: #Remember if we were running a lighting effect before we turn off
+                    previously_running = effect
+                else:
+                    previously_running = ""
+                send_control("off")
+                updated = True
+            #Turn on or adjust for low light levels
+            elif lightlevel < DIM:
+                #New brightness something between 10 and 80 step 5
+                new_brightness = light.get_brightness(lightlevel)
+                #If the brightness level has changed check for hysteresis 
+                h = light.check_hysteresis(lightlevel)
+                if brightness != new_brightness:
+                    #Only change for large steps or significant hysteresis
+                    if abs(new_brightness - brightness) > 5 or  h > 0.1:
+                        #If the lights are off then we need to turn them on
+                        if lightsoff:
+                            status("Turning lights on")
+                            if not previously_running == "":
+                                send_control(previously_running)
+                            else:
+                                if colour == [0, 0, 0]:
+                                    send_control("rgb(0, 255, 255)")
+                        status("Brightness {} -> {}".format(brightness,new_brightness))
+                        send_control("brightness:{}".format(new_brightness))
+                        updated = True
+                    else:
+                        debug("Skipping brightness change {} -> {} to avoid flutter ({}), brightness: {}".format(brightness,new_brightness,h,lightlevel))
+        elif not lightsoff: #If out of control hours then turn off
             status("Turning lights off")
-            debug("lightlevel: {}".format(lightlevel))
             if running: #Remember if we were running a lighting effect before we turn off
                 previously_running = effect
             else:
                 previously_running = ""
             send_control("off")
             updated = True
-        #Turn on or adjust for low light levels
-        elif lightlevel < DIM:
-            #New brightness something between 10 and 80 step 5
-            new_brightness = light.get_brightness(lightlevel)
-            #If the brightness level has changed check for hysteresis 
-            h = light.check_hysteresis(lightlevel)
-            if brightness != new_brightness:
-                #Only change for large steps or significant hysteresis
-                if abs(new_brightness - brightness) > 5 or  h > 0.1:
-                    #If the lights are off then we need to turn them on
-                    if lightsoff:
-                        status("Turning lights on")
-                        if not previously_running == "":
-                            send_control(previously_running)
-                        else:
-                            if colour == [0, 0, 0]:
-                                send_control("rgb(0, 255, 255)")
-                    status("Brightness {} -> {}".format(brightness,new_brightness))
-                    send_control("brightness:{}".format(new_brightness))
-                    updated = True
-                else:
-                    debug("Skipping brightness change {} -> {} to avoid flutter ({}), brightness: {}".format(brightness,new_brightness,h,lightlevel))
-    elif not lightsoff: #If out of control hours then turn off
-        status("Turning lights off")
-        if running: #Remember if we were running a lighting effect before we turn off
-            previously_running = effect
-        else:
-            previously_running = ""
-        send_control("off")
-        updated = True
     return updated
     
 # Convert a list [1, 2, 3] to integer values, and adjust for saturation
@@ -274,10 +276,13 @@ def ticks_diff(start,now):
 #Rotate the strip through a rainbow of colours
 def rainbow():
     global colour
+    global hue
     now_running("Rainbow")
     set_speed(75)
     hue = 0
     t = millis()
+    n = 0
+    updated = False
     while not stop:
         check_mqtt()
         colour = strip.colorHSV(hue, 255, 255)
@@ -287,12 +292,21 @@ def rainbow():
         hue += 150
         if hue > 65535:
             hue -= 65535
+            if master: #if this is the master pico then send the new hue to the others
+                send_control(f"hue:{hue}")
         #Only pico5 controls the brightness using the light sensor
-        if myid.pico == "pico5":
+        if master:
             if ticks_diff(t, millis()) > 1000:
-                manage_lights()
+                n += 1
+                if not updated:
+                    updated = manage_lights()
+                else:
+                    updated = False
+                    light.rolling_average()
+                if n >= 5:
+                    send_colour()
+                    n = 0
                 t = millis()
-                send_colour()
         time.sleep(dyndelay / 1000)
     set_all(0, 0, 0)
     now_running("None")
@@ -367,7 +381,7 @@ def now_running(new_effect):
 #LED control function to accept commands and launch effects
 def led_control(command="",arg=""):
     command = command.lower()
-    global stop, saturation, next_up, auto
+    global stop, saturation, next_up, auto, hue
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
         try:
@@ -375,6 +389,11 @@ def led_control(command="",arg=""):
             set_colour([r, g, b])
         except:
             status("Invalid RGB command: {}".format(command))
+    elif command.startswith("hue:"):
+        _, h = command.split(":")
+        h = int(h) + 225
+        status(f"Updating hue from {hue} to {h}")
+        hue = h
     elif command.startswith("brightness:"):
         _, b = command.split(":")
         new_brightness(int(b))
@@ -456,6 +475,7 @@ next_up = "None"
 auto = True
 previously_running = ""
 last_lights = 0
+master = False
 
 effects = { "rainbow":  rainbow,
             "xmas":     xmas,
