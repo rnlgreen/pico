@@ -29,6 +29,7 @@ def send_control(payload):
 # #Control LEDs based on light and time of day
 #Returns True if lights were updated so we can slow the rate of changes
 def manage_lights():
+    global previously_running
     #Get the latest rolling average light level
     lightlevel = light.rolling_average()
     #Publish light level every 5 seconds
@@ -248,8 +249,13 @@ def set_colour(new_colour):
     if not colour == new_colour:
         colour = new_colour
         set_all(colour[0],colour[1],colour[2])
-        hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
-        mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
+        send_colour()
+
+#Send colour update to NodeRed
+def send_colour():
+    global colour
+    hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
+    mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
 
 #RGB to hex, used to send updates back to Node-Red
 def rgb_to_hex(rgb):
@@ -267,6 +273,7 @@ def ticks_diff(start,now):
 
 #Rotate the strip through a rainbow of colours
 def rainbow():
+    global colour
     now_running("Rainbow")
     set_speed(75)
     hue = 0
@@ -285,12 +292,14 @@ def rainbow():
             if ticks_diff(t, millis()) > 1000:
                 manage_lights()
                 t = millis()
+                send_colour()
         time.sleep(dyndelay / 1000)
     set_all(0, 0, 0)
     now_running("None")
 
 #Step round the colour palette, with a 120 degree offset based on the pico ID
 def xmas():
+    global colour
     now_running("Christmas")
     set_speed(75)
     #We are using picos 3, 4, 5
@@ -357,6 +366,7 @@ def now_running(new_effect):
 
 #LED control function to accept commands and launch effects
 def led_control(command="",arg=""):
+    command = command.lower()
     global stop, saturation, next_up, auto
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
