@@ -392,7 +392,6 @@ def led_control(command="",arg=""):
     elif command.startswith("hue:"):
         _, h = command.split(":")
         h = int(h) + 225
-        status(f"Updating hue from {hue} to {h}")
         hue = h
     elif command.startswith("brightness:"):
         _, b = command.split(":")
@@ -464,6 +463,7 @@ numPixels = 0
 pixel_colours = []
 colour = [0, 0, 0]
 saturation = 100
+hue = 0
 speed = 90
 dyndelay = 0
 brightness = -1

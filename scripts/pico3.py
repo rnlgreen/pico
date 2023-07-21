@@ -22,7 +22,6 @@ def get_status():
     status("colour: {}".format(leds.colour))
     status("hue: {}".format(leds.hue))
     status("lightsoff: {}".format(leds.lightsoff))
-    status("Light level: {}".format(light.readLight()))
     gc.collect()
     status("freemem: {}".format(gc.mem_free()))
 
