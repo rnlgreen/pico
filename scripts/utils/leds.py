@@ -292,10 +292,10 @@ def rainbow():
         hue += 150
         if hue > 65535:
             hue -= 65535
-            if master: #if this is the master pico then send the new hue to the others
+            if master and auto: #if this is the master pico then send the new hue to the others
                 send_control(f"hue:{hue}")
         #Only pico5 controls the brightness using the light sensor
-        if master:
+        if master and auto:
             if ticks_diff(t, millis()) > 1000:
                 n += 1
                 if not updated:
