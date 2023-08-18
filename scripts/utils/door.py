@@ -3,23 +3,16 @@
 #Switches should be attached to the GPIO pin and to ground
 
 from machine import Pin, RTC as rtc, PWM # type: ignore
-import time
 import utils.myid as myid
 import utils.mqtt as mqtt
 from utils.blink import blink
 
 sensors = {
             "top":    {"button": Pin(14, Pin.IN, Pin.PULL_UP)},
-            "bottom":    {"button": Pin(15, Pin.IN, Pin.PULL_UP)}
+            "bottom": {"button": Pin(15, Pin.IN, Pin.PULL_UP)}
 }
-door_open = False   #Might use later if we put a top sensor in to confirm open status
-door_closed = False #Used to flag if the closed or not
-
-#Return formatted time string
-def strftime():
-    timestamp=rtc().datetime()
-    timestring="%04d-%02d-%02d %02d:%02d:%02d"%(timestamp[0:3] + timestamp[4:7])
-    return timestring
+door_open = False   #Used to flag if the door is open
+door_closed = True  #Used to flag if the door is closed; assume this is true as the normal position
 
 #Send alert 
 def send_alert(message):
@@ -52,7 +45,6 @@ def get_status():
 
 def door():
     global door_open, door_closed
-    dt = strftime()
     #Check if the closed or opening
     if sensors["bottom"]["button"].value() == 0:
         if not door_closed:
@@ -79,8 +71,3 @@ def door():
             blink(0.1,0.05,3)
             send_alert("Garage closing")
             door_open = False
-
-if __name__ == "__main__":
-    while True:
-        door()
-        time.sleep(0.25)
