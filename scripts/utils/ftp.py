@@ -25,15 +25,24 @@ def status(message):
     if mqtt.client != False:
         mqtt.send_mqtt(topic,message)
 
+#Fetch text files (ascii crlf conversion) (not actually used by anything at the moment)
 def get_textfile(ftp,folder,filename):
     fp = open(folder+"/"+filename, 'w')
     ftp.retrlines('RETR ' + filename, lambda s, w = fp.write: w(s + '\n'))
     fp.close()
 
+#Fetch binary files
 def get_binaryfile(ftp,folder,filename):
     with open(folder+"/"+filename, 'wb') as fp:
         ftp.retrbinary('RETR ' + filename, fp.write)
 
+#Send binary files
+def put_binaryfile(ftp,folder,filename):
+    with open(folder+"/"+filename, 'rb') as fp:
+        target_file = filename + "_" + myid.pico        
+        ftp.storbinary('STOR ' + target_file, fp)
+
+#Get the server side list of sha256 values for available code
 def get_sha256_list(ftp):
     lines = []
     ftp.retrlines('RETR sha256.txt', lines.append)
@@ -43,6 +52,7 @@ def get_sha256_list(ftp):
         sha256_values[filename] = sha256value
     return sha256_values
 
+#Get all the files on a folder (not actually used by anything at the moment)
 def get_allfiles(ftp,folder):
     ftp.cwd(folder)
     #ftp.retrlines('LIST')
@@ -60,6 +70,7 @@ def get_allfiles(ftp,folder):
             status("Failed '{}'".format(filename))
     return numfiles
 
+#Get any missing or changed files
 def get_changedfiles(ftp,folder):
     ftp.cwd(folder)
     numfiles = 0

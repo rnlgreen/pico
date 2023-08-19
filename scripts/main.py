@@ -8,10 +8,13 @@ import utils.myid as myid
 import utils.wifi as wifi
 import utils.mqtt as mqtt
 import utils.ntp as ntp
+import utils.ftp as ftp
 from utils.blink import blink
 import secrets
+import uos # type: ignore
 
 testmode = False
+EXCEPTION_FILE = "exception.txt"
 
 #Send message with specific topic
 def send_mqtt(topic,message):
@@ -35,10 +38,10 @@ def restart():
     time.sleep(1)
     reset()
 
+#Function to check for new code and download it from FTP site
 def reload():
     status("Checking for new code")
     totalfiles = 0
-    import utils.ftp as ftp
     try:
         session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
         #status("Comparing files")
@@ -62,6 +65,29 @@ def reload():
     except Exception as e:
         status("Exception occurred: {}".format(e))
     return totalfiles
+
+#Check if a local file exists
+def file_exists(filename):
+    try:
+        return (uos.stat(filename)[0] & 0x4000) == 0
+    except OSError:
+        return False
+
+#Check if there is a local exception file from before and copy to FTP site
+def report_exceptions():
+    print("Checking for exception file")
+    if file_exists(EXCEPTION_FILE):
+        status("Uploading exception file")
+        import os
+        try:
+            session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
+            if session:
+                ftp.cwd(session,'/pico/logs')
+                ftp.put_binaryfile(session,".",EXCEPTION_FILE)
+                ftp.quit(session)
+                os.remove(EXCEPTION_FILE)
+        except Exception as e:
+            status("Exception occurred: {}".format(e))
 
 #Return formatted time string
 def strftime():
@@ -108,15 +134,20 @@ def on_message(topic, payload):
         heartbeat_topic = "pico/"+pico+"/heartbeat"
         send_mqtt(heartbeat_topic,"Yes, I'm here")
 
+
+### INITIALISATION STEPS ###
+#Blink the LED to show we're starting up
 blink(0.1,0.1,3)
 
-#Get my ID
+#Get my ID (e.g. 'pico0', based on the MAC address of this device)
 pico = myid.get_id()
 
 print("I am {}".format(pico))
 
-#Call wifi_connect with our hostname
+#Call wifi_connect with our hostname; my routine tries multiple times to connect 
 ipaddr = wifi.wlan_connect(pico)
+
+#If we got an IP address we can update code adn setup MQTT connection and subscriptions
 if ipaddr:
     #Try and connect to MQTT
     mqtt.mqtt_connect(client_id=pico)
@@ -127,11 +158,12 @@ if ipaddr:
 
     blink(0.1,0.1,4)
 
-    #Get latest code
+    #Get latest code by calling reload(); it returns the number of files updated
     if reload() > 0:
         status("New code loaded")
         restart()
 
+    #If we managed to connect MQTT then subscribe to the relevant channels
     if mqtt.client == False:
         status("MQTT Connection failed")
     else:
@@ -142,9 +174,20 @@ if ipaddr:
         mqtt.client.subscribe("pico/all/control") # type: ignore
         mqtt.client.subscribe("pico/poll") # type: ignore
 
+    #Check for previous exceptions logged locally and report them
+    report_exceptions()
+else:
+    #not sure what to do here, keep rebooting indefinitely until we get a Wi-Fi connection? 
+    #or attempt to run the pico code anyway regardless of having no Wi-Fi?
+    #or maybe just drop out? Probably not this option
+    pass
+
 if not testmode:
+    #Blink the LED to say we're here
     blink(0.2,0.2,5)
-    if not ntp_sync:
+
+    #Have another go at syncing the time if that failed during initialisation
+    if ipaddr and not ntp_sync:
         #Retry NTP sync
         ntp_sync = do_ntp_sync()
 
@@ -155,18 +198,30 @@ if not testmode:
         gc.collect()
         #status("Free memory: {}".format(gc.mem_free()))
         main.main()
+    #Catch any exceptions detected by the pico specific code
     except Exception as e:
         import io
         import sys
         output = io.StringIO()
-        #status("main.py caught exception: {}".format(e))
         sys.print_exception(e, output)
+        exception1=output.getvalue()
+        #Write exception to logfile
+        print("Writing exception to storage")
         try:
-            status("Main caught exception:\n{}".format(output.getvalue()))
+            file = open(EXCEPTION_FILE,"w")
+            file.write(f"{strftime()}: {pico} detected exception:\n{e}:{exception1}")
+            file.close()
+        except Exception as f:
+            output2 = io.StringIO()
+            sys.print_exception(f, output2)
+            print("Failed to write exception:\n{}".format(output2.getvalue()))
+        #Try sending the original exception to MQTT
+        try:
+            status("Main caught exception:\n{}".format(exception1))
         except:
             pass
         #Now pause a while then restart
         time.sleep(10)
-        #Assume MQTT might be broken
+        #Assume MQTT might be broken so don't try and send the restarting message
         mqtt.client = False
         restart()
