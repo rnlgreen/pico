@@ -9,6 +9,7 @@ import utils.wifi as wifi
 import utils.mqtt as mqtt
 import utils.ntp as ntp
 import utils.ftp as ftp
+import utils.slack as slack
 from utils.blink import blink
 import secrets
 import uos # type: ignore
@@ -161,6 +162,7 @@ if ipaddr:
     #Get latest code by calling reload(); it returns the number of files updated
     if reload() > 0:
         status("New code loaded")
+        slack.send_msg(pico,":repeat: Restarting to load new code")
         restart()
 
     #If we managed to connect MQTT then subscribe to the relevant channels
@@ -176,6 +178,10 @@ if ipaddr:
 
     #Check for previous exceptions logged locally and report them
     report_exceptions()
+
+    #Let Slack know we're up
+    print("Posting to Slack")
+    slack.send_msg(pico,f":up: {pico} is up")
 else:
     #not sure what to do here, keep rebooting indefinitely until we get a Wi-Fi connection? 
     #or attempt to run the pico code anyway regardless of having no Wi-Fi?
@@ -224,4 +230,8 @@ if not testmode:
         time.sleep(10)
         #Assume MQTT might be broken so don't try and send the restarting message
         mqtt.client = False
+        try:
+            slack.send_msg(pico,f":fire: Restarting after exception {output}")
+        except:
+            pass
         restart()
