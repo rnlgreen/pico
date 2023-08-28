@@ -423,7 +423,10 @@ def led_control(command="",arg=""):
                 output = io.StringIO()
                 #status("main.py caught exception: {}".format(e))
                 sys.print_exception(e, output)
-                status("Main caught exception:\n{}".format(output.getvalue()))
+                exception = output.getvalue()
+                status(f"Main caught exception:\n{exception}")
+                import utils.slack as slack
+                slack.send_msg(myid.pico,f"{myid.pico} caught exception:\n{exception}")
         
 #Print and send status messages
 def status(message):

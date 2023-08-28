@@ -231,7 +231,7 @@ if not testmode:
         #Assume MQTT might be broken so don't try and send the restarting message
         mqtt.client = False
         try:
-            slack.send_msg(pico,f":fire: Restarting after exception {output}")
+            slack.send_msg(pico,f":fire: Restarting after exception:\n{exception1}")
         except:
             pass
         restart()
