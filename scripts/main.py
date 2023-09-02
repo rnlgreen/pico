@@ -1,7 +1,7 @@
 #Main routine for all picos
 import time
 import gc
-from machine import reset, RTC as rtc # type: ignore
+from machine import reset # type: ignore
 
 #Import my supporting code
 import utils.myid as myid
@@ -11,6 +11,7 @@ import utils.ntp as ntp
 import utils.ftp as ftp
 import utils.slack as slack
 from utils.blink import blink
+from utils.timeutils import strftime, uptime
 import secrets
 import uos # type: ignore
 
@@ -90,12 +91,6 @@ def report_exceptions():
         except Exception as e:
             status("Exception occurred: {}".format(e))
 
-#Return formatted time string
-def strftime():
-    timestamp=rtc().datetime()
-    timestring="%04d-%02d-%02d %02d:%02d:%02d"%(timestamp[0:3] + timestamp[4:7])
-    return timestring
-
 #Attempt NTP sync
 def do_ntp_sync():
     #Sync the time up
@@ -123,7 +118,10 @@ def on_message(topic, payload):
         elif command == "datetime":
             thetime = strftime()
             status("Time is: {}".format(thetime))
+        elif command == "uptime":
+            status(f"Uptime: {uptime(timeInit)}")
         elif command == "status":
+            status(f"Uptime: {uptime(timeInit)}")
             main.get_status()
         else:
             status("Unknown command: {}".format(payload))
@@ -196,6 +194,9 @@ if not testmode:
     if ipaddr and not ntp_sync:
         #Retry NTP sync
         ntp_sync = do_ntp_sync()
+
+    #Assuming we have the time now get the init time
+    timeInit = time.time()
 
     #Now load and call the specific code for this pico
     status("Loading main")
