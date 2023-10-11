@@ -29,7 +29,7 @@ def send_control(payload):
 # #Control LEDs based on light and time of day
 #Returns True if lights were updated so we can slow the rate of changes
 def manage_lights():
-    global previously_running, auto
+    global previously_running
     #Get the latest rolling average light level
     lightlevel = light.rolling_average()
     #Flag whether we changed the lights or not
@@ -66,7 +66,7 @@ def manage_lights():
             #Turn on or adjust for low light levels
             elif lightlevel < DIM:
                 #New brightness something between 10 and 80 step 5
-                new_brightness = light.get_brightness(lightlevel)
+                new_brightness = light.get_brightness(lightlevel,boost)
                 #If the brightness level has changed check for hysteresis 
                 h = light.check_hysteresis(lightlevel)
                 if brightness != new_brightness:
@@ -162,7 +162,7 @@ def fade_rgb(fr, fg, fb, fw, br, bg, bb, bw, factor):
 def contrasting_colour(colour=[]):
     spread = 128
     (r, g, b, _) = list_to_rgb(colour)
-    (h, _, v) = rgb_to_hsv(r/255,g/255,b/255)
+    (h, _, _) = rgb_to_hsv(r/255,g/255,b/255)
     index = h * 255
     if not 0 < index < 255:
         index = index % 256
@@ -239,8 +239,8 @@ def new_brightness(new_level):
             start = old_level - 1
             end = new_level - 1
             step = -1
-        for new_brightness in range(start, end, step):
-            set_brightness(new_brightness)
+        for nb in range(start, end, step):
+            set_brightness(nb)
             time.sleep(sleepstep)
         #status("Fade complete")
     mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness",str(brightness))
@@ -255,7 +255,6 @@ def set_colour(new_colour):
 
 #Send colour update to NodeRed
 def send_colour():
-    global colour
     hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
     mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
 
@@ -381,7 +380,7 @@ def now_running(new_effect):
 #LED control function to accept commands and launch effects
 def led_control(command="",arg=""):
     command = command.lower()
-    global stop, saturation, next_up, auto, hue
+    global saturation, next_up, auto, hue, boost
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
         try:
@@ -403,11 +402,21 @@ def led_control(command="",arg=""):
         _, s = command.split(":")
         saturation = int(s)
     elif command == "auto":
-        status("Setting auto to {}".format(arg))
+        status(f"Turning auto {arg}")
         if arg == "off":
             auto = False
         else:
             auto = True
+    elif command == "boost":
+        status(f"Turning boost {arg}")
+        if arg == "off":
+            boost = False
+            status("Boost off")
+        else:
+            boost = True
+            status("Boost on")
+        if master:
+            manage_lights()
     else:
         #If we are running and the command 
         if running:
@@ -460,6 +469,7 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     strip.show()
     mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness","0")
     mqtt.send_mqtt("pico/"+myid.pico+"/status/auto","on")
+    mqtt.send_mqtt("pico/"+myid.pico+"/status/boost","off")
     #now_running("None")
 
 numPixels = 0
@@ -476,6 +486,7 @@ lightsoff = True
 effect = "None"
 next_up = "None"
 auto = True
+boost = False
 previously_running = ""
 last_lights = 0
 master = False

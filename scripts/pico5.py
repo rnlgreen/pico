@@ -39,6 +39,7 @@ def get_status():
     status("lightsoff: {}".format(leds.lightsoff))
     status("Light level: {}".format(light.readLight()))
     status("Auto control: {}".format(leds.auto))
+    status("Boost control: {}".format(leds.boost))
     status("previously_running: {}".format(leds.previously_running))
     gc.collect()
     status("freemem: {}".format(gc.mem_free()))
