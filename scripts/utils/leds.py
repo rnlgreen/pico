@@ -12,6 +12,10 @@ import random
 
 debugging = False
 
+#INITIAL_COLOUR = [0, 255, 255] #CYAN
+INITIAL_COLOUR = [210, 200, 160]
+INITIAL_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,INITIAL_COLOUR)) + ")"
+
 #Print and send status messages
 def debug(message):
     print(message)
@@ -79,7 +83,7 @@ def manage_lights():
                                 send_control(previously_running)
                             else:
                                 if colour == [0, 0, 0]:
-                                    send_control("rgb(0, 255, 255)")
+                                    send_control(INITIAL_COLOUR_COMMAND)
                         status("Brightness {} -> {}".format(brightness,new_brightness))
                         send_control("brightness:{}".format(new_brightness))
                         updated = True
@@ -463,7 +467,7 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     strip = Neopixel(numPixels, 0, GPIO, strip_type)
     pixel_colours = [[0, 0, 0, 0]] * numPixels
     set_brightness(0)
-    set_colour([0, 255, 255])
+    set_colour(INITIAL_COLOUR)
     set_speed(speed)
     strip.clear()
     strip.show()
