@@ -56,7 +56,7 @@ def manage_lights():
         #Only manage lights between certain hours
         DIM = 45
         BRIGHT = 55 #(was 55)
-        if hour >= 6 or hour < 2 : #from 06:00 to 01:59
+        if (hour >= 6 or hour < 2) and not test_off: #from 06:00 to 01:59
             #Turn off for high light levels
             if lightlevel > BRIGHT and not lightsoff:
                 status("Turning lights off")
@@ -80,6 +80,7 @@ def manage_lights():
                         if lightsoff:
                             status("Turning lights on")
                             if not previously_running == "":
+                                status(f"Restarting {previously_running}")
                                 send_control(previously_running)
                             else:
                                 if colour == [0, 0, 0]:
@@ -92,6 +93,7 @@ def manage_lights():
         elif not lightsoff: #If out of control hours then turn off
             status("Turning lights off")
             if running: #Remember if we were running a lighting effect before we turn off
+                status(f"Remembering effect: {effect}")
                 previously_running = effect
             else:
                 previously_running = ""
@@ -249,7 +251,7 @@ def new_brightness(new_level):
         #status("Fade complete")
     mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness",str(brightness))
 
-#Function to set the speed during demo sequences
+#Function to set the colour
 def set_colour(new_colour):
     global colour
     if not colour == new_colour:
@@ -259,8 +261,9 @@ def set_colour(new_colour):
 
 #Send colour update to NodeRed
 def send_colour():
-    hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
-    mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
+    if master or not auto:
+        hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
 
 #RGB to hex, used to send updates back to Node-Red
 def rgb_to_hex(rgb):
@@ -316,8 +319,9 @@ def rainbow():
 
 #Step round the colour palette, with a 120 degree offset based on the pico ID
 def xmas():
-    global colour
+    global colour, lightsoff
     now_running("Christmas")
+    #lightsoff = False
     set_speed(75)
     #We are using picos 3, 4, 5
     hue = int(0 + int(myid.pico[4]) * 65536 / 3)
@@ -336,7 +340,7 @@ def xmas():
         if hue > 65535:
             hue -= 65535
         #Only pico5 controls the brightness using the light sensor
-        if myid.pico == "pico5":
+        if master and auto:
             if ticks_diff(t, millis()) > 1000:
                 manage_lights()
                 t = millis()
@@ -379,6 +383,7 @@ def now_running(new_effect):
         running = True
         status("Starting {}".format(new_effect))
     effect = new_effect
+    status(f"Running: {running}; previously_running: {previously_running}; effect: {effect}")
     mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
 
 #LED control function to accept commands and launch effects
@@ -421,6 +426,8 @@ def led_control(command="",arg=""):
             status("Boost on")
         if master:
             manage_lights()
+    elif command == "test_off":
+        toggle_test_off()
     else:
         #If we are running and the command 
         if running:
@@ -476,6 +483,10 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     mqtt.send_mqtt("pico/"+myid.pico+"/status/boost","off")
     #now_running("None")
 
+def toggle_test_off():
+    global test_off
+    test_off = not(test_off)
+
 numPixels = 0
 pixel_colours = []
 colour = [0, 0, 0]
@@ -494,6 +505,7 @@ boost = False
 previously_running = ""
 last_lights = 0
 master = False
+test_off = False
 
 effects = { "rainbow":  rainbow,
             "xmas":     xmas,
