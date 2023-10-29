@@ -367,6 +367,7 @@ def train(num_carriages=5, colour_list=[], iterations=0):
     pi = 3.141592654
 
     while not (stop or (limit_run and iterations == 0)):
+        check_mqtt()
         #carriage_length = number of pixels / number of visible carriages
         carriage_length = int(numPixels / num_carriages)
 
