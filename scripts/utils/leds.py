@@ -319,7 +319,7 @@ def rainbow():
 
 #Step round the colour palette, with a 120 degree offset based on the pico ID
 def xmas():
-    global colour, lightsoff
+    global colour
     now_running("Christmas")
     #lightsoff = False
     set_speed(75)
@@ -347,6 +347,56 @@ def xmas():
         time.sleep(dyndelay / 1000)
     set_all(0, 0, 0)
     now_running("None")
+
+#Train
+#New train function with hopefully better logic
+def train(num_carriages=5, colour_list=[], iterations=0):
+    status(f"Starting with {num_carriages}, {colour_list}, {iterations}")
+
+    #limit_run is a flag to say whether we are running a limited number of passes
+    limit_run = (iterations > 0)
+
+    if len(colour_list) == 0:
+        for c in range(num_carriages):
+            colour_list += [wheel(int(255*c/num_carriages))]
+
+    status(f"Colour list: {colour_list}")
+
+    #progression is a counter to say how far the train has travelled
+    progression = numPixels
+    pi = 3.141592654
+
+    while not (stop or (limit_run and iterations == 0)):
+        #carriage_length = number of pixels / number of visible carriages
+        carriage_length = int(numPixels / num_carriages)
+
+        #train_length = number of carriages * length of each carriage
+        #train_length can be smaller or larger than the number of pixels
+        train_length = carriage_length * len(colour_list)
+
+        progression += 1
+        #if (progression > train_length) and (progression > numPixels):
+        #    progression = 0
+
+        for i in range(numPixels):
+            #n is the relative position of this carriages as they progress
+            n = (progression % train_length)
+            intensity = max(0, (0.5 + sin(pi * (-0.5 + (num_carriages * 2 * (i - n))/numPixels)))/1.5)
+
+            if progression > i:
+                carriage_no = int((progression - i) / carriage_length) % len(colour_list)
+                mycolour = colour_list[carriage_no]
+                r, g, b, _ = list_to_rgb(mycolour)
+            else:
+                r, g, b = [0, 0, 0]
+
+            set_pixel(i, r, g, b)
+
+        strip.show()
+        if stop:
+            break
+        time.sleep(0.75 * dyndelay / 1000)
+    status("Exiting")
 
 #Stop running functions and if not running turn off
 #Called from Node-Red
@@ -416,6 +466,8 @@ def led_control(command="",arg=""):
             auto = False
         else:
             auto = True
+        if master:
+            mqtt.send_mqtt("pico/"+myid.pico+"/status/auto",arg)
     elif command == "boost":
         status(f"Turning boost {arg}")
         if arg == "off":
@@ -509,6 +561,7 @@ test_off = False
 
 effects = { "rainbow":  rainbow,
             "xmas":     xmas,
+            "train":    train,
             "off":      off }
 
 where = myid.where[myid.pico]
