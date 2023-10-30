@@ -330,6 +330,7 @@ def xmas():
     #Returns list (r, g, b)
     strip.fill(colour)
     strip.show()
+    n = 0
     while not stop:
         check_mqtt()
         colour = strip.colorHSV(hue, 255, 255)
@@ -342,8 +343,13 @@ def xmas():
         #Only pico5 controls the brightness using the light sensor
         if master and auto:
             if ticks_diff(t, millis()) > 1000:
+                n += 1
                 manage_lights()
                 t = millis()
+        if master:
+            if n >= 5:
+                send_colour()
+                n = 0
         time.sleep(dyndelay / 1000)
     set_all(0, 0, 0)
     now_running("None")
@@ -352,6 +358,7 @@ def xmas():
 #New train function with hopefully better logic
 def train(num_carriages=5, colour_list=[], iterations=0):
     status(f"Starting with {num_carriages}, {colour_list}, {iterations}")
+    now_running("Train")
 
     #limit_run is a flag to say whether we are running a limited number of passes
     limit_run = (iterations > 0)
@@ -364,26 +371,13 @@ def train(num_carriages=5, colour_list=[], iterations=0):
 
     #progression is a counter to say how far the train has travelled
     progression = numPixels
-    pi = 3.141592654
+    t = millis()
 
     while not (stop or (limit_run and iterations == 0)):
         check_mqtt()
-        #carriage_length = number of pixels / number of visible carriages
         carriage_length = int(numPixels / num_carriages)
-
-        #train_length = number of carriages * length of each carriage
-        #train_length can be smaller or larger than the number of pixels
-        train_length = carriage_length * len(colour_list)
-
         progression += 1
-        #if (progression > train_length) and (progression > numPixels):
-        #    progression = 0
-
         for i in range(numPixels):
-            #n is the relative position of this carriages as they progress
-            n = (progression % train_length)
-            intensity = max(0, (0.5 + sin(pi * (-0.5 + (num_carriages * 2 * (i - n))/numPixels)))/1.5)
-
             if progression > i:
                 carriage_no = int((progression - i) / carriage_length) % len(colour_list)
                 mycolour = colour_list[carriage_no]
@@ -396,7 +390,14 @@ def train(num_carriages=5, colour_list=[], iterations=0):
         strip.show()
         if stop:
             break
+        #Only pico5 controls the brightness using the light sensor
+        if master and auto:
+            if ticks_diff(t, millis()) > 1000:
+                manage_lights()
+                t = millis()
         time.sleep(0.75 * dyndelay / 1000)
+    set_all(0, 0, 0)
+    now_running("None")
     status("Exiting")
 
 #Stop running functions and if not running turn off
@@ -531,9 +532,10 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     set_speed(speed)
     strip.clear()
     strip.show()
-    mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness","0")
-    mqtt.send_mqtt("pico/"+myid.pico+"/status/auto","on")
-    mqtt.send_mqtt("pico/"+myid.pico+"/status/boost","off")
+    if master:
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness","0")
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/auto","on")
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/boost","off")
     #now_running("None")
 
 def toggle_test_off():
