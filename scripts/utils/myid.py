@@ -1,5 +1,5 @@
 """Python script to get the pico unique ID"""
-from machine import unique_id # type: ignore
+from machine import unique_id # type: ignore # pylint: disable=import-error
 
 picos = {
             "e6614c311b462739":"pico0", 
@@ -20,15 +20,16 @@ where = {
             "pico6": "garage"
         }
 
-pico = "unknown"
+pico = "unknown" # pylint: disable=invalid-name
 
 def get_id():
-    global pico
+    """Get pico id based on machine ID"""
+    global pico # pylint: disable=global-statement
     s = unique_id()
     myid = ""
     for b in s:
         myid = myid + hex(b)[2:]
-    print("My ID is {}".format(myid))
+    print(f"My ID is {myid}")
     if myid in picos:
         pico = picos[myid]
     return pico

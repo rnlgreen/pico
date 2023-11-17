@@ -1,13 +1,13 @@
-#Utility functions to do pretty things with a WS2812 LED strip
+"""Utility functions to do pretty things with a WS2812 LED strip"""
 import time
-import random
+from math import sqrt
+#import random
 import utime # type: ignore # pylint: disable=import-error
 from utils import mqtt
 from utils import myid
 from utils import light
 
 from lib.neopixel import Neopixel # pylint: disable=import-error
-from math import sqrt
 
 DEBUGGING = False
 
@@ -15,8 +15,14 @@ DEBUGGING = False
 INITIAL_COLOUR = [210, 200, 160]
 INITIAL_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,INITIAL_COLOUR)) + ")"
 
+#Light thresholds
+DIM = 45
+BRIGHT = 55 #(was 55)
+
+
 #Print and send status messages
 def debug(message):
+    """Debug message"""
     print(message)
     if DEBUGGING:
         message = myid.pico + ": " + message
@@ -25,6 +31,7 @@ def debug(message):
 
 #Send control message to MQTT
 def send_control(payload):
+    """Send message to MQTT"""
     topic = 'pico/lights'
     mqtt.send_mqtt(topic,payload)
 
@@ -32,6 +39,7 @@ def send_control(payload):
 # #Control LEDs based on light and time of day
 #Returns True if lights were updated so we can slow the rate of changes
 def manage_lights():
+    """Update lights based on light levels"""
     global previously_running # pylint: disable=global-statement
     #Get the latest rolling average light level
     lightlevel = light.rolling_average()
@@ -50,16 +58,14 @@ def manage_lights():
         month = utime.localtime()[1]
         if (month > 3 and month < 11):
             hour += 1
-            if (hour == 23):
+            if hour == 23:
                 hour = 0
         #Only manage lights between certain hours
-        DIM = 45
-        BRIGHT = 55 #(was 55)
         if (hour >= 6 or hour < 2) and not test_off: #from 06:00 to 01:59
             #Turn off for high light levels
             if lightlevel > BRIGHT and not lightsoff:
                 status("Turning lights off")
-                debug("lightlevel: {}".format(lightlevel))
+                debug("lightlevel: {lightlevel}")
                 if running: #Remember if we were running a lighting effect before we turn off
                     previously_running = effect
                 else:
@@ -69,26 +75,26 @@ def manage_lights():
             #Turn on or adjust for low light levels
             elif lightlevel < DIM:
                 #New brightness something between 10 and 80 step 5
-                new_brightness = light.get_brightness(lightlevel,boost)
-                #If the brightness level has changed check for hysteresis 
+                new_brightness_level = light.get_brightness(lightlevel,boost)
+                #If the brightness level has changed check for hysteresis
                 h = light.check_hysteresis(lightlevel)
-                if brightness != new_brightness:
+                if brightness != new_brightness_level:
                     #Only change for large steps or significant hysteresis
-                    if abs(new_brightness - brightness) > 5 or  h > 0.1:
+                    if abs(new_brightness_level - brightness) > 5 or  h > 0.1:
                         #If the lights are off then we need to turn them on
                         if lightsoff:
                             status("Turning lights on")
-                            if not previously_running == "":
+                            if previously_running != "":
                                 status(f"Restarting {previously_running}")
                                 send_control(previously_running)
                             else:
                                 if colour == [0, 0, 0]:
                                     send_control(INITIAL_COLOUR_COMMAND)
-                        status("Brightness {} -> {}".format(brightness,new_brightness))
-                        send_control("brightness:{}".format(new_brightness))
+                        status(f"Brightness {brightness} -> {new_brightness_level}")
+                        send_control(f"brightness:{new_brightness_level}")
                         updated = True
                     else:
-                        debug("Skipping brightness change {} -> {} to avoid flutter ({}), brightness: {}".format(brightness,new_brightness,h,lightlevel))
+                        debug("Skipping brightness change {brightness} -> {new_brightness_level} to avoid flutter ({h}), brightness: {lightlevel}")
         elif not lightsoff: #If out of control hours then turn off
             status("Turning lights off")
             if running: #Remember if we were running a lighting effect before we turn off
@@ -99,9 +105,10 @@ def manage_lights():
             send_control("off")
             updated = True
     return updated
-    
+
 # Convert a list [1, 2, 3] to integer values, and adjust for saturation
 def list_to_rgb(c):
+    """Convert list to rgb values"""
     r, g, b = c
     if not saturation == 100:
         h, s, v = rgb_to_hsv(r, g, b)
@@ -111,6 +118,7 @@ def list_to_rgb(c):
 
 #rgb to hsv conversion - this works, but using colorsys.rgb_to_hsv is slightly quicker especially when doing rgb->hsv->rgb
 def rgb_to_hsv(r, g, b):
+    """rgb to hsv"""
     r, g, b = r/255.0, g/255.0, b/255.0
     mx = max(r, g, b)
     mn = min(r, g, b)
@@ -134,26 +142,37 @@ def rgb_to_hsv(r, g, b):
 #From https://stackoverflow.com/questions/24852345/hsv-to-rgb-color-conversion
 #This code is what is in colorsys but tweaked for improved performance
 def hsv_to_rgb(h, s, v):
-    if s == 0.0: v*=255; return (v, v, v)
-    i = int(h*6.) # XXX assume int() truncates!
+    """alternative hsv to rgb"""
+    if s == 0.0:
+        v*=255
+        return (v, v, v)
+    i = int(h*6.) #assume int() truncates!
     f = (h*6.)-i
     p,q,t = int(255*(v*(1.-s))), int(255*(v*(1.-s*f))), int(255*(v*(1.-s*(1.-f))))
     v*=255
     i%=6
-    if i == 0: return [v, t, p]
-    if i == 1: return [q, v, p]
-    if i == 2: return [p, v, t]
-    if i == 3: return [p, q, v]
-    if i == 4: return [t, p, v]
-    if i == 5: return [v, p, q]
+    if i == 0:
+        return [v, t, p]
+    if i == 1:
+        return [q, v, p]
+    if i == 2:
+        return [p, v, t]
+    if i == 3:
+        return [p, q, v]
+    if i == 4:
+        return [t, p, v]
+    if i == 5:
+        return [v, p, q]
 
 #Alternative wheel based on HSV
 def wheel(pos):
+    """Return RGB based on Wheel position"""
     sat = saturation / 100
     return hsv_to_rgb(pos/255,sat,1)
 
 # Funtion to fade colours given the foreground, background and a factor
 def fade_rgb(fr, fg, fb, fw, br, bg, bb, bw, factor):
+    """Return faded RGB values"""
     #Clip factor to a value between 0 and 1
     factor = max(0,min(1,factor))
     r = int(br + (fr - br) * factor)
@@ -162,24 +181,10 @@ def fade_rgb(fr, fg, fb, fw, br, bg, bb, bw, factor):
     w = int(bw + (fw - bw) * factor)
     return r, g, b, w
 
-# Function to return a colour that contrasts to the current background
-# either using colour_index (assuming we are cycling) or takes a colour
-def contrasting_colour(colour=[]):
-    spread = 128
-    (r, g, b, _) = list_to_rgb(colour)
-    (h, _, _) = rgb_to_hsv(r/255,g/255,b/255)
-    index = h * 255
-    if not 0 < index < 255:
-        index = index % 256
-
-    c = index + random.randint(0, spread) + int((255 - spread) / 2)
-    if c > 255:
-        c -= 255
-    return wheel(c)
-
 #Set the whole strip to a new colour
 def set_all(r=0, g=0, b=0, w=0):
-    global colour, pixel_colours, lightsoff
+    """Set all pixels to new values"""
+    global colour, pixel_colours, lightsoff # pylint: disable=global-variable-not-assigned
     colour = [r, g, b]
     strip.fill((r, g, b))
     for p in range(numPixels):
@@ -192,14 +197,16 @@ def set_all(r=0, g=0, b=0, w=0):
 
 #Set an individual pixel to a new colour
 def set_pixel(i=0, r=0, g=0, b=0, w=0):
-    global pixel_colours
+    """Set an individual pixel to a new colour"""
+    global pixel_colours # pylint: disable=global-variable-not-assigned,global-statement
     strip[i] = (r, g, b, w)
     pixel_colours[i] = [r, g, b, w]
 
 #Get the current value for a pixel
 def get_pixel_rgb(i):
+    """Get current rgb value of pixel"""
     if i >= numPixels or i < 0:
-        status("Out of range pixel: {}".format(i))
+        status(f"Out of range pixel: {i}")
         return 0,0,0,0
     else:
         r, g, b, _ = pixel_colours[i]
@@ -207,17 +214,19 @@ def get_pixel_rgb(i):
 
 #Function to set the speed during demo sequences
 def set_speed(new_speed):
-    global speed, dyndelay
+    """Set update speed for sequences"""
+    global speed, dyndelay # pylint: disable=global-statement
     if not speed == new_speed:
         speed = new_speed
         dyndelay = int(1000 - 100 * sqrt(int(speed)))
         mqtt.send_mqtt("pico/"+myid.pico+"/status/speed",str(speed))
 
-#Function to set the speed during demo sequences
-def set_brightness(new_brightness):
-    global brightness, lightsoff
-    if not brightness == new_brightness:
-        brightness = new_brightness
+#Function to set the brightness
+def set_brightness(new_brightness_level):
+    """Function to set the brightness"""
+    global brightness, lightsoff # pylint: disable=global-statement
+    if not brightness == new_brightness_level:
+        brightness = new_brightness_level
         strip.brightness(brightness)
         if not running:
             r, g, b, _ = list_to_rgb(colour)
@@ -231,11 +240,12 @@ def set_brightness(new_brightness):
 
 # Fade to new brightness
 def new_brightness(new_level):
+    """Fade to new brightness"""
     old_level = brightness
     if new_level != old_level:
         #status("Fading from {} to {}".format(old_level,new_level))
         sleeptime = 1.5 #number of seconds to make the transition
-        sleepstep = (sleeptime / abs(new_level - old_level))
+        sleepstep = sleeptime / abs(new_level - old_level)
         if old_level < new_level:
             start = old_level + 1
             end = new_level + 1
@@ -253,7 +263,8 @@ def new_brightness(new_level):
 
 #Function to set the colour
 def set_colour(new_colour):
-    global colour
+    """set the colour"""
+    global colour # pylint: disable=global-statement
     if not colour == new_colour:
         colour = new_colour
         set_all(colour[0],colour[1],colour[2])
@@ -261,28 +272,33 @@ def set_colour(new_colour):
 
 #Send colour update to NodeRed
 def send_colour():
+    """Update NodeRed with new colour"""
     if master or not auto:
         hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
-        mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
+        mqtt.send_mqtt(f"pico/{myid.pico}/status/colour",str(hexcolour))
 
 #RGB to hex, used to send updates back to Node-Red
 def rgb_to_hex(rgb):
+    """RGB to Hex for Node-Red"""
     return '#%02x%02x%02x' % rgb
 
 #Return current time in milliseconds
 def millis():
+    """Current time in ticks"""
     #return int(round(time.time() * 1000))
     return time.ticks_ms() # pylint: disable=no-member
 
 #Return elapsed time between two ticks
 def ticks_diff(start,now):
+    """Time delta in ticks"""
     diff = time.ticks_diff(int(now),int(start)) # pylint: disable=no-member
     return diff
 
 #Rotate the strip through a rainbow of colours
 def rainbow():
-    global colour
-    global hue
+    """Rainbow sequence"""
+    global colour # pylint: disable=global-statement
+    global hue # pylint: disable=global-statement
     now_running("Rainbow")
     set_speed(75)
     hue = 0
@@ -319,7 +335,8 @@ def rainbow():
 
 #Step round the colour palette, with a 120 degree offset based on the pico ID
 def xmas():
-    global colour
+    """xmas sequence"""
+    global colour, hue # pylint: disable=global-statement
     now_running("Christmas")
     #lightsoff = False
     set_speed(75)
@@ -356,12 +373,13 @@ def xmas():
 
 #Train
 #New train function with hopefully better logic
-def train(num_carriages=5, colour_list=[], iterations=0):
+def train(num_carriages=5, colour_list=[], iterations=0): # pylint: disable=dangerous-default-value
+    """train sequence"""
     status(f"Starting with {num_carriages}, {colour_list}, {iterations}")
     now_running("Train")
 
     #limit_run is a flag to say whether we are running a limited number of passes
-    limit_run = (iterations > 0)
+    limit_run = iterations > 0
 
     if len(colour_list) == 0:
         for c in range(num_carriages):
@@ -402,7 +420,8 @@ def train(num_carriages=5, colour_list=[], iterations=0):
 #Stop running functions and if not running turn off
 #Called from Node-Red
 def off():
-    global stop, lightsoff
+    """All off"""
+    global stop, lightsoff # pylint: disable=global-statement
     if running:
         mqtt.send_mqtt("pico/"+myid.pico+"/status/running","stopping...")
         stop = True
@@ -416,14 +435,15 @@ def off():
         lightsoff = True
         status("LEDs Off")
 
-#Function to report now running 
+#Function to report now running
 def now_running(new_effect):
-    global effect, stop, running, next_up
+    """Report what is running"""
+    global effect, stop, running, next_up # pylint: disable=global-statement
     if new_effect == "None":
         running = False
         stop = False
         if not effect == "None":
-            status("Completed {}".format(effect))
+            status(f"Completed {effect}")
         if not next_up == "None":
             new_effect = next_up
             next_up = "None"
@@ -432,22 +452,23 @@ def now_running(new_effect):
             off()
     else:
         running = True
-        status("Starting {}".format(new_effect))
+        status(f"Starting {new_effect}")
     effect = new_effect
     status(f"Running: {running}; previously_running: {previously_running}; effect: {effect}")
     mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
 
 #LED control function to accept commands and launch effects
 def led_control(command="",arg=""):
+    """Process control commands"""
     command = command.lower()
-    global saturation, next_up, auto, hue, boost
+    global saturation, next_up, auto, hue, boost # pylint: disable=global-statement
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
         try:
             r, g, b = [int(x) for x in command[4:-1].split(", ")]
             set_colour([r, g, b])
-        except:
-            status("Invalid RGB command: {}".format(command))
+        except: # pylint: disable=bare-except
+            status(f"Invalid RGB command: {command}")
     elif command.startswith("hue:"):
         _, h = command.split(":")
         h = int(h) + 225
@@ -482,17 +503,17 @@ def led_control(command="",arg=""):
     elif command == "test_off":
         toggle_test_off()
     else:
-        #If we are running and the command 
+        #If we are running and the command
         if running:
-            if not command == "off":
+            if command != "off":
                 next_up = command
             off()
         else:
             try:
                 effects[command]()
-            except Exception as e:
-                import io
-                import sys
+            except Exception as e: # pylint: disable=broad-exception-caught
+                import io # pylint: disable=import-outside-toplevel
+                import sys # pylint: disable=import-outside-toplevel
                 output = io.StringIO()
                 #status("main.py caught exception: {}".format(e))
                 sys.print_exception(e, output) # pylint: disable=no-member
@@ -500,9 +521,10 @@ def led_control(command="",arg=""):
                 status(f"Main caught exception:\n{exception}")
                 import utils.slack as slack
                 slack.send_msg(myid.pico,f"{myid.pico} caught exception:\n{exception}")
-        
+
 #Print and send status messages
 def status(message):
+    """report status"""
     print(message)
     message = myid.pico + ": " + message
     topic = 'pico/'+myid.pico+'/status'
@@ -510,13 +532,15 @@ def status(message):
 
 #Check for new MQTT instructions
 def check_mqtt():
+    """check for new mqtt messages"""
     if not mqtt.client == False:
-        mqtt.client.check_msg() 
+        mqtt.client.check_msg()
 
 def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
-    global numPixels
-    global strip
-    global pixel_colours
+    """Initialise new pixel strip"""
+    global numPixels # pylint: disable=global-statement
+    global strip # pylint: disable=global-statement
+    global pixel_colours # pylint: disable=global-statement
 
     numPixels = pixels
 
@@ -538,8 +562,9 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     #now_running("None")
 
 def toggle_test_off():
-    global test_off
-    test_off = not(test_off)
+    """toggle test mode"""
+    global test_off # pylint: disable=global-statement
+    test_off = not test_off
 
 numPixels = 0
 pixel_colours = []
@@ -560,6 +585,7 @@ previously_running = ""
 last_lights = 0
 master = False
 test_off = False
+strip = False
 
 effects = { "rainbow":  rainbow,
             "xmas":     xmas,
