@@ -1,18 +1,22 @@
-#Main routine for Pico6 (Garage door)
+"""Main routine for Pico6 (Garage door)"""
 import time
 import utils.door as door
 import utils.mqtt as mqtt
 
 def get_status():
+    """Get garage door status"""
     door.get_status()
 
 def main():
+    """pico 6 main routine"""
     while True:
         #Monitor the door status
         door.door()
         #Check for messages
-        if mqtt.client != False:
-            mqtt.client.check_msg() 
+        if mqtt.client is not False:
+            mqtt.client.check_msg()
+        else:
+            return
         #Wait a bit
         time.sleep(0.2)
 

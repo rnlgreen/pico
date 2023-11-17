@@ -1,16 +1,15 @@
 #Utility functions to do pretty things with a WS2812 LED strip
-import time, utime # type: ignore
-import utils.mqtt as mqtt
-import utils.myid as myid
-import utils.light as light
-
-from utils.colours import colours
-
-from lib.neopixel import Neopixel
-from math import sin, radians, sqrt
+import time
 import random
+import utime # type: ignore # pylint: disable=import-error
+from utils import mqtt
+from utils import myid
+from utils import light
 
-debugging = False
+from lib.neopixel import Neopixel # pylint: disable=import-error
+from math import sqrt
+
+DEBUGGING = False
 
 #INITIAL_COLOUR = [0, 255, 255] #CYAN
 INITIAL_COLOUR = [210, 200, 160]
@@ -19,7 +18,7 @@ INITIAL_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,INITIAL_COLOUR)) + ")"
 #Print and send status messages
 def debug(message):
     print(message)
-    if debugging:
+    if DEBUGGING:
         message = myid.pico + ": " + message
         topic = 'pico/'+myid.pico+'/debug'
         mqtt.send_mqtt(topic,message)
@@ -33,7 +32,7 @@ def send_control(payload):
 # #Control LEDs based on light and time of day
 #Returns True if lights were updated so we can slow the rate of changes
 def manage_lights():
-    global previously_running
+    global previously_running # pylint: disable=global-statement
     #Get the latest rolling average light level
     lightlevel = light.rolling_average()
     #Flag whether we changed the lights or not
@@ -249,7 +248,8 @@ def new_brightness(new_level):
             set_brightness(nb)
             time.sleep(sleepstep)
         #status("Fade complete")
-    mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness",str(brightness))
+    if master or not auto:
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness",str(brightness))
 
 #Function to set the colour
 def set_colour(new_colour):
@@ -272,11 +272,11 @@ def rgb_to_hex(rgb):
 #Return current time in milliseconds
 def millis():
     #return int(round(time.time() * 1000))
-    return time.ticks_ms()
+    return time.ticks_ms() # pylint: disable=no-member
 
 #Return elapsed time between two ticks
 def ticks_diff(start,now):
-    diff = time.ticks_diff(int(now),int(start))
+    diff = time.ticks_diff(int(now),int(start)) # pylint: disable=no-member
     return diff
 
 #Rotate the strip through a rainbow of colours
@@ -386,13 +386,12 @@ def train(num_carriages=5, colour_list=[], iterations=0):
                 r, g, b = [0, 0, 0]
 
             set_pixel(i, r, g, b)
-
         strip.show()
         if stop:
             break
         #Only pico5 controls the brightness using the light sensor
         if master and auto:
-            if ticks_diff(t, millis()) > 1000:
+            if ticks_diff(t, millis()) > 10000:
                 manage_lights()
                 t = millis()
         time.sleep(0.75 * dyndelay / 1000)
@@ -496,7 +495,7 @@ def led_control(command="",arg=""):
                 import sys
                 output = io.StringIO()
                 #status("main.py caught exception: {}".format(e))
-                sys.print_exception(e, output)
+                sys.print_exception(e, output) # pylint: disable=no-member
                 exception = output.getvalue()
                 status(f"Main caught exception:\n{exception}")
                 import utils.slack as slack

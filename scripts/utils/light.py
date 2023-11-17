@@ -1,8 +1,8 @@
 #Utility functions for light sensor
-from machine import Pin, ADC # type: ignore
-import utils.mqtt as mqtt
+from machine import Pin, ADC # type: ignore # pylint: disable=import-error
+from utils import mqtt
 
-photoPIN = 26 #GPIO26, Pin 31
+photoPIN = 26 #GPIO26, Pin 31 # pylint: disable=invalid-name
 MIN_BRIGHTNESS = 15
 MAX_BRIGHTNESS = 80
 

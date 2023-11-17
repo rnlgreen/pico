@@ -1,24 +1,27 @@
-#MQTT specific functions
-from umqtt.simple import MQTTClient # type: ignore
+"""MQTT specific functions"""
 import secrets
+from umqtt.simple import MQTTClient # type: ignore # pylint: disable=import-error
 
-client = False
+client = False # pylint: disable=invalid-name
 
 def mqtt_connect(client_id, mqtt_server=secrets.mqtt_server):
-    global client
+    """Connect to MQTT server"""
+    global client #pylint: disable=global-statement
     print("Connecting to MQTT")
     try:
-        print("Connecting as {} to {}".format(client_id, mqtt_server))
+        print(f"Connecting as {client_id} to {mqtt_server}")
         client = MQTTClient(client_id, mqtt_server, keepalive=3600)
         client.connect()
-        print('Connected to MQTT Broker {}'.format(mqtt_server))
+        print(f'Connected to MQTT Broker {mqtt_server}')
         return client
-    except:
+    except Exception: # pylint: disable=broad-except
         print("Failed to connect to MQTT")
         client = False
         return client
 
 #send a message
 def send_mqtt(topic, payload):
+    """Publish message"""
     #print("Sending message '{}' to '{}'".format(topic,payload))
-    client.publish(topic,payload)
+    if not client is False:
+        client.publish(topic,payload)

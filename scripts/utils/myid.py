@@ -1,4 +1,4 @@
-#Python script to get the pico unique ID
+"""Python script to get the pico unique ID"""
 from machine import unique_id # type: ignore
 
 picos = {
