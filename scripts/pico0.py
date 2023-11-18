@@ -1,11 +1,12 @@
 """pico0 main code"""
 import time
 import gc
-import utils.mqtt as mqtt
-import utils.myid as myid
-import utils.leds as leds
-import utils.am2320 as am2320
-from machine import I2C, Pin, ADC # type: ignore # pylint: disable=import-error
+from utils import mqtt
+from utils import myid
+from utils import leds
+from utils import am2320
+from utils import light
+from machine import I2C, Pin # type: ignore # pylint: disable=import-error
 
 #Pins from left to right:
 #1: Voltage in, 3-5 VDC
@@ -27,13 +28,6 @@ def status(message):
     message = myid.pico + ": " + message
     topic = 'pico/'+myid.pico+'/status'
     mqtt.send_mqtt(topic,message)
-
-#Send alert
-def send_measurement(what,value):
-    print(f"Sending measurement {what}: {value}")
-    topic = what+"/"+where
-    if mqtt.client is not False:
-        mqtt.send_mqtt(topic,str(value))
 
 #Report current status of lights and sensors etc.
 def get_status():
@@ -58,18 +52,11 @@ def get_status():
         status(f"I2C device found at 0x{devices[0]:02X}")
     status(f"Latest temperature = {last_temp}")
     status(f"Latest humidity: {last_humidity}")
-    status(f"Light level: {readLight()}")
+    status(f"Light level: {light.readLight()}")
 
 #LED control function to accept commands and launch effects
 def led_control(command=""):
     leds.led_control(command)
-
-#Measure light levels
-def readLight(photoGP=photoPIN):
-    photoRes = ADC(Pin(photoGP))
-    light = photoRes.read_u16()
-    light = round(light/65535*100,2)
-    return light
 
 #Called my main.py
 def main():
@@ -98,20 +85,22 @@ def main():
             last_sent = time.time()
             try:
                 sensor.measure()
-                send_measurement("temperature",sensor.temperature())
-                send_measurement("humidity",sensor.humidity())
+                light.send_measurement(where,"temperature",sensor.temperature())
+                light.send_measurement(where,"humidity",sensor.humidity())
                 last_temp = sensor.temperature()
                 last_humidity = sensor.humidity()
                 #status("Measurements sent")
             except Exception as e: # pylint: disable=broad-exception-caught
                 status(f"Exception: {e}")
         if time.time() - last_light >= 5:
-            send_measurement("light",readLight())
+            light.send_measurement(where,"light",light.readLight())
             last_light = time.time()
 
         #Check for messages
         if mqtt.client is not False:
             mqtt.client.check_msg()
+        else:
+            print("mqtt.client is False")
         time.sleep(0.2)
 
 pico = myid.get_id()

@@ -5,7 +5,7 @@ from umqtt.simple import MQTTClient # type: ignore # pylint: disable=import-erro
 client = False # pylint: disable=invalid-name
 
 def mqtt_connect(client_id, mqtt_server=secrets.mqtt_server):
-    """Connect to MQTT server"""
+    """Connect to MQTT server, returns client object or False"""
     global client #pylint: disable=global-statement
     print("Connecting to MQTT")
     try:

@@ -5,7 +5,7 @@ from machine import Pin # type: ignore # pylint: disable=import-error
 led = Pin('LED', Pin.OUT)
 
 def blink(on=1,off=1,loop=1):
-    """blink the led"""
+    """blink the led: time on, time off, number"""
     for _ in range(loop):
         led.value(1)
         time.sleep(on)

@@ -29,12 +29,14 @@ def send_mqtt(topic,message):
             log_exception(e)
 
 #Print and send status messages
-def status(message):
+def status(message, logit=False):
     """Function for reporting status."""
     print(message)
-    message = myid.pico + ": " + message
-    topic = 'pico/'+myid.pico+'/status'
+    if logit:
+        log(message)
     if mqtt.client is not False:
+        message = myid.pico + ": " + message
+        topic = 'pico/'+myid.pico+'/status'
         try:
             mqtt.send_mqtt(topic,message)
         except Exception as e: # pylint: disable=broad-except
@@ -43,9 +45,9 @@ def status(message):
 def log(message):
     """Function to write status message to exception logfile"""
     try:
-        file = open(EXCEPTION_FILE,"at",encoding="utf-8")
-        file.write(f"{strftime()}: {pico} {message}\n")
-        file.close()
+        with open(EXCEPTION_FILE,"at",encoding="utf-8") as file:
+            file.write(f"{strftime()}: {pico} {message}\n")
+            file.close()
     except Exception: # pylint: disable=broad-except
         status("Unable to log message to file")
 
@@ -143,19 +145,20 @@ def report_exceptions():
 def clear_log():
     """Function to clear the local exception log"""
     try:
-        file = open(EXCEPTION_FILE,"wt",encoding="utf-8")
-        file.write(f"{strftime()}: {pico} Cleared exception log\n")
-        file.close()
+        with open(EXCEPTION_FILE,"wt",encoding="utf-8") as file:
+            file.write(f"{strftime()}: {pico} Cleared exception log\n")
+            file.close()
+        #Load the cleared file up to FTP site
         report_exceptions()
     except Exception: # pylint: disable=broad-except
-        pass
+        log("Failed to create new exception file {EXCEPTION_FILE}")
 
 #Attempt NTP sync
 def do_ntp_sync():
     """Function to do NTP Time Sync"""
     #Sync the time up
     if not ntp.set_time():
-        status("Failed to set time")
+        status("Failed to set time", logit=True)
         return False
     else:
         status(f"{strftime()}")
@@ -175,7 +178,7 @@ def on_message(topic, payload):
         elif command == "reload":
             reload()
         elif command == "restart":
-            restart("Remote control")
+            restart("remote command")
         elif command == "datetime":
             thetime = strftime()
             status(f"Time is: {thetime}")
@@ -214,17 +217,10 @@ ipaddr = wifi.wlan_connect(pico)
 
 #If we got an IP address we can update code adn setup MQTT connection and subscriptions
 if ipaddr:
-    #Check for previous exceptions logged locally and report them
-    report_exceptions()
-
-    #Try and connect to MQTT
-    mqtt.mqtt_connect(client_id=pico)
     status(f"Wi-Fi: {ipaddr}")
 
     status("Attempting time sync")
     ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
-
-    blink(0.1,0.1,4)
 
     #Get latest code by calling reload(); it returns the number of files updated
     if reload() > 0:
@@ -232,31 +228,24 @@ if ipaddr:
         slack.send_msg(pico,":repeat: Restarting to load new code")
         restart("New code")
 
-    #If we managed to connect MQTT then subscribe to the relevant channels
-    if mqtt.client is False:
-        status("MQTT Connection failed")
-        restart("No MQTT Connection")
-    else:
+    #Try MQTT and then subscribe to the relevant channels
+    if mqtt.mqtt_connect(client_id=pico) is not False:
         #Subscribe to control and heartbeat channels
         status("Subscribing to MQTT")
         mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/all/control") # type: ignore
         mqtt.client.subscribe("pico/poll") # type: ignore
-
-    #Let Slack know we're up
-    print("Posting to Slack")
-    slack.send_msg(pico,f":up: {pico} is up")
-else:
-    #not sure what to do here, keep rebooting indefinitely until we get a Wi-Fi connection?
-    #or attempt to run the pico code anyway regardless of having no Wi-Fi?
-    #or maybe just drop out? Probably not this option
+    else:
+        restart("No MQTT connection")
+else: #No WiFi connection so need to restart
     restart("No Wifi")
 
-if not TESTMODE:
-    #Blink the LED to say we're here
-    blink(0.2,0.2,5)
+#Let Slack know we're up
+print("Posting to Slack")
+slack.send_msg(pico,f":up: {pico} is up")
 
+if not TESTMODE:
     #Have another go at syncing the time if that failed during initialisation
     if ipaddr and not ntp_sync:
         #Retry NTP sync
@@ -266,10 +255,8 @@ if not TESTMODE:
     timeInit = time.time()
 
     #Now load and call the specific code for this pico
-    status("Loading main")
-    log("Loading main")
-
-    #Upload latest log
+    status("Loading main", logit=True)
+    #Upload latest local log file
     report_exceptions()
 
     try:
@@ -287,6 +274,6 @@ if not TESTMODE:
         try:
             slack.send_msg(pico,f":fire: Restarting after exception:\n{exception}")
         except Exception as oops2: # pylint: disable=broad-except
-            pass
-        restart("Exception")
+            log("Failed to send message to Slack")
+        restart("Main Exception")
     restart("Dropped through")
