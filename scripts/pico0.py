@@ -1,15 +1,15 @@
-#pico0 main code
+"""pico0 main code"""
 import time
 import gc
 import utils.mqtt as mqtt
 import utils.myid as myid
 import utils.leds as leds
 import utils.am2320 as am2320
-from machine import I2C, Pin, ADC # type: ignore
+from machine import I2C, Pin, ADC # type: ignore # pylint: disable=import-error
 
 #Pins from left to right:
 #1: Voltage in, 3-5 VDC
-#2: SDA: I2C data in/out 
+#2: SDA: I2C data in/out
 #3: Ground
 #4: SCL: I2C clock in
 
@@ -28,23 +28,23 @@ def status(message):
     topic = 'pico/'+myid.pico+'/status'
     mqtt.send_mqtt(topic,message)
 
-#Send alert 
+#Send alert
 def send_measurement(what,value):
-    print("Sending measurement {}: {}".format(what, value))
+    print(f"Sending measurement {what}: {value}")
     topic = what+"/"+where
-    if mqtt.client != False:
+    if mqtt.client is not False:
         mqtt.send_mqtt(topic,str(value))
 
 #Report current status of lights and sensors etc.
 def get_status():
-    status("running: {}".format(leds.running))
-    status("effect: {}".format(leds.effect))
-    status("stop: {}".format(leds.stop))
-    status("speed: {}".format(leds.speed))
-    status("dyndelay: {}".format(leds.dyndelay))
-    status("brightness: {}".format(leds.brightness))
+    status(f"running: {leds.running}")
+    status(f"effect: {leds.effect}")
+    status(f"stop: {leds.stop}")
+    status(f"speed: {leds.speed}")
+    status(f"dyndelay: {leds.dyndelay}")
+    status(f"brightness: {leds.brightness}")
     gc.collect()
-    status("freemem: {}".format(gc.mem_free()))
+    status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     #i2c sensor
     i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=400000)
     devices = i2c.scan()
@@ -53,12 +53,12 @@ def get_status():
     elif len(devices) > 1:
         status("Multiple I2C devices found -")
         for d in devices:
-            status("  0x{:02X}".format(d))
+            status(f"  0x{d:02X}")
     else:
-        status("I2C device found at 0x{:02X}".format(devices[0]))    
-    status("Latest temperature = {}".format(last_temp))
-    status("Latest humidity: {}".format(last_humidity))
-    status("Light level: {}".format(readLight()))
+        status(f"I2C device found at 0x{devices[0]:02X}")
+    status(f"Latest temperature = {last_temp}")
+    status(f"Latest humidity: {last_humidity}")
+    status(f"Light level: {readLight()}")
 
 #LED control function to accept commands and launch effects
 def led_control(command=""):
@@ -73,7 +73,7 @@ def readLight(photoGP=photoPIN):
 
 #Called my main.py
 def main():
-    global last_temp, last_humidity
+    global last_temp, last_humidity # pylint: disable=global-statement
 
     strip_type = "GRBW"
     pixels = 16
@@ -83,12 +83,12 @@ def main():
     try:
         i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=40000)
         sensor = am2320.AM2320(i2c)
-    except Exception as e:
-        status("Error setting up I2C: {}".format(e))
+    except Exception as e: # pylint: disable=broad-exception-caught
+        status(f"Error setting up I2C: {e}")
         time.sleep(3)
         return
 
-    if mqtt.client != False:
+    if mqtt.client is not False:
         mqtt.client.subscribe("pico/lights") # type: ignore
     last_sent = time.time() - 60
     last_light = time.time() - 60
@@ -103,15 +103,15 @@ def main():
                 last_temp = sensor.temperature()
                 last_humidity = sensor.humidity()
                 #status("Measurements sent")
-            except Exception as e:
-                status("Exception: {}".format(e))
+            except Exception as e: # pylint: disable=broad-exception-caught
+                status(f"Exception: {e}")
         if time.time() - last_light >= 5:
             send_measurement("light",readLight())
             last_light = time.time()
 
         #Check for messages
-        if mqtt.client != False:
-            mqtt.client.check_msg() 
+        if mqtt.client is not False:
+            mqtt.client.check_msg()
         time.sleep(0.2)
 
 pico = myid.get_id()
@@ -119,4 +119,3 @@ where = myid.where[pico]
 
 if __name__ == "__main__":
     main()
-

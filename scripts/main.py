@@ -79,7 +79,7 @@ def reload():
                 #message = 'Copied ' + str(numfiles) + " files to " + source
                 #if numfiles > 0:
                 #    status(message)
-            ftp.quit(session)
+            ftp.ftpquit(session)
             if totalfiles > 0:
                 status("Reload complete")
             else:
@@ -135,7 +135,7 @@ def report_exceptions():
             if session:
                 ftp.cwd(session,'/pico/logs')
                 ftp.put_binaryfile(session,".",EXCEPTION_FILE)
-                ftp.quit(session)
+                ftp.ftpquit(session)
                 #os.remove(EXCEPTION_FILE)
         except Exception as e: # pylint: disable=broad-except
             log_exception(e)

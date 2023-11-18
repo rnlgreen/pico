@@ -1,14 +1,14 @@
 #Wi-Fi specific functions
-import network # type: ignore
 import time
 import secrets
+import network # type: ignore # pylint: disable=import-error
 
-def wlan_connect(hostname):
+def wlan_connect(hostname): # pylint: disable=unused-argument
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     attempts = 0
     while attempts < 5 and not wlan.isconnected():
-        print("Connecting to {}...".format(secrets.ssid))
+        print(f"Connecting to {secrets.ssid}...")
         #The following config should work but wasn't yet merged with the latest build of micropython
         #wlan.config(dhcp_hostname = hostname)
         wlan.connect(secrets.ssid,secrets.wlan_pass)

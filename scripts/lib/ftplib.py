@@ -205,7 +205,7 @@ class FTP:
                     sock.close()
                 continue
         if not sock:
-            raise Error("Could not connect to %r" % (addr,))
+            raise Error(f"Could not connect to {addr}")
 
 #        if use_ssl:
 #            sock = ssl.wrap_socket(sock)
@@ -507,7 +507,7 @@ class FTP:
                                            self.source_address, use_ssl=False)
             try:
                 if rest is not None:
-                    self.sendcmd("REST %s" % rest)
+                    self.sendcmd(f"REST {rest}")
 
                 resp = self.sendcmd(cmd)
                 # Some servers apparently send a 200 reply to
@@ -531,7 +531,7 @@ class FTP:
 
             try:
                 if rest is not None:
-                    self.sendcmd("REST %s" % rest)
+                    self.sendcmd(f"REST {rest}")
 
                 resp = self.sendcmd(cmd)
                 # See above.
@@ -771,7 +771,7 @@ class FTP:
         if facts:
             self.sendcmd("OPTS MLST " + ";".join(facts) + ";")
         if path:
-            cmd = "MLSD %s" % path
+            cmd = f"MLSD {path}"
         else:
             cmd = "MLSD"
 
@@ -894,7 +894,7 @@ def parse150(resp):
             val, _ = resp[left+1:right].split(None, 1)
             return int(val)
         except (ValueError, TypeError) as exc:
-            raise error_proto("Error parsing response '%s': %s" % (resp, exc))
+            raise error_proto(f"Error parsing response '{resp}': {exc}")
 
 
 def parse227(resp):
@@ -905,7 +905,7 @@ def parse227(resp):
     Return ('host.addr.as.numbers', port#) tuple.
     """
     if not resp.startswith('227'):
-        raise error_reply("Unexpected response: %s" % resp)
+        raise error_reply(f"Unexpected response: {resp}")
 
     try:
         left, right = _find_parentheses(resp)
@@ -913,7 +913,7 @@ def parse227(resp):
         host = '%i.%i.%i.%i' % numbers[:4]
         port = (numbers[4] << 8) + numbers[5]
     except Exception as exc:
-        raise error_proto("Error parsing response '%s': %s" % (resp, exc))
+        raise error_proto(f"Error parsing response '{resp}': {exc}")
 
     return host, port
 
@@ -926,7 +926,7 @@ def parse229(resp):
     Return port number as integer.
     """
     if not resp.startswith('229'):
-        raise error_reply("Unexpected response: %s" % resp)
+        raise error_reply(f"Unexpected response: {resp}")
 
     try:
         left, right = _find_parentheses(resp)
@@ -938,7 +938,7 @@ def parse229(resp):
         if len(parts) != 5:
             raise ValueError("unexpected number of values")
     except ValueError as exc:
-        raise error_proto("Error parsing response '%s': %s" % (resp, exc))
+        raise error_proto(f"Error parsing response '{resp}': {exc}")
 
     return int(parts[3])
 

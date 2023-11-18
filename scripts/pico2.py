@@ -1,13 +1,13 @@
 #Code for Pico2 - measure and report temperature and pressure
 import time
-import utils.am2320 as am2320
-from machine import I2C, Pin # type: ignore
-import utils.myid as myid
-import utils.mqtt as mqtt
+from machine import I2C, Pin # type: ignore # pylint: disable=import-error
+from utils import am2320
+from utils import myid
+from utils import mqtt
 
 #Pins from left to right:
 #1: Voltage in, 3-5 VDC
-#2: SDA: I2C data in/out 
+#2: SDA: I2C data in/out
 #3: Ground
 #4: SCL: I2C clock in
 
@@ -25,17 +25,17 @@ def status(message):
     topic = 'pico/'+pico+'/status'
     send_mqtt(topic,message)
 
-#Send alert 
+#Send alert
 def send_mqtt(topic,message):
-    print("{}: {}".format(topic,message))
-    if mqtt.client != False:
+    print(f"{topic}: {message}")
+    if mqtt.client is not False:
         mqtt.send_mqtt(topic,message)
 
-#Send alert 
+#Send alert
 def send_measurement(what,value):
-    print("Sending measurement {}: {}".format(what, value))
+    print(f"Sending measurement {what}: {value}")
     topic = what+"/"+where
-    if mqtt.client != False:
+    if mqtt.client is not False:
         mqtt.send_mqtt(topic,str(value))
 
 #Return i2cscan to status commands
@@ -47,19 +47,19 @@ def get_status():
     elif len(devices) > 1:
         status("Multiple I2C devices found -")
         for d in devices:
-            status("  0x{:02X}".format(d))
+            status(f"  0x{d:02X}")
     else:
-        status("I2C device found at 0x{:02X}".format(devices[0]))    
-    status("Latest temperature = {}".format(last_temp))
-    status("Latest humidity: {}".format(last_humidity))
+        status(f"I2C device found at 0x{devices[0]:02X}")
+    status(f"Latest temperature = {last_temp}")
+    status(f"Latest humidity: {last_humidity}")
 
 def main():
-    global last_temp, last_humidity
+    global last_temp, last_humidity # pylint: disable=global-statement
     try:
         i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=40000)
         sensor = am2320.AM2320(i2c)
-    except Exception as e:
-        status("Error setting up I2C: {}".format(e))
+    except Exception as e: # pylint: disable=broad-exception-caught
+        status(f"Error setting up I2C: {e}")
         time.sleep(3)
         return
 
@@ -72,16 +72,16 @@ def main():
             try:
                 sensor.measure()
                 got_reading = True
-            except Exception as e:
-                status("Exception: {}".format(e))
+            except Exception as e: # pylint: disable=broad-exception-caught
+                status(f"Exception: {e}")
             if got_reading:
                 send_measurement("temperature",sensor.temperature())
                 send_measurement("humidity",sensor.humidity())
                 last_temp = sensor.temperature()
                 last_humidity = sensor.humidity()
         #Check for messages
-        if mqtt.client != False:
-            mqtt.client.check_msg() 
+        if mqtt.client is not False:
+            mqtt.client.check_msg()
         time.sleep(0.2)
 
 pico = myid.get_id()

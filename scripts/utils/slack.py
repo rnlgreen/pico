@@ -1,6 +1,6 @@
 #Util function to send message to Slack
-import urequests # type: ignore
 from secrets import webhook
+import urequests # type: ignore # pylint: disable=import-error
 
 #Format and send the message to Slack
 def send_msg(pico,msg):

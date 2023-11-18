@@ -1,10 +1,10 @@
-#Trigger script to record and report the status of the garage door 
+#Trigger script to record and report the status of the garage door
 #Uses the magnetic switches on GPIO 14 (pin 19) and GPIO 15 (pin 20)
 #Switches should be attached to the GPIO pin and to ground
 
-from machine import Pin, RTC as rtc, PWM # type: ignore
-import utils.myid as myid
-import utils.mqtt as mqtt
+from machine import Pin # type: ignore # pylint: disable=import-error
+from utils import myid
+from utils import mqtt
 from utils.blink import blink
 
 sensors = {
@@ -14,11 +14,11 @@ sensors = {
 door_open = False   #Used to flag if the door is open
 door_closed = True  #Used to flag if the door is closed; assume this is true as the normal position
 
-#Send alert 
+#Send alert
 def send_alert(message):
-    print("Sending alert {}".format(message))
+    print(f"Sending alert {message}")
     topic = "pico/"+myid.pico+"/alerts/garage_door"
-    if mqtt.client != False:
+    if mqtt.client is not False:
         message = ":car: " + message
         mqtt.send_mqtt(topic,message)
 
@@ -27,24 +27,24 @@ def status(message):
     print(message)
     message = myid.pico + ": " + message
     topic = 'pico/'+myid.pico+'/status'
-    if mqtt.client != False:
+    if mqtt.client is not False:
         mqtt.send_mqtt(topic,message)
 
 def get_status():
-    for sensor in sensors:
+    for sensor in sensors: # pylint: disable=consider-using-dict-items
         if sensors[sensor]["button"].value() == 0:
-            status("{} switch is closed".format(sensor))
+            status(f"{sensor} switch is closed")
         else:
-            status("{} switch is open".format(sensor))
+            status(f"{sensor} switch is open")
     if door_closed:
         status("Garage closed")
     elif door_open:
         status("Garage fully open")
     else:
-        status("Garage partially open") 
+        status("Garage partially open")
 
 def door():
-    global door_open, door_closed
+    global door_open, door_closed #pylint: disable=global-statement
     #Check if the closed or opening
     if sensors["bottom"]["button"].value() == 0:
         if not door_closed:

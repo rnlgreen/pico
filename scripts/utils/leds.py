@@ -274,7 +274,7 @@ def set_colour(new_colour):
 def send_colour():
     """Update NodeRed with new colour"""
     if master or not auto:
-        hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
+        hexcolour = f"#{colour[0]:02x}{colour[1]:02x}{colour[2]:02x}"
         mqtt.send_mqtt(f"pico/{myid.pico}/status/colour",str(hexcolour))
 
 #RGB to hex, used to send updates back to Node-Red

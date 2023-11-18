@@ -1,10 +1,10 @@
 #pico5 main code
-import time 
+import time
 import gc
-import utils.mqtt as mqtt
-import utils.myid as myid
-import utils.leds as leds
-import utils.light as light
+from utils import mqtt
+from utils import myid
+from utils import leds
+from utils import light
 
 debugging = False
 
@@ -28,21 +28,21 @@ def send_control(payload):
     mqtt.send_mqtt(topic,payload)
 
 def get_status():
-    status("running: {}".format(leds.running))
-    status("effect: {}".format(leds.effect))
-    status("stop: {}".format(leds.stop))
-    status("speed: {}".format(leds.speed))
-    status("dyndelay: {}".format(leds.dyndelay))
-    status("brightness: {}".format(leds.brightness))
-    status("colour: {}".format(leds.colour))
-    status("hue: {}".format(leds.hue))
-    status("lightsoff: {}".format(leds.lightsoff))
-    status("Light level: {}".format(light.readLight()))
-    status("Auto control: {}".format(leds.auto))
-    status("Boost control: {}".format(leds.boost))
-    status("previously_running: {}".format(leds.previously_running))
+    status(f"running: {leds.running}")
+    status(f"effect: {leds.effect}")
+    status(f"stop: {leds.stop}")
+    status(f"speed: {leds.speed}")
+    status(f"dyndelay: {leds.dyndelay}")
+    status(f"brightness: {leds.brightness}")
+    status(f"colour: {leds.colour}")
+    status(f"hue: {leds.hue}")
+    status(f"lightsoff: {leds.lightsoff}")
+    status(f"Light level: {light.readLight()}")
+    status(f"Auto control: {leds.auto}")
+    status(f"Boost control: {leds.boost}")
+    status(f"previously_running: {leds.previously_running}")
     gc.collect()
-    status("freemem: {}".format(gc.mem_free()))
+    status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
 #LED control function to accept commands and launch effects
 def led_control(command="",arg=""):
@@ -56,15 +56,15 @@ def main():
     leds.master = True
     leds.init_strip(strip_type,pixels,GPIO)
 
-    if mqtt.client != False:
-        mqtt.client.subscribe("pico/lights") 
-        mqtt.client.subscribe("pico/lights/+") 
+    if mqtt.client is not False:
+        mqtt.client.subscribe("pico/lights")
+        mqtt.client.subscribe("pico/lights/+")
     light.last_reading = time.time()
     leds.last_lights = time.time()
     updated = False #Flag to limit lighting auto updates to every other second
     while True:
-        if mqtt.client != False:
-            mqtt.client.check_msg() 
+        if mqtt.client is not False:
+            mqtt.client.check_msg()
         #Publish light level every 5 seconds
         if time.time() - light.last_reading >= 5:
             lightlevel = light.readLight()

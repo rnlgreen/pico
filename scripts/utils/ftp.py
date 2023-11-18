@@ -1,9 +1,9 @@
 #FTP Utils
+import os
 from ftplib import FTP
 from utils.sha256 import check_sha256
-import utils.myid as myid
-import utils.mqtt as mqtt
-import os
+from utils import myid
+from utils import mqtt
 
 cleanup = False
 
@@ -13,8 +13,8 @@ def login(ftphost,ftpuser,ftppw):
         ftp = FTP(ftphost)
         ftp.login(ftpuser,ftppw)
         return ftp
-    except Exception as e:
-        status("Failed to connect to FTP server: {}".format(e))
+    except Exception as e: # pylint: disable=broad-exception-caught
+        status(f"Failed to connect to FTP server: {e}")
         return False
 
 #status and send status messages
@@ -22,12 +22,12 @@ def status(message):
     print(message)
     message = myid.pico + ": " + message
     topic = 'pico/'+myid.pico+'/status'
-    if mqtt.client != False:
+    if mqtt.client is not False:
         mqtt.send_mqtt(topic,message)
 
 #Fetch text files (ascii crlf conversion) (not actually used by anything at the moment)
 def get_textfile(ftp,folder,filename):
-    fp = open(folder+"/"+filename, 'w')
+    fp = open(folder+"/"+filename, 'w', encoding='utf-8')
     ftp.retrlines('RETR ' + filename, lambda s, w = fp.write: w(s + '\n'))
     fp.close()
 
@@ -39,7 +39,7 @@ def get_binaryfile(ftp,folder,filename):
 #Send binary files
 def put_binaryfile(ftp,folder,filename):
     with open(folder+"/"+filename, 'rb') as fp:
-        target_file = filename + "_" + myid.pico        
+        target_file = filename + "_" + myid.pico
         ftp.storbinary('STOR ' + target_file, fp)
 
 #Get the server side list of sha256 values for available code
@@ -62,12 +62,12 @@ def get_allfiles(ftp,folder):
         #Try getting file size to see if it is a directory
         try:
             ftp.size(filename)
-            status("Getting {}".format(filename))
+            status(f"Getting {filename}")
             #get_textfile(ftp,folder,filename)
             get_binaryfile(ftp,folder,filename)
             numfiles+=1
-        except:
-            status("Failed '{}'".format(filename))
+        except: # pylint: disable=bare-except
+            status(f"Failed '{filename}'")
     return numfiles
 
 #Get any missing or changed files
@@ -75,27 +75,27 @@ def get_changedfiles(ftp,folder):
     ftp.cwd(folder)
     numfiles = 0
     sha256_values = get_sha256_list(ftp)
-    for filename in sha256_values:
+    for filename in sha256_values: # pylint: disable=consider-using-dict-items
         #Get compare sha256 values
         if not check_sha256(folder+"/"+filename, sha256_values[filename]):
             #Try getting file size to see if it is a directory
             try:
                 ftp.size(filename)
-                status("Getting {}".format(folder+"/"+filename))
+                status(f"Getting {folder + '/' + filename}")
                 get_binaryfile(ftp,folder,filename)
                 numfiles+=1
-            except:
-                status("File not found: '{}'".format(folder+"/"+filename))
+            except: # pylint: disable=bare-except
+                status(f"File not found: '{folder + '/' + filename}'")
     if cleanup:
         localfiles = os.listdir(folder)
         for filename in localfiles:
-            if filename.endswith(".py") and not filename in sha256_values.keys():
-                status("Removing file {}".format(filename))
+            if filename.endswith(".py") and not filename in sha256_values.keys():  # pylint: disable=consider-iterating-dictionary
+                status(f"Removing file {filename}")
                 os.remove(folder+"/"+filename)
     return numfiles
 
 def cwd(ftp,folder):
     ftp.cwd(folder)
 
-def quit(ftp):
+def ftpquit(ftp):
     ftp.quit()

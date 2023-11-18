@@ -114,7 +114,8 @@ def trap():
     """Check trap status"""
     dt = strftime()
     for t in traps: # pylint: disable=consider-using-dict-items
-        #Pin will be high (1) if open, as we are using pull-up logic, which for tilt switch is when the trap is closed
+        #Pin will be high (1) if open, as we are using pull-up logic
+        #which for tilt switch is when the trap is closed
         if traps[t]["button"].value() == 0:
             if TESTING:
                 print(f"{t} Set")
