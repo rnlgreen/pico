@@ -4,6 +4,9 @@ import gc
 import utils.mqtt as mqtt
 import utils.myid as myid
 import utils.leds as leds
+from utils import wifi
+from utils.log import log
+from utils.control import restart
 
 #Print and send status messages
 def status(message):
@@ -42,6 +45,13 @@ def main():
     while True:
         if mqtt.client is not False:
             mqtt.client.check_msg()
+        #Check WiFi status
+        if wifi.wlan.isconnected() is not True or wifi.wlan.status() != 3:
+            log("Wi-Fi down")
+            log(f"wlan.isconnected(): {wifi.wlan.isconnected()}")
+            log(f"wlan.status(): {wifi.wlan.status()}")
+            restart("Wi-Fi Lost")
+
         time.sleep(0.2)
 
 if __name__ == "__main__":

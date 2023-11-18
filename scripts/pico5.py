@@ -5,6 +5,9 @@ from utils import mqtt
 from utils import myid
 from utils import leds
 from utils import light
+from utils import wifi
+from utils.log import log
+from utils.control import restart
 
 debugging = False
 
@@ -83,6 +86,13 @@ def main():
                     light.rolling_average()
             else:
                 light.rolling_average()
+        #Check WiFi status
+        if wifi.wlan.isconnected() is not True or wifi.wlan.status() != 3:
+            log("Wi-Fi down")
+            log(f"wlan.isconnected(): {wifi.wlan.isconnected()}")
+            log(f"wlan.status(): {wifi.wlan.status()}")
+            restart("Wi-Fi Lost")
+
         time.sleep(0.2)
 
 pico = myid.get_id()

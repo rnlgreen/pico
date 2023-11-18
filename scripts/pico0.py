@@ -6,6 +6,9 @@ from utils import myid
 from utils import leds
 from utils import am2320
 from utils import light
+from utils import wifi
+from utils.log import log
+from utils.control import restart
 from machine import I2C, Pin # type: ignore # pylint: disable=import-error
 
 #Pins from left to right:
@@ -101,6 +104,14 @@ def main():
             mqtt.client.check_msg()
         else:
             print("mqtt.client is False")
+
+        #Check WiFi status
+        if wifi.wlan.isconnected() is not True or wifi.wlan.status() != 3:
+            log("Wi-Fi down")
+            log(f"wlan.isconnected(): {wifi.wlan.isconnected()}")
+            log(f"wlan.status(): {wifi.wlan.status()}")
+            restart("Wi-Fi Lost")
+
         time.sleep(0.2)
 
 pico = myid.get_id()

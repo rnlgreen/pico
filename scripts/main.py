@@ -2,7 +2,6 @@
 import time
 import gc
 import secrets
-from machine import reset # pylint: disable=import-error # type: ignore
 
 #Import my supporting code
 from utils import myid
@@ -13,6 +12,8 @@ from utils import ftp
 from utils import slack
 from utils.blink import blink
 from utils.timeutils import strftime, uptime
+from utils import log
+from utils.control import restart
 import uos # pylint: disable=import-error # type: ignore
 
 TESTMODE = False
@@ -26,48 +27,20 @@ def send_mqtt(topic,message):
         try:
             mqtt.send_mqtt(topic,message)
         except Exception as e: # pylint: disable=broad-except
-            log_exception(e)
+            log.log_exception(e)
 
-#Print and send status messages
-def status(message, logit=False):
-    """Function for reporting status."""
-    print(message)
-    if logit:
-        log(message)
-    if mqtt.client is not False:
-        message = myid.pico + ": " + message
-        topic = 'pico/'+myid.pico+'/status'
-        try:
-            mqtt.send_mqtt(topic,message)
-        except Exception as e: # pylint: disable=broad-except
-            log_exception(e)
-
-def log(message):
-    """Function to write status message to exception logfile"""
+#Check if a local file exists
+def file_exists(filename):
+    """Function to test if a file exists"""
     try:
-        with open(EXCEPTION_FILE,"at",encoding="utf-8") as file:
-            file.write(f"{strftime()}: {pico} {message}\n")
-            file.close()
-    except Exception: # pylint: disable=broad-except
-        status("Unable to log message to file")
-
-#Restart pico
-def restart(reason):
-    """Function to restart the pico"""
-    status(f'Restarting: {reason}')
-    log(f"Restarting: {reason}")
-    if mqtt.client is not False:
-        try:
-            mqtt.client.disconnect()
-        except Exception as e: # pylint: disable=broad-except
-            log_exception(e)
-    time.sleep(1)
-    reset()
+        return (uos.stat(filename)[0] & 0x4000) == 0
+    except OSError:
+        return False
 
 #Function to check for new code and download it from FTP site
 def reload():
     """Function to reload new code if there is any"""
-    status("Checking for new code")
+    log.status("Checking for new code")
     totalfiles = 0
     try:
         session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
@@ -80,57 +53,25 @@ def reload():
                 totalfiles += numfiles
                 #message = 'Copied ' + str(numfiles) + " files to " + source
                 #if numfiles > 0:
-                #    status(message)
+                #    log.status(message)
             ftp.ftpquit(session)
             if totalfiles > 0:
-                status("Reload complete")
+                log.status("Reload complete")
             else:
-                status("No new files found")
+                log.status("No new files found")
         else:
             message = "FTP error occurred"
-            status(message)
+            log.status(message)
     except Exception as e: # pylint: disable=broad-except
-        log_exception(e)
+        log.log_exception(e)
     return totalfiles
-
-#Check if a local file exists
-def file_exists(filename):
-    """Function to test if a file exists"""
-    try:
-        return (uos.stat(filename)[0] & 0x4000) == 0
-    except OSError:
-        return False
-
-def log_exception(e):
-    """Function to log exceptions to file"""
-    import io  #pylint: disable=import-outside-toplevel
-    import sys #pylint: disable=import-outside-toplevel
-    output = io.StringIO()
-    sys.print_exception(e, output) # pylint: disable=maybe-no-member
-    exception1=output.getvalue()
-    #Write exception to logfile
-    print("Writing exception to storage")
-    try:
-        file = open(EXCEPTION_FILE,"at",encoding="utf-8")
-        file.write(f"{strftime()}: {pico} detected exception:\n{e}:{exception1}")
-        file.close()
-    except Exception as f: # pylint: disable=broad-except
-        output2 = io.StringIO()
-        sys.print_exception(f, output2) # pylint: disable=maybe-no-member
-        print(f"Failed to write exception:\n{output2.getvalue()}")
-    #Try sending the original exception to MQTT
-    try:
-        status(f"Caught exception:\n{exception1}")
-    except Exception: # pylint: disable=broad-except
-        pass
-    return exception1
 
 #Check if there is a local exception file from before and copy to FTP site
 def report_exceptions():
     """Function to upload exception files via FTP"""
     print("Checking for exception file")
     if file_exists(EXCEPTION_FILE):
-        status("Uploading exception file")
+        log.status("Uploading exception file")
         #import os
         try:
             session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
@@ -140,7 +81,7 @@ def report_exceptions():
                 ftp.ftpquit(session)
                 #os.remove(EXCEPTION_FILE)
         except Exception as e: # pylint: disable=broad-except
-            log_exception(e)
+            log.log_exception(e)
 
 def clear_log():
     """Function to clear the local exception log"""
@@ -151,17 +92,17 @@ def clear_log():
         #Load the cleared file up to FTP site
         report_exceptions()
     except Exception: # pylint: disable=broad-except
-        log("Failed to create new exception file {EXCEPTION_FILE}")
+        log.log("Failed to create new exception file {EXCEPTION_FILE}")
 
 #Attempt NTP sync
 def do_ntp_sync():
     """Function to do NTP Time Sync"""
     #Sync the time up
     if not ntp.set_time():
-        status("Failed to set time", logit=True)
+        log.status("Failed to set time", logit=True)
         return False
     else:
-        status(f"{strftime()}")
+        log.status(f"{strftime()}")
         return True
 
 #process incoming control commands
@@ -173,7 +114,7 @@ def on_message(topic, payload):
     if topic == "pico/"+pico+"/control" or topic == "pico/all/control":
         command = payload
         if command == "blink":
-            status("blinking")
+            log.status("blinking")
             blink(0.1,0.1,5)
         elif command == "reload":
             reload()
@@ -181,17 +122,17 @@ def on_message(topic, payload):
             restart("remote command")
         elif command == "datetime":
             thetime = strftime()
-            status(f"Time is: {thetime}")
+            log.status(f"Time is: {thetime}")
         elif command == "uptime":
-            status(f"Uptime: {uptime(timeInit)}")
+            log.status(f"Uptime: {uptime(timeInit)}")
         elif command == "status":
-            status(f"Uptime: {uptime(timeInit)}")
+            log.status(f"Uptime: {uptime(timeInit)}")
             main.get_status()
         elif command == "clear":
-            status("Clearing exception log")
+            log.status("Clearing exception log")
             clear_log()
         else:
-            status(f"Unknown command: {payload}")
+            log.status(f"Unknown command: {payload}")
     elif topic == "pico/lights":
         main.led_control(payload)
     elif topic == "pico/lights/auto":
@@ -217,21 +158,21 @@ ipaddr = wifi.wlan_connect(pico)
 
 #If we got an IP address we can update code adn setup MQTT connection and subscriptions
 if ipaddr:
-    status(f"Wi-Fi: {ipaddr}")
+    log.status(f"Wi-Fi: {ipaddr}")
 
-    status("Attempting time sync")
+    log.status("Attempting time sync")
     ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
 
     #Get latest code by calling reload(); it returns the number of files updated
     if reload() > 0:
-        status("New code loaded")
+        log.status("New code loaded")
         slack.send_msg(pico,":repeat: Restarting to load new code")
         restart("New code")
 
     #Try MQTT and then subscribe to the relevant channels
     if mqtt.mqtt_connect(client_id=pico) is not False:
         #Subscribe to control and heartbeat channels
-        status("Subscribing to MQTT")
+        log.status("Subscribing to MQTT")
         mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/all/control") # type: ignore
@@ -255,7 +196,7 @@ if not TESTMODE:
     timeInit = time.time()
 
     #Now load and call the specific code for this pico
-    status("Loading main", logit=True)
+    log.status("Loading main", logit=True)
     #Upload latest local log file
     report_exceptions()
 
@@ -266,7 +207,7 @@ if not TESTMODE:
         main.main()
     #Catch any exceptions detected by the pico specific code
     except Exception as oops: # pylint: disable=broad-except
-        exception = log_exception(oops)
+        exception = log.log_exception(oops)
         #Now pause a while then restart
         time.sleep(10)
         #Assume MQTT might be broken so don't try and send the restarting message
@@ -274,6 +215,6 @@ if not TESTMODE:
         try:
             slack.send_msg(pico,f":fire: Restarting after exception:\n{exception}")
         except Exception as oops2: # pylint: disable=broad-except
-            log("Failed to send message to Slack")
+            log.log("Failed to send message to Slack")
         restart("Main Exception")
     restart("Dropped through")
