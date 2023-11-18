@@ -3,8 +3,12 @@ import time
 import secrets
 import network # type: ignore # pylint: disable=import-error
 
+#Global varaible so other functions can test the status
+wlan = False
+
 def wlan_connect(hostname): # pylint: disable=unused-argument
     """" Connect to Wi-FI, returns ip address or False if fails """
+    global wlan # pylint: disable=global-statement
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     attempts = 0
