@@ -15,7 +15,7 @@ def get_status():
 def main():
     """Main loop for pico1 - mouse trap"""
     trap.traps = {
-            "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0},
+            "Trap 2": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0},
     }
     while True:
         #Check the traps

@@ -20,10 +20,14 @@ TESTING = False
 start_angle = 85
 end_angle = 115
 
+'''
 traps = {
             "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0},
             "Trap 2": {"button": Pin(17, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0}
 }
+'''
+
+traps = {}
 
 #Return formatted time string
 def strftime():
