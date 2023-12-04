@@ -16,7 +16,10 @@ def wlan_connect(hostname): # pylint: disable=unused-argument
         attempts += 1
         print(f"Connecting to {secrets.ssid}...")
         #The following config should work but wasn't yet merged with the latest build of micropython
-        #wlan.config(dhcp_hostname = hostname)
+        try:
+            wlan.config(dhcp_hostname = hostname)
+        except:
+            print("Unable to set hostanme")
         wlan.connect(secrets.ssid,secrets.wlan_pass)
         time.sleep(5)
         print(wlan.isconnected())

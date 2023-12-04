@@ -7,6 +7,7 @@ from utils import leds
 from utils import am2320
 from utils import light
 from utils import wifi
+from utils import trap
 from utils.log import log
 from utils.control import restart
 from machine import I2C, Pin # type: ignore # pylint: disable=import-error
@@ -20,7 +21,11 @@ from machine import I2C, Pin # type: ignore # pylint: disable=import-error
 I2CID = 1
 SDAPIN = 26 #GPIO26
 SCLPIN = 27 #GPIO27
-photoPIN = 28 #GPIO28, Pin 34
+photoPIN = 18 #GPIO18
+
+trap.traps = {
+        "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": False, "spring trigger": 0},
+}
 
 last_temp = -1
 last_humidity = -1
@@ -34,6 +39,7 @@ def status(message):
 
 #Report current status of lights and sensors etc.
 def get_status():
+    trap.get_status()
     status(f"running: {leds.running}")
     status(f"effect: {leds.effect}")
     status(f"stop: {leds.stop}")
@@ -84,6 +90,7 @@ def main():
     last_light = time.time() - 60
 
     while True:
+        trap.trap()
         if time.time() - last_sent >= 60:
             last_sent = time.time()
             try:
