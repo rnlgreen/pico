@@ -64,13 +64,13 @@ def manage_lights():
         if (hour >= 6 or hour < 2) and not test_off: #from 06:00 to 01:59
             #Turn off for high light levels
             if lightlevel > BRIGHT and not lightsoff:
-                status("Turning lights off")
+                status("Turning lights off (auto)")
                 debug("lightlevel: {lightlevel}")
                 if running: #Remember if we were running a lighting effect before we turn off
                     previously_running = effect
                 else:
                     previously_running = ""
-                send_control("off")
+                send_control("auto_off")
                 updated = True
             #Turn on or adjust for low light levels
             elif lightlevel < DIM:
@@ -96,13 +96,13 @@ def manage_lights():
                     else:
                         debug("Skipping brightness change {brightness} -> {new_brightness_level} to avoid flutter ({h}), brightness: {lightlevel}")
         elif not lightsoff: #If out of control hours then turn off
-            status("Turning lights off")
+            status("Turning lights off (auto)")
             if running: #Remember if we were running a lighting effect before we turn off
                 status(f"Remembering effect: {effect}")
                 previously_running = effect
             else:
                 previously_running = ""
-            send_control("off")
+            send_control("auto_off")
             updated = True
     return updated
 
@@ -116,7 +116,7 @@ def list_to_rgb(c):
         r, g, b = hsv_to_rgb(h, s, v)
     return r, g, b, 0
 
-#rgb to hsv conversion - this works, but using colorsys.rgb_to_hsv is slightly quicker especially when doing rgb->hsv->rgb
+#rgb to hsv conversion - works, but colorsys.rgb_to_hsv is slightly quicker when doing rgb->hsv->rgb
 def rgb_to_hsv(r, g, b):
     """rgb to hsv"""
     r, g, b = r/255.0, g/255.0, b/255.0
@@ -419,11 +419,18 @@ def train(num_carriages=5, colour_list=[], iterations=0): # pylint: disable=dang
 
 #Stop running functions and if not running turn off
 #Called from Node-Red
-def off():
+def off(from_auto=False):
     """All off"""
-    global stop, lightsoff # pylint: disable=global-statement
+    global auto, stop, lightsoff, previously_running # pylint: disable=global-statement
+    status(f"called with {from_auto}")
+    if not from_auto:
+        auto = False
+        if master:
+            mqtt.send_mqtt("pico/"+myid.pico+"/status/auto","off")
     if running:
         mqtt.send_mqtt("pico/"+myid.pico+"/status/running","stopping...")
+        if not from_auto: #if it's an external "off" command then forget what was running
+            previously_running = ""
         stop = True
     else:
         new_brightness(0)
@@ -434,6 +441,11 @@ def off():
         strip.show()
         lightsoff = True
         status("LEDs Off")
+
+#Off command called via manage_lights through MQTT
+def auto_off():
+    status("Running off(True)")
+    off(True)
 
 #Function to report now running
 def now_running(new_effect):
@@ -461,6 +473,7 @@ def now_running(new_effect):
 def led_control(command="",arg=""):
     """Process control commands"""
     command = command.lower()
+    #status(f"received command {command}..")
     global saturation, next_up, auto, hue, boost # pylint: disable=global-statement
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
@@ -482,6 +495,7 @@ def led_control(command="",arg=""):
     elif command.startswith("saturation:"):
         _, s = command.split(":")
         saturation = int(s)
+        status(f"Saturation set to: {s}")
     elif command == "auto":
         status(f"Turning auto {arg}")
         if arg == "off":
@@ -503,13 +517,14 @@ def led_control(command="",arg=""):
     elif command == "test_off":
         toggle_test_off()
     else:
-        #If we are running and the command
+        #If running and command is an effect turn the lights off and queue up the new effect
         if running:
-            if command != "off":
+            if command not in ["off","auto_off"]:
                 next_up = command
-            off()
-        else:
+            effects[command]()
+        else: #otherwise just run the effect or off
             try:
+                status(f"Calling {effects[command]}")
                 effects[command]()
             except Exception as e: # pylint: disable=broad-exception-caught
                 import io # pylint: disable=import-outside-toplevel
@@ -533,7 +548,7 @@ def status(message):
 #Check for new MQTT instructions
 def check_mqtt():
     """check for new mqtt messages"""
-    if not mqtt.client == False:
+    if not mqtt.client is False:
         mqtt.client.check_msg()
 
 def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
@@ -590,6 +605,7 @@ strip = False
 effects = { "rainbow":  rainbow,
             "xmas":     xmas,
             "train":    train,
-            "off":      off }
+            "off":      off,
+            "auto_off": auto_off}
 
 where = myid.where[myid.pico]

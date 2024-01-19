@@ -17,8 +17,9 @@ SERVO_PIN = 28
 
 TESTING = False
 
-start_angle = 85
-end_angle = 115
+start_angle = -5
+end_angle = 10
+min_duty = 1900 #through testing this is a reasonable approximation for -90 degrees
 
 '''
 traps = {
@@ -98,18 +99,39 @@ def break_beam_callback(pin_details):
         status(f"{dt}: beam broken in closed trap")
 
 #Servo control to trigger the trap on IR Beam break
+#Updated allow for -90 to +90 as that's more accurate
 def set_servo(angle):
+    #Validate the angle in case I get it wrong
+    angle = max(min(90,angle),-90)
     """servo control"""
     #Declare PWM Pin
     frequency = 50
     servo = PWM(Pin(SERVO_PIN))
     servo.freq(frequency)
-    #some documentation suggests 1000ms = 0 degrees, 1500 = 90 degrees, 2000 = 180 degrees
+    #some documentation suggests duty of:
+    # 1ms = 0 degrees, 1.5ms = 90 degrees, 2ms = 180 degrees (based on 20ms (50Hz) cycle)
+    #https://youtu.be/_fdwE4EznYo sees similar behaviour as me,
+    #he goes 0.5ms-2.5ms to get the full range on his servo
+    #micropython is from 0 to 65536, so 0 is 0% duty and 65536 is 100% duty,
+    #so should need range 3276.8 to 6553.6, mid point 4915.2
+    #that you-tuber would need 1638.4 to 8192
+    #from testing it seems my motor needs 2000 to 7830 (same mid point of 4915)
     #duty = 1000 + angle * 50.0/9.0
-    #but micropython says it's from 0 to 65536
-    #and from testing it seems my motor takes 2000 to 8000!
-    duty = int(angle * 6000 / 180) + 2000
+    mid_duty = 65536*1.5/20
+    #returns [min_duty -> (mid_duty + min_duty)] for -90 to 90
+    duty = int(mid_duty + (angle * (mid_duty - min_duty))/90)
     print(f"Setting angle to {angle}, duty {duty}")
+    servo.duty_u16(duty)
+    time.sleep(0.1)
+    servo.deinit()
+
+#Servo control tester
+def set_duty(duty):
+    #Declare PWM Pin
+    frequency = 50
+    servo = PWM(Pin(SERVO_PIN))
+    servo.freq(frequency)
+    print(f"Setting duty {duty}")
     servo.duty_u16(duty)
     time.sleep(0.5)
     servo.deinit()

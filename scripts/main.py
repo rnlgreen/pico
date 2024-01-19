@@ -44,16 +44,12 @@ def reload():
     totalfiles = 0
     try:
         session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
-        #status("Comparing files")
         if session:
             #Check all the folders for new files
             for source in (".", "utils", "lib"):
                 ftp.cwd(session,'/pico/scripts')
                 numfiles = ftp.get_changedfiles(session,source)
                 totalfiles += numfiles
-                #message = 'Copied ' + str(numfiles) + " files to " + source
-                #if numfiles > 0:
-                #    log.status(message)
             ftp.ftpquit(session)
             if totalfiles > 0:
                 log.status("Reload complete")
@@ -163,22 +159,24 @@ if ipaddr:
     log.status("Attempting time sync")
     ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
 
+    #Try MQTT connect here so we get reload log events
+    if mqtt.mqtt_connect(client_id=pico) is False:
+        restart("No MQTT connection")
+
     #Get latest code by calling reload(); it returns the number of files updated
     if reload() > 0:
         log.status("New code loaded")
         slack.send_msg(pico,":repeat: Restarting to load new code")
         restart("New code")
 
-    #Try MQTT and then subscribe to the relevant channels
-    if mqtt.mqtt_connect(client_id=pico) is not False:
+    #Subscribe to the relevant channels
+    if mqtt.client is not False:
         #Subscribe to control and heartbeat channels
         log.status("Subscribing to MQTT")
         mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/all/control") # type: ignore
         mqtt.client.subscribe("pico/poll") # type: ignore
-    else:
-        restart("No MQTT connection")
 else: #No WiFi connection so need to restart
     restart("No Wifi")
 
