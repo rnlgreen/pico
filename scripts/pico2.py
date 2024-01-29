@@ -7,6 +7,7 @@ from utils import mqtt
 from utils import wifi
 from utils.log import log
 from utils.control import restart
+from ruuvitag import RuuviTag
 
 #Pins from left to right:
 #1: Voltage in, 3-5 VDC
@@ -20,6 +21,27 @@ SCLPIN = 27 #GPIO27
 
 last_temp = -1
 last_humidity = -1
+
+mytags = { 'f34584d173cb': "woodstore", 'dc7eb48031b4': "garage", 'fab5c40c4095': "loft" }
+
+#Callback handler that receives a tuple of data from the RuuviTag class object
+#RuuviTagRAWv2(mac=b'f34584d173cb', rssi=-100, format=5, humidity=91.435, temperature=9.01,
+#pressure=101617, acceleration_x=-20, acceleration_y=-40, acceleration_z=1020,
+#battery_voltage=2851, power_info=4, movement_counter=122, measurement_sequence=31396)
+def ruuvicb(ruuvitag):
+    tagwhere = mytags[ruuvitag.mac.decode('ascii')]
+    print(f"Data for {tagwhere}")
+    if mqtt.client is not False:
+        for thing in ["temperature", "humidity", "pressure", "battery_voltage"]:
+            print(f"{thing}: {getattr(ruuvitag, thing)}")
+            value = getattr(ruuvitag, thing)
+            if thing == "battery_voltage":
+                thing = "battery"
+                value = value / 1000
+            topic = thing+"/"+tagwhere
+            if thing == "pressure":
+                value = value / 100
+            mqtt.send_mqtt(topic,str(value))
 
 #Print and send status messages
 def status(message):
@@ -66,6 +88,10 @@ def main():
         time.sleep(3)
         return
 
+    #Inititialise Ruuvi
+    ruuvi = RuuviTag()
+    ruuvi._callback_handler = ruuvicb
+
     last_sent = time.time() - 60
 
     while True:
@@ -82,6 +108,10 @@ def main():
                 send_measurement("humidity",sensor.humidity())
                 last_temp = sensor.temperature()
                 last_humidity = sensor.humidity()
+            #Get Ruuvi Data
+            #print("Calling ruuvi.scan()")
+            ruuvi.scan()
+
         #Check for messages
         if mqtt.client is not False:
             mqtt.client.check_msg()
@@ -95,7 +125,8 @@ def main():
         time.sleep(0.2)
 
 pico = myid.get_id()
-where = myid.where[pico]
+#where = myid.where[pico]
+where = "garage1"
 
 if __name__ == "__main__":
     main()

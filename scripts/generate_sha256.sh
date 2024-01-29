@@ -20,4 +20,10 @@ newsum=`cksum sha256.txt`
 if [ "$oldsum" != "$newsum" ]; then
     echo $now: changes detected in pico/scripts/lib
 fi;
-
+cd ../ruuvitag
+oldsum=`cksum sha256.txt`
+sha256sum *.py > sha256.txt
+newsum=`cksum sha256.txt`
+if [ "$oldsum" != "$newsum" ]; then
+    echo $now: changes detected in pico/scripts/ruuvitag
+fi;

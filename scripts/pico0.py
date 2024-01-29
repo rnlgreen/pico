@@ -11,6 +11,7 @@ from utils import trap
 from utils.log import log
 from utils.control import restart
 from machine import I2C, Pin # type: ignore # pylint: disable=import-error
+from ruuvitag import RuuviTag
 
 #Pins from left to right:
 #1: Voltage in, 3-5 VDC
@@ -27,8 +28,29 @@ trap.traps = {
         "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": False, "spring trigger": 0},
 }
 
+mytags = { 'f34584d173cb': "woodstore", 'dc7eb48031b4': "garage", 'fab5c40c4095': "loft" }
+
 last_temp = -1
 last_humidity = -1
+
+#Callback handler that receives a tuple of data from the RuuviTag class object
+#RuuviTagRAWv2(mac=b'f34584d173cb', rssi=-100, format=5, humidity=91.435, temperature=9.01,
+#pressure=101617, acceleration_x=-20, acceleration_y=-40, acceleration_z=1020,
+#battery_voltage=2851, power_info=4, movement_counter=122, measurement_sequence=31396)
+def ruuvicb(ruuvitag):
+    tagwhere = mytags[ruuvitag.mac.decode('ascii')]
+    print(f"Data for {tagwhere}")
+    if mqtt.client is not False:
+        for thing in ["temperature", "humidity", "pressure", "battery_voltage"]:
+            print(f"{thing}: {getattr(ruuvitag, thing)}")
+            value = getattr(ruuvitag, thing)
+            if thing == "battery_voltage":
+                thing = "battery"
+                value = value / 1000
+            topic = thing+"/"+tagwhere
+            if thing == "pressure":
+                value = value / 100
+            mqtt.send_mqtt(topic,str(value))
 
 #Print and send status messages
 def status(message):
@@ -71,11 +93,17 @@ def led_control(command=""):
 def main():
     global last_temp, last_humidity # pylint: disable=global-statement
 
+    '''
     strip_type = "GRBW"
     pixels = 16
     GPIO = 0
     leds.init_strip(strip_type,pixels,GPIO)
-
+    '''
+    #Inititialise Ruuvi
+    ruuvi = RuuviTag()
+    ruuvi._callback_handler = ruuvicb
+    '''
+    #Initialise i2c temperature/humidity sensor
     try:
         i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=40000)
         sensor = am2320.AM2320(i2c)
@@ -83,16 +111,24 @@ def main():
         status(f"Error setting up I2C: {e}")
         time.sleep(3)
         return
-
+    '''
+    #Subscribe to MQTT
     if mqtt.client is not False:
         mqtt.client.subscribe("pico/lights") # type: ignore
+
     last_sent = time.time() - 60
     last_light = time.time() - 60
 
+    #Main loop
     while True:
+        '''
+        #Check the trap status
         trap.trap()
+        '''
+        #Get and send a light reading
         if time.time() - last_sent >= 60:
             last_sent = time.time()
+            '''
             try:
                 sensor.measure()
                 light.send_measurement(where,"temperature",sensor.temperature())
@@ -102,9 +138,16 @@ def main():
                 #status("Measurements sent")
             except Exception as e: # pylint: disable=broad-exception-caught
                 status(f"Exception: {e}")
+            '''
+            #Get Ruuvi Data
+            print("Calling ruuvi.scan()")
+            ruuvi.scan()
+
+        '''
         if time.time() - last_light >= 5:
             light.send_measurement(where,"light",light.readLight())
             last_light = time.time()
+        '''
 
         #Check for messages
         if mqtt.client is not False:

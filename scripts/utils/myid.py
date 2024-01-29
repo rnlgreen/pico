@@ -12,7 +12,7 @@ picos = {
             "e661413e72d262f": "pico7"
         }
 where = {
-            "pico0": "lounge", 
+            "pico0": "loft", 
             "pico1": "loft",
             "pico2": "garage",
             "pico3": "kitchen",
