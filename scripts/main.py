@@ -37,6 +37,14 @@ def file_exists(filename):
     except OSError:
         return False
 
+#Check if a local folder exists
+def dir_exists(foldername):
+    """Function to test if a file exists"""
+    try:
+        return (uos.stat(foldername)[0] & 0x8000) == 0
+    except OSError:
+        return False
+
 #Function to check for new code and download it from FTP site
 def reload():
     """Function to reload new code if there is any"""
@@ -46,8 +54,15 @@ def reload():
         session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
         if session:
             #Check all the folders for new files
-            for source in (".", "utils", "lib"):
+            folders = ["."]
+            ftp.cwd(session,'/pico/scripts')
+            folders += ftp.list_folders(session)
+            print(f"Got list of folders: {folders}")
+            for source in (folders):
                 ftp.cwd(session,'/pico/scripts')
+                if not dir_exists(source):
+                    log.status(f"Creating new folder {source}", True)
+                    uos.mkdir(source)
                 numfiles = ftp.get_changedfiles(session,source)
                 totalfiles += numfiles
             ftp.ftpquit(session)

@@ -97,5 +97,20 @@ def get_changedfiles(ftp,folder):
 def cwd(ftp,folder):
     ftp.cwd(folder)
 
+#Returns something like this:
+#-rwxrwxrwx   1 1000     1000              746 Jan 28 11:28 generate_sha256.sh
+#drwxrwxrwx   1 1000     1000               70 Mar 26  2023 lib
+#-rwxrwxrwx   1 1000     1000             7483 Jan 28 11:30 main.py
+#-rwxrwxrwx   1 richard  users            3833 Dec 04  2023 pico0.py
+def list_folders(ftp):
+    listing = []
+    folders = []
+    ftp.retrlines('list', listing.append)
+    for line in listing:
+        if line.startswith("d"):
+            folder = line.split()[8]
+            folders.append(folder)
+    return folders
+
 def ftpquit(ftp):
     ftp.quit()
