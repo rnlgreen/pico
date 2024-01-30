@@ -62,12 +62,14 @@ def status(message):
 #Report current status of lights and sensors etc.
 def get_status():
     trap.get_status()
+    '''
     status(f"running: {leds.running}")
     status(f"effect: {leds.effect}")
     status(f"stop: {leds.stop}")
     status(f"speed: {leds.speed}")
     status(f"dyndelay: {leds.dyndelay}")
     status(f"brightness: {leds.brightness}")
+    '''
     gc.collect()
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     #i2c sensor
@@ -83,12 +85,14 @@ def get_status():
         status(f"I2C device found at 0x{devices[0]:02X}")
     status(f"Latest temperature = {last_temp}")
     status(f"Latest humidity: {last_humidity}")
-    status(f"Light level: {light.readLight()}")
+    #status(f"Light level: {light.readLight()}")
 
-#LED control function to accept commands and launch effects
+'''
+#LED control function to accept commands and launch effects - called from main.py
 def led_control(command=""):
     leds.led_control(command)
-
+'''
+    
 #Called my main.py
 def main():
     global last_temp, last_humidity # pylint: disable=global-statement
@@ -112,10 +116,11 @@ def main():
         time.sleep(3)
         return
     '''
+    '''
     #Subscribe to MQTT
     if mqtt.client is not False:
         mqtt.client.subscribe("pico/lights") # type: ignore
-
+    '''
     last_sent = time.time() - 60
     last_light = time.time() - 60
 
