@@ -32,14 +32,19 @@ mytags = { 'f34584d173cb': "woodstore", 'dc7eb48031b4': "garage", 'fab5c40c4095'
 
 last_temp = -1
 last_humidity = -1
+last_sent = 0
+last_ruuvi = 0
 
 #Callback handler that receives a tuple of data from the RuuviTag class object
 #RuuviTagRAWv2(mac=b'f34584d173cb', rssi=-100, format=5, humidity=91.435, temperature=9.01,
 #pressure=101617, acceleration_x=-20, acceleration_y=-40, acceleration_z=1020,
 #battery_voltage=2851, power_info=4, movement_counter=122, measurement_sequence=31396)
 def ruuvicb(ruuvitag):
+    global last_ruuvi
+    last_ruuvi = time.ticks_ms()
+    elapsed = time.ticks_diff(last_ruuvi,last_sent) / 1000
     tagwhere = mytags[ruuvitag.mac.decode('ascii')]
-    print(f"Data for {tagwhere}")
+    #status(f"Processing data for {tagwhere} RuuviTag after {elapsed} seconds")
     if mqtt.client is not False:
         for thing in ["temperature", "humidity", "pressure", "battery_voltage"]:
             print(f"{thing}: {getattr(ruuvitag, thing)}")
@@ -95,7 +100,7 @@ def led_control(command=""):
     
 #Called my main.py
 def main():
-    global last_temp, last_humidity # pylint: disable=global-statement
+    global last_temp, last_humidity, last_sent, last_ruuvi # pylint: disable=global-statement
 
     '''
     strip_type = "GRBW"
@@ -121,8 +126,8 @@ def main():
     if mqtt.client is not False:
         mqtt.client.subscribe("pico/lights") # type: ignore
     '''
-    last_sent = time.time() - 60
-    last_light = time.time() - 60
+    last_sent = time.ticks_add(time.ticks_ms(),60000)
+    last_ruuvi = last_sent
 
     #Main loop
     while True:
@@ -131,8 +136,8 @@ def main():
         trap.trap()
         '''
         #Get and send a light reading
-        if time.time() - last_sent >= 60:
-            last_sent = time.time()
+        if time.ticks_diff(time.ticks_ms(),last_sent) >= 60000:
+            last_sent = time.ticks_ms()
             '''
             try:
                 sensor.measure()
@@ -147,6 +152,11 @@ def main():
             #Get Ruuvi Data
             print("Calling ruuvi.scan()")
             ruuvi.scan()
+
+        #Check we've got an update from RuuviTag
+        if time.ticks_diff(time.ticks_ms(),last_ruuvi) > 70000:
+            status("RuuviTag data is missing, need to restart", True)
+            return
 
         '''
         if time.time() - last_light >= 5:
