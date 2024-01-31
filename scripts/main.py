@@ -230,4 +230,9 @@ if not TESTMODE:
         except Exception as oops2: # pylint: disable=broad-except
             log.log("Failed to send message to Slack")
         restart("Main Exception")
+    try:
+        slack.send_msg(pico,":warning: Restarting after dropping out of main")
+    except Exception: # pylint: disable=broad-except
+        log.log("Failed to send message to Slack")
+
     restart("Dropped through")
