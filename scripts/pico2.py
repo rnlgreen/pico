@@ -32,11 +32,11 @@ mytags = { 'f34584d173cb': "woodstore", 'dc7eb48031b4': "garage", 'fab5c40c4095'
 #pressure=101617, acceleration_x=-20, acceleration_y=-40, acceleration_z=1020,
 #battery_voltage=2851, power_info=4, movement_counter=122, measurement_sequence=31396)
 def ruuvicb(ruuvitag):
-    global last_ruuvi, no_ruuvi_since_start
+    global last_ruuvi, no_ruuvi_since_start # pylint: disable=global-statement
     last_ruuvi = time.ticks_ms()
-    elapsed = time.ticks_diff(last_ruuvi,last_sent) / 1000
-    tagwhere = mytags[ruuvitag.mac.decode('ascii')]
+    #elapsed = time.ticks_diff(last_ruuvi,last_sent) / 1000
     #status(f"Processing data for {tagwhere} RuuviTag after {elapsed} seconds")
+    tagwhere = mytags[ruuvitag.mac.decode('ascii')]
     if mqtt.client is not False:
         for thing in ["temperature", "humidity", "pressure", "battery_voltage"]:
             print(f"{thing}: {getattr(ruuvitag, thing)}")
