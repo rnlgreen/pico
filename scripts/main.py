@@ -217,7 +217,7 @@ if not TESTMODE:
         main = __import__(pico)
         gc.collect()
         #status("Free memory: {}".format(gc.mem_free()))
-        main.main()
+        main_result = main.main()
     #Catch any exceptions detected by the pico specific code
     except Exception as oops: # pylint: disable=broad-except
         exception = log.log_exception(oops)
@@ -231,7 +231,7 @@ if not TESTMODE:
             log.log("Failed to send message to Slack")
         restart("Main Exception")
     try:
-        slack.send_msg(pico,":warning: Restarting after dropping out of main")
+        slack.send_msg(pico,f":warning: Restarting after dropping out of main: {main_result}")
     except Exception: # pylint: disable=broad-except
         log.log("Failed to send message to Slack")
 

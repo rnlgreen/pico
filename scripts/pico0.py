@@ -34,13 +34,14 @@ last_temp = -1
 last_humidity = -1
 last_sent = 0
 last_ruuvi = 0
+no_ruuvi_since_start = True
 
 #Callback handler that receives a tuple of data from the RuuviTag class object
 #RuuviTagRAWv2(mac=b'f34584d173cb', rssi=-100, format=5, humidity=91.435, temperature=9.01,
 #pressure=101617, acceleration_x=-20, acceleration_y=-40, acceleration_z=1020,
 #battery_voltage=2851, power_info=4, movement_counter=122, measurement_sequence=31396)
 def ruuvicb(ruuvitag):
-    global last_ruuvi
+    global last_ruuvi, no_ruuvi_since_start
     last_ruuvi = time.ticks_ms()
     elapsed = time.ticks_diff(last_ruuvi,last_sent) / 1000
     tagwhere = mytags[ruuvitag.mac.decode('ascii')]
@@ -56,6 +57,7 @@ def ruuvicb(ruuvitag):
             if thing == "pressure":
                 value = value / 100
             mqtt.send_mqtt(topic,str(value))
+    no_ruuvi_since_start = False
 
 #Print and send status messages
 def status(message):
@@ -154,9 +156,9 @@ def main():
             ruuvi.scan()
 
         #Check we've got an update from RuuviTag
-        if time.ticks_diff(time.ticks_ms(),last_ruuvi) > 70000:
-            status("RuuviTag data is missing, need to restart", True)
-            return
+        if time.ticks_diff(time.ticks_ms(),last_ruuvi) > 70000 and not no_ruuvi_since_start:
+            status("RuuviTag data is missing")
+            return "RuuviTag data missing"
 
         '''
         if time.time() - last_light >= 5:
