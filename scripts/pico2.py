@@ -25,6 +25,7 @@ last_humidity = -1
 last_sent = 0
 last_ruuvi = 0
 no_ruuvi_since_start = True
+got_one = False
 
 mytags = { 'f34584d173cb': "woodstore", 'dc7eb48031b4': "garage", 'fab5c40c4095': "loft" }
 
@@ -33,11 +34,12 @@ mytags = { 'f34584d173cb': "woodstore", 'dc7eb48031b4': "garage", 'fab5c40c4095'
 #pressure=101617, acceleration_x=-20, acceleration_y=-40, acceleration_z=1020,
 #battery_voltage=2851, power_info=4, movement_counter=122, measurement_sequence=31396)
 def ruuvicb(ruuvitag):
-    global last_ruuvi, no_ruuvi_since_start # pylint: disable=global-statement
+    global last_ruuvi, no_ruuvi_since_start, got_one # pylint: disable=global-statement
+    #elapsed = utime.ticks_diff(utime.ticks_ms(),last_ruuvi) / 1000
     last_ruuvi = utime.ticks_ms()
-    #elapsed = utime.ticks_diff(last_ruuvi,last_sent) / 1000
-    #status(f"Processing data for {tagwhere} RuuviTag after {elapsed} seconds")
+    got_one = True
     tagwhere = mytags[ruuvitag.mac.decode('ascii')]
+    #status(f"Processing data for {tagwhere} RuuviTag after {elapsed} seconds")
     if mqtt.client is not False:
         for thing in ["temperature", "humidity", "pressure", "battery_voltage"]:
             print(f"{thing}: {getattr(ruuvitag, thing)}")
@@ -90,7 +92,7 @@ def get_status():
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
 def main():
-    global last_temp, last_humidity, last_sent, last_ruuvi # pylint: disable=global-statement
+    global last_temp, last_humidity, last_sent, last_ruuvi, got_one # pylint: disable=global-statement
     try:
         i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=40000)
         sensor = am2320.AM2320(i2c)
@@ -103,11 +105,12 @@ def main():
     ruuvi = RuuviTag()
     ruuvi._callback_handler = ruuvicb # pylint: disable=protected-access
 
-    last_sent = utime.ticks_add(utime.ticks_ms(),60000)
+    last_sent = utime.ticks_add(utime.ticks_ms(),-60000)
     last_ruuvi = last_sent
 
     while True:
-        if utime.ticks_diff(utime.ticks_ms(),last_sent) >= 60000:
+        elapsed = utime.ticks_diff(utime.ticks_ms(),last_sent)
+        if elapsed >= 60000:
             got_reading = False
             try:
                 sensor.measure()
@@ -120,13 +123,18 @@ def main():
                 last_temp = sensor.temperature()
                 last_humidity = sensor.humidity()
             last_sent = utime.ticks_ms()
-            #Get Ruuvi Data
-            ruuvi.scan()
 
+        ruuvi_elapsed = utime.ticks_diff(utime.ticks_ms(),last_ruuvi)
         #Check we've got an update from RuuviTag
-        if utime.ticks_diff(utime.ticks_ms(),last_ruuvi) > 70000 and not no_ruuvi_since_start:
+        if ruuvi_elapsed > 70000 and not no_ruuvi_since_start and not got_one:
             status("RuuviTag data missing")
             return "RuuviTag data missing"
+        elif ((ruuvi_elapsed >= 10000 and not got_one) #keep trying every 10 seconds
+          or (ruuvi_elapsed >= 60000 and got_one)):    #or wait 60 seconds after we got one
+            gc.collect()
+            #Get Ruuvi Data
+            got_one = False
+            ruuvi.scan()
 
         #Check for messages
         if mqtt.client is not False:

@@ -179,7 +179,7 @@ if ipaddr:
     if mqtt.mqtt_connect(client_id=pico) is False:
         restart("No MQTT connection")
 
-    log.status("------------------------")
+    log.status("-----------------------")
     log.status("Initialising")
 
     #Get latest code by calling reload(); it returns the number of files updated

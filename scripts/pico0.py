@@ -35,17 +35,19 @@ last_humidity = -1
 last_sent = 0
 last_ruuvi = 0
 no_ruuvi_since_start = True
+got_one = False
 
 #Callback handler that receives a tuple of data from the RuuviTag class object
 #RuuviTagRAWv2(mac=b'f34584d173cb', rssi=-100, format=5, humidity=91.435, temperature=9.01,
 #pressure=101617, acceleration_x=-20, acceleration_y=-40, acceleration_z=1020,
 #battery_voltage=2851, power_info=4, movement_counter=122, measurement_sequence=31396)
 def ruuvicb(ruuvitag):
-    global last_ruuvi, no_ruuvi_since_start # pylint: disable=global-statement
+    global last_ruuvi, no_ruuvi_since_start, got_one # pylint: disable=global-statement
+    #elapsed = utime.ticks_diff(utime.ticks_ms(),last_ruuvi) / 1000
     last_ruuvi = utime.ticks_ms()
-    #elapsed = utime.ticks_diff(last_ruuvi,last_sent) / 1000
-    #status(f"Processing data for {tagwhere} RuuviTag after {elapsed} seconds")
+    got_one = True
     tagwhere = mytags[ruuvitag.mac.decode('ascii')]
+    #status(f"Processing data for {tagwhere} RuuviTag after {elapsed} seconds")
     if mqtt.client is not False:
         for thing in ["temperature", "humidity", "pressure", "battery_voltage"]:
             print(f"{thing}: {getattr(ruuvitag, thing)}")
@@ -99,7 +101,7 @@ def get_status():
 
 #Called my main.py
 def main():
-    global last_sent # pylint: disable=global-statement
+    global last_ruuvi, got_one # pylint: disable=global-statement
 
     # strip_type = "GRBW"
     # pixels = 16
@@ -123,15 +125,16 @@ def main():
     # if mqtt.client is not False:
     #     mqtt.client.subscribe("pico/lights") # type: ignore
 
+    last_ruuvi = utime.ticks_add(utime.ticks_ms(),-60000)
+
     #Main loop
     while True:
         # #Check the trap status
         # trap.trap()
 
         #Get and send a light reading
-        if utime.ticks_diff(utime.ticks_ms(),last_sent) >= 60000:
-            last_sent = utime.ticks_ms()
-
+        # if utime.ticks_diff(utime.ticks_ms(),last_sent) >= 60000:
+        #     last_sent = utime.ticks_ms()
             # try:
             #     sensor.measure()
             #     light.send_measurement(where,"temperature",sensor.temperature())
@@ -142,14 +145,17 @@ def main():
             # except Exception as e: # pylint: disable=broad-exception-caught
             #     status(f"Exception: {e}")
 
-            #Get Ruuvi Data
-            print("Calling ruuvi.scan()")
-            ruuvi.scan()
-
+        ruuvi_elapsed = utime.ticks_diff(utime.ticks_ms(),last_ruuvi)
         #Check we've got an update from RuuviTag
-        if utime.ticks_diff(utime.ticks_ms(),last_ruuvi) > 70000 and not no_ruuvi_since_start:
+        if ruuvi_elapsed > 70000 and not no_ruuvi_since_start and not got_one:
             status("RuuviTag data missing")
             return "RuuviTag data missing"
+        elif ((ruuvi_elapsed >= 10000 and not got_one) #keep trying every 10 seconds
+          or (ruuvi_elapsed >= 60000 and got_one)):    #or wait 60 seconds after we got one
+            gc.collect()
+            #Get Ruuvi Data
+            got_one = False
+            ruuvi.scan()
 
         # if utime.time() - last_light >= 5:
         #     light.send_measurement(where,"light",light.readLight())
@@ -168,7 +174,7 @@ def main():
             log(f"wlan.status(): {wifi.wlan.status()}")
             restart("Wi-Fi Lost")
 
-        utime.sleep(0.2)
+        utime.sleep(0.5)
 
 pico = myid.get_id()
 where = myid.where[pico]
