@@ -7,10 +7,10 @@ from utils import myid
 #from utils import am2320
 #from utils import light
 from utils import wifi
-from utils import trap
+#from utils import trap
 from utils.log import log
 from utils.control import restart
-from machine import I2C, Pin # type: ignore # pylint: disable=import-error
+# from machine import I2C, Pin # type: ignore # pylint: disable=import-error
 from ruuvitag import RuuviTag
 
 #Pins from left to right:
@@ -24,9 +24,9 @@ SDAPIN = 26 #GPIO26
 SCLPIN = 27 #GPIO27
 photoPIN = 18 #GPIO18
 
-trap.traps = {
-        "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": False, "spring trigger": 0},
-}
+# trap.traps = {
+#         "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": False, "spring trigger": 0},
+# }
 
 mytags = { 'f34584d173cb': "woodstore", 'dc7eb48031b4': "garage", 'fab5c40c4095': "loft" }
 
@@ -68,28 +68,29 @@ def status(message):
 
 #Report current status of lights and sensors etc.
 def get_status():
-    trap.get_status()
+    # trap.get_status()
     # status(f"running: {leds.running}")
     # status(f"effect: {leds.effect}")
     # status(f"stop: {leds.stop}")
     # status(f"speed: {leds.speed}")
     # status(f"dyndelay: {leds.dyndelay}")
     # status(f"brightness: {leds.brightness}")
+    status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     gc.collect()
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
-    #i2c sensor
-    i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=400000)
-    devices = i2c.scan()
-    if len(devices) == 0:
-        status("No I2C device found")
-    elif len(devices) > 1:
-        status("Multiple I2C devices found -")
-        for d in devices:
-            status(f"  0x{d:02X}")
-    else:
-        status(f"I2C device found at 0x{devices[0]:02X}")
-    status(f"Latest temperature = {last_temp}")
-    status(f"Latest humidity: {last_humidity}")
+    # #i2c sensor
+    # i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=400000)
+    # devices = i2c.scan()
+    # if len(devices) == 0:
+    #     status("No I2C device found")
+    # elif len(devices) > 1:
+    #     status("Multiple I2C devices found -")
+    #     for d in devices:
+    #         status(f"  0x{d:02X}")
+    # else:
+    #     status(f"I2C device found at 0x{devices[0]:02X}")
+    # status(f"Latest temperature = {last_temp}")
+    # status(f"Latest humidity: {last_humidity}")
     #status(f"Light level: {light.readLight()}")
 
 # #LED control function to accept commands and launch effects - called from main.py
@@ -147,7 +148,7 @@ def main():
 
         #Check we've got an update from RuuviTag
         if utime.ticks_diff(utime.ticks_ms(),last_ruuvi) > 70000 and not no_ruuvi_since_start:
-            status("RuuviTag data is missing")
+            status("RuuviTag data missing")
             return "RuuviTag data missing"
 
         # if utime.time() - last_light >= 5:
