@@ -180,7 +180,6 @@ if ipaddr:
 
     #Get latest code by calling reload(); it returns the number of files updated
     if reload() > 0:
-        log.status("New code loaded")
         slack.send_msg(pico,":repeat: Restarting to load new code")
         restart("New code")
 
@@ -218,6 +217,10 @@ if not TESTMODE:
         gc.collect()
         #status("Free memory: {}".format(gc.mem_free()))
         main_result = main.main()
+        try:
+            slack.send_msg(pico,f":warning: Restarting after dropping out of main: {main_result}")
+        except Exception: # pylint: disable=broad-except
+            log.log("Failed to send message to Slack")
     #Catch any exceptions detected by the pico specific code
     except Exception as oops: # pylint: disable=broad-except
         exception = log.log_exception(oops)
@@ -230,9 +233,5 @@ if not TESTMODE:
         except Exception as oops2: # pylint: disable=broad-except
             log.log("Failed to send message to Slack")
         restart("Main Exception")
-    try:
-        slack.send_msg(pico,f":warning: Restarting after dropping out of main: {main_result}")
-    except Exception: # pylint: disable=broad-except
-        log.log("Failed to send message to Slack")
 
     restart("Dropped through")

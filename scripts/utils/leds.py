@@ -422,7 +422,7 @@ def train(num_carriages=5, colour_list=[], iterations=0): # pylint: disable=dang
 def off(from_auto=False):
     """All off"""
     global auto, stop, lightsoff, previously_running # pylint: disable=global-statement
-    status(f"called with {from_auto}")
+    #status(f"called with {from_auto}")
     if not from_auto:
         auto = False
         if master:
@@ -444,7 +444,7 @@ def off(from_auto=False):
 
 #Off command called via manage_lights through MQTT
 def auto_off():
-    status("Running off(True)")
+    #status("Running off(True)")
     off(True)
 
 #Function to report now running
@@ -524,7 +524,7 @@ def led_control(command="",arg=""):
             effects[command]()
         else: #otherwise just run the effect or off
             try:
-                status(f"Calling {effects[command]}")
+                #status(f"Calling {effects[command]}")
                 effects[command]()
             except Exception as e: # pylint: disable=broad-exception-caught
                 import io # pylint: disable=import-outside-toplevel
