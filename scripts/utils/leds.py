@@ -90,7 +90,7 @@ def manage_lights():
                             else:
                                 if colour == [0, 0, 0]:
                                     send_control(INITIAL_COLOUR_COMMAND)
-                        status(f"Brightness {brightness} -> {new_brightness_level}")
+                        # status(f"Brightness {brightness} -> {new_brightness_level}")
                         send_control(f"brightness:{new_brightness_level}")
                         updated = True
                     else:
