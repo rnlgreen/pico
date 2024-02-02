@@ -1,4 +1,5 @@
 #Code for Pico2 - measure and report temperature and pressure
+import gc # Garbage Collector
 import utime # type: ignore # pylint: disable=import-error # MicroPython time function (time is an alias to utime)
 from machine import I2C, Pin # type: ignore # pylint: disable=import-error
 from utils import am2320
@@ -84,6 +85,9 @@ def get_status():
         status(f"I2C device found at 0x{devices[0]:02X}")
     status(f"Latest temperature = {last_temp}")
     status(f"Latest humidity: {last_humidity}")
+    status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
+    gc.collect()
+    status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
 def main():
     global last_temp, last_humidity, last_sent, last_ruuvi # pylint: disable=global-statement
@@ -121,7 +125,7 @@ def main():
 
         #Check we've got an update from RuuviTag
         if utime.ticks_diff(utime.ticks_ms(),last_ruuvi) > 70000 and not no_ruuvi_since_start:
-            status("RuuviTag data is missing")
+            status("RuuviTag data missing")
             return "RuuviTag data missing"
 
         #Check for messages

@@ -1,4 +1,5 @@
 #Code for Pico2 - measure and report temperature and pressure
+import gc # Garbage Collector
 import utime # type: ignore # pylint: disable=import-error # MicroPython time function (time is an alias to utime)
 from utils import myid
 from utils import mqtt
@@ -51,7 +52,9 @@ def send_mqtt(topic,message):
 
 #Return i2cscan to status commands
 def get_status():
-    status("I'm here")
+    status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
+    # gc.collect()
+    # status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
 def main():
     global last_sent, last_ruuvi # pylint: disable=global-statement
@@ -62,6 +65,7 @@ def main():
 
     last_sent = utime.ticks_add(utime.ticks_ms(),60000)
     last_ruuvi = last_sent
+    memory_check = utime.time()
 
     while True:
         if utime.ticks_diff(utime.ticks_ms(),last_sent) >= 60000:
@@ -71,18 +75,24 @@ def main():
 
         #Check we've got an update from RuuviTag
         if utime.ticks_diff(utime.ticks_ms(),last_ruuvi) > 70000 and not no_ruuvi_since_start:
-            status("RuuviTag data is missing")
+            status("RuuviTag data missing")
             return "RuuviTag data missing"
 
         #Check for messages
         if mqtt.client is not False:
             mqtt.client.check_msg()
+
         #Check WiFi status
         if wifi.wlan.isconnected() is not True or wifi.wlan.status() != 3:
             log("Wi-Fi down")
             log(f"wlan.isconnected(): {wifi.wlan.isconnected()}")
             log(f"wlan.status(): {wifi.wlan.status()}")
             restart("Wi-Fi Lost")
+
+        #Report memory usage
+        if utime.time() - memory_check > 600:
+            memory_check = utime.time()
+            get_status()
 
         utime.sleep(0.5)
 
