@@ -1,5 +1,5 @@
 #Code for Pico2 - measure and report temperature and pressure
-import time
+import utime # type: ignore # pylint: disable=import-error # MicroPython time function (time is an alias to utime)
 from machine import I2C, Pin # type: ignore # pylint: disable=import-error
 from utils import am2320
 from utils import myid
@@ -33,8 +33,8 @@ mytags = { 'f34584d173cb': "woodstore", 'dc7eb48031b4': "garage", 'fab5c40c4095'
 #battery_voltage=2851, power_info=4, movement_counter=122, measurement_sequence=31396)
 def ruuvicb(ruuvitag):
     global last_ruuvi, no_ruuvi_since_start # pylint: disable=global-statement
-    last_ruuvi = time.ticks_ms()
-    #elapsed = time.ticks_diff(last_ruuvi,last_sent) / 1000
+    last_ruuvi = utime.ticks_ms()
+    #elapsed = utime.ticks_diff(last_ruuvi,last_sent) / 1000
     #status(f"Processing data for {tagwhere} RuuviTag after {elapsed} seconds")
     tagwhere = mytags[ruuvitag.mac.decode('ascii')]
     if mqtt.client is not False:
@@ -92,18 +92,18 @@ def main():
         sensor = am2320.AM2320(i2c)
     except Exception as e: # pylint: disable=broad-exception-caught
         status(f"Error setting up I2C: {e}")
-        time.sleep(3)
+        utime.sleep(3)
         return
 
     #Inititialise Ruuvi
     ruuvi = RuuviTag()
-    ruuvi._callback_handler = ruuvicb
+    ruuvi._callback_handler = ruuvicb # pylint: disable=protected-access
 
-    last_sent = time.ticks_add(time.ticks_ms(),60000)
+    last_sent = utime.ticks_add(utime.ticks_ms(),60000)
     last_ruuvi = last_sent
 
     while True:
-        if time.ticks_diff(time.ticks_ms(),last_sent) >= 60000:
+        if utime.ticks_diff(utime.ticks_ms(),last_sent) >= 60000:
             got_reading = False
             try:
                 sensor.measure()
@@ -115,12 +115,12 @@ def main():
                 send_measurement("humidity",sensor.humidity())
                 last_temp = sensor.temperature()
                 last_humidity = sensor.humidity()
-            last_sent = time.ticks_ms()
+            last_sent = utime.ticks_ms()
             #Get Ruuvi Data
             ruuvi.scan()
 
         #Check we've got an update from RuuviTag
-        if time.ticks_diff(time.ticks_ms(),last_ruuvi) > 70000 and not no_ruuvi_since_start:
+        if utime.ticks_diff(utime.ticks_ms(),last_ruuvi) > 70000 and not no_ruuvi_since_start:
             status("RuuviTag data is missing")
             return "RuuviTag data missing"
 
@@ -134,7 +134,7 @@ def main():
             log(f"wlan.status(): {wifi.wlan.status()}")
             restart("Wi-Fi Lost")
 
-        time.sleep(0.5)
+        utime.sleep(0.5)
 
 pico = myid.get_id()
 #where = myid.where[pico]
