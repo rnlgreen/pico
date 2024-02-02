@@ -48,7 +48,7 @@ def dir_exists(foldername):
 #Function to check for new code and download it from FTP site
 def reload():
     """Function to reload new code if there is any"""
-    log.status("Checking for new code")
+    # log.status("Checking for new code")
     totalfiles = 0
     try:
         session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
@@ -67,9 +67,10 @@ def reload():
                 totalfiles += numfiles
             ftp.ftpquit(session)
             if totalfiles > 0:
-                log.status("Reload complete")
+                log.status(f"Updated {totalfiles} files")
             else:
-                log.status("No new files found")
+                pass
+                #log.status("No new files found")
         else:
             message = "FTP error occurred"
             log.status(message)
@@ -82,7 +83,7 @@ def report_exceptions():
     """Function to upload exception files via FTP"""
     print("Checking for exception file")
     if file_exists(EXCEPTION_FILE):
-        log.status("Uploading exception file")
+        # log.status("Uploading exception file")
         #import os
         try:
             session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
@@ -130,7 +131,7 @@ def on_message(topic, payload):
         elif command == "reload":
             reload()
         elif command == "restart":
-            restart("remote command")
+            restart("mqtt command")
         elif command == "datetime":
             thetime = strftime()
             log.status(f"Time is: {thetime}")
@@ -178,15 +179,18 @@ if ipaddr:
     if mqtt.mqtt_connect(client_id=pico) is False:
         restart("No MQTT connection")
 
+    log.status("------------------------")
+    log.status("Initialising")
+
     #Get latest code by calling reload(); it returns the number of files updated
     if reload() > 0:
         slack.send_msg(pico,":repeat: Restarting to load new code")
-        restart("New code")
+        restart("new code")
 
     #Subscribe to the relevant channels
     if mqtt.client is not False:
         #Subscribe to control and heartbeat channels
-        log.status("Subscribing to MQTT")
+        #log.status("Subscribing to MQTT")
         mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/all/control") # type: ignore
@@ -207,15 +211,15 @@ if not TESTMODE:
     #Assuming we have the time now get the init time
     timeInit = time.time()
 
-    #Now load and call the specific code for this pico
-    log.status("Loading main", logit=True)
     #Upload latest local log file
     report_exceptions()
 
+    #Now load and call the specific code for this pico
     try:
         main = __import__(pico)
         gc.collect()
-        #status("Free memory: {}".format(gc.mem_free()))
+        log.status(f"Free memory: {gc.mem_free()}") # pylint: disable=no-member
+        log.status(f"Calling {pico}.py main()")
         main_result = main.main()
         try:
             slack.send_msg(pico,f":warning: Restarting after dropping out of main: {main_result}")
