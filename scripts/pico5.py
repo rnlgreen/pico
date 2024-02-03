@@ -6,17 +6,9 @@ from utils import myid
 from utils import leds
 from utils import light
 from utils import wifi
-from utils.log import log
-from utils.control import restart
+from utils.log import status
 
 debugging = False
-
-#Print and send status messages
-def status(message):
-    print(message)
-    message = myid.pico + ": " + message
-    topic = 'pico/'+myid.pico+'/status'
-    mqtt.send_mqtt(topic,message)
 
 #Print and send status messages
 def debug(message):
@@ -86,12 +78,10 @@ def main():
                     light.rolling_average()
             else:
                 light.rolling_average()
+
         #Check WiFi status
-        if wifi.wlan.isconnected() is not True or wifi.wlan.status() != 3:
-            log("Wi-Fi down")
-            log(f"wlan.isconnected(): {wifi.wlan.isconnected()}")
-            log(f"wlan.status(): {wifi.wlan.status()}")
-            restart("Wi-Fi Lost")
+        if not wifi.check_wifi():
+            return "Wi-Fi Lost"
 
         time.sleep(0.2)
 

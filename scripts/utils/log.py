@@ -1,9 +1,7 @@
 """General logging and control functions"""
-import time
 from utils import myid
 from utils import mqtt
 from utils.timeutils import strftime
-from machine import reset # pylint: disable=import-error # type: ignore
 
 EXCEPTION_FILE = "exception.txt"
 
@@ -53,16 +51,3 @@ def log_exception(e):
     except Exception: # pylint: disable=broad-except
         pass
     return exception1
-
-#Restart pico
-def restart(reason):
-    """Function to restart the pico"""
-    status(f'Restarting: {reason}')
-    log(f"Restarting: {reason}")
-    if mqtt.client is not False:
-        try:
-            mqtt.client.disconnect()
-        except Exception as e: # pylint: disable=broad-except
-            log_exception(e)
-    time.sleep(1)
-    reset()

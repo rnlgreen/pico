@@ -8,10 +8,9 @@ from utils import myid
 #from utils import light
 from utils import wifi
 #from utils import trap
-from utils.log import log
-from utils.control import restart
+from utils.log import status
 # from machine import I2C, Pin # type: ignore # pylint: disable=import-error
-from ruuvitag import RuuviTag
+from utils import ruuvi
 
 #Pins from left to right:
 #1: Voltage in, 3-5 VDC
@@ -28,45 +27,9 @@ photoPIN = 18 #GPIO18
 #         "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": False, "spring trigger": 0},
 # }
 
-mytags = { 'f34584d173cb': "woodstore", 'dc7eb48031b4': "garage", 'fab5c40c4095': "loft" }
-
 last_temp = -1
 last_humidity = -1
 last_sent = 0
-last_ruuvi = 0
-no_ruuvi_since_start = True
-got_one = False
-
-#Callback handler that receives a tuple of data from the RuuviTag class object
-#RuuviTagRAWv2(mac=b'f34584d173cb', rssi=-100, format=5, humidity=91.435, temperature=9.01,
-#pressure=101617, acceleration_x=-20, acceleration_y=-40, acceleration_z=1020,
-#battery_voltage=2851, power_info=4, movement_counter=122, measurement_sequence=31396)
-def ruuvicb(ruuvitag):
-    global last_ruuvi, no_ruuvi_since_start, got_one # pylint: disable=global-statement
-    #elapsed = utime.ticks_diff(utime.ticks_ms(),last_ruuvi) / 1000
-    last_ruuvi = utime.ticks_ms()
-    got_one = True
-    tagwhere = mytags[ruuvitag.mac.decode('ascii')]
-    #status(f"Processing data for {tagwhere} RuuviTag after {elapsed} seconds")
-    if mqtt.client is not False:
-        for thing in ["temperature", "humidity", "pressure", "battery_voltage"]:
-            print(f"{thing}: {getattr(ruuvitag, thing)}")
-            value = getattr(ruuvitag, thing)
-            if thing == "battery_voltage":
-                thing = "battery"
-                value = value / 1000
-            topic = thing+"/"+tagwhere
-            if thing == "pressure":
-                value = value / 100
-            mqtt.send_mqtt(topic,str(value))
-    no_ruuvi_since_start = False
-
-#Print and send status messages
-def status(message):
-    print(message)
-    message = myid.pico + ": " + message
-    topic = 'pico/'+myid.pico+'/status'
-    mqtt.send_mqtt(topic,message)
 
 #Report current status of lights and sensors etc.
 def get_status():
@@ -101,16 +64,10 @@ def get_status():
 
 #Called my main.py
 def main():
-    global last_ruuvi, got_one # pylint: disable=global-statement
-
     # strip_type = "GRBW"
     # pixels = 16
     # GPIO = 0
     # leds.init_strip(strip_type,pixels,GPIO)
-
-    #Inititialise Ruuvi
-    ruuvi = RuuviTag()
-    ruuvi._callback_handler = ruuvicb # pylint: disable=protected-access
 
     # #Initialise i2c temperature/humidity sensor
     # try:
@@ -124,8 +81,6 @@ def main():
     # #Subscribe to MQTT
     # if mqtt.client is not False:
     #     mqtt.client.subscribe("pico/lights") # type: ignore
-
-    last_ruuvi = utime.ticks_add(utime.ticks_ms(),-60000)
 
     #Main loop
     while True:
@@ -145,17 +100,10 @@ def main():
             # except Exception as e: # pylint: disable=broad-exception-caught
             #     status(f"Exception: {e}")
 
-        ruuvi_elapsed = utime.ticks_diff(utime.ticks_ms(),last_ruuvi)
-        #Check we've got an update from RuuviTag
-        if ruuvi_elapsed > 70000 and not no_ruuvi_since_start and not got_one:
+        #Get RuuviTag readings, returns false if we haven't had any for a while
+        if not ruuvi.get_readings():
             status("RuuviTag data missing")
             return "RuuviTag data missing"
-        elif ((ruuvi_elapsed >= 10000 and not got_one) #keep trying every 10 seconds
-          or (ruuvi_elapsed >= 60000 and got_one)):    #or wait 60 seconds after we got one
-            gc.collect()
-            #Get Ruuvi Data
-            got_one = False
-            ruuvi.scan()
 
         # if utime.time() - last_light >= 5:
         #     light.send_measurement(where,"light",light.readLight())
@@ -168,11 +116,8 @@ def main():
             print("mqtt.client is False")
 
         #Check WiFi status
-        if wifi.wlan.isconnected() is not True or wifi.wlan.status() != 3:
-            log("Wi-Fi down")
-            log(f"wlan.isconnected(): {wifi.wlan.isconnected()}")
-            log(f"wlan.status(): {wifi.wlan.status()}")
-            restart("Wi-Fi Lost")
+        if not wifi.check_wifi():
+            return "Wi-Fi Lost"
 
         utime.sleep(0.5)
 

@@ -2,6 +2,7 @@
 import time
 import secrets
 import network # type: ignore # pylint: disable=import-error
+from utils.log import log
 
 #Global varaible so other functions can test the status
 wlan = False
@@ -30,3 +31,12 @@ def wlan_connect(hostname): # pylint: disable=unused-argument
     else:
         print("Failed to connect to WLAN")
         return False
+
+def check_wifi():
+    if wlan.isconnected() is not True or wlan.status() != 3:
+        log("Wi-Fi down")
+        log(f"wlan.isconnected(): {wlan.isconnected()}")
+        log(f"wlan.status(): {wlan.status()}")
+        return False
+    else:
+        return True
