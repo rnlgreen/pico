@@ -15,5 +15,5 @@ def send_msg(pico,msg):
         icon = ":large_blue_diamond:"
     data = f"{{'text':'{msg}',  'username': '{pico}', 'icon_emoji': '{icon}'}}"
     resp = urequests.post(URL, data=data, headers=headers)
-    print(resp.content)
+    #print(resp.content)
     return resp
