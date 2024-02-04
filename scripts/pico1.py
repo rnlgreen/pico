@@ -4,6 +4,8 @@ import time
 from utils import trap
 from utils import mqtt
 from utils import wifi
+from utils import ruuvi
+from utils.log import status
 from machine import Pin # type: ignore # pylint: disable=import-error
 
 def get_status():
@@ -21,6 +23,11 @@ def main():
         #Check for messages
         if mqtt.client is not False:
             mqtt.client.check_msg()
+
+        #Get RuuviTag readings, returns false if we haven't had any for a while
+        if not ruuvi.get_readings():
+            status("RuuviTag data missing")
+            return "RuuviTag data missing"
 
         #Check WiFi status
         if not wifi.check_wifi():
