@@ -1,4 +1,5 @@
 #Functions to collect and send data from RuuviTags
+import gc # Garbage collector
 import utime # type: ignore # pylint: disable=import-error
 from ruuvitag import RuuviTag
 from utils import mqtt
@@ -18,22 +19,25 @@ mytags = { 'f34584d173cb': "woodstore", 'dc7eb48031b4': "garage", 'fab5c40c4095'
 def ruuvicb(ruuvitag):
     global last_ruuvi, no_ruuvi_since_start, got_one # pylint: disable=global-statement
     #elapsed = utime.ticks_diff(utime.ticks_ms(),last_ruuvi) / 1000
-    last_ruuvi = utime.ticks_ms()
-    got_one = True
-    tagwhere = mytags[ruuvitag.mac.decode('ascii')]
-    debug(f"Processing data for {tagwhere} RuuviTag")
-    if mqtt.client is not False:
-        for thing in ["temperature", "humidity", "pressure", "battery_voltage"]:
-            print(f"{thing}: {getattr(ruuvitag, thing)}")
-            value = getattr(ruuvitag, thing)
-            if thing == "battery_voltage":
-                thing = "battery"
-                value = value / 1000
-            topic = thing+"/"+tagwhere
-            if thing == "pressure":
-                value = value / 100
-            mqtt.send_mqtt(topic,str(value))
-    no_ruuvi_since_start = False
+    if not ruuvitag is None:
+        last_ruuvi = utime.ticks_ms()
+        got_one = True
+        tagwhere = mytags[ruuvitag.mac.decode('ascii')]
+        log.debug(f"Processing data for {tagwhere} RuuviTag")
+        if mqtt.client is not False:
+            for thing in ["temperature", "humidity", "pressure", "battery_voltage"]:
+                print(f"{thing}: {getattr(ruuvitag, thing)}")
+                value = getattr(ruuvitag, thing)
+                if thing == "battery_voltage":
+                    thing = "battery"
+                    value = value / 1000
+                topic = thing+"/"+tagwhere
+                if thing == "pressure":
+                    value = value / 100
+                mqtt.send_mqtt(topic,str(value))
+        no_ruuvi_since_start = False
+    else:
+        log.status("No tags found")
 
 def get_readings():
     global got_one # pylint: disable=global-statement
@@ -47,10 +51,12 @@ def get_readings():
         #Get Ruuvi Data
         got_one = False
         log.debug("Scanning...")
-        ruuvi.scan() #scans for 5 seconds
+        gc.collect() #Do a quick garbage collect
+        ruuvi.scan(ruuvicb) #scans for 5 seconds
+
     return True
 
 #Inititialise Ruuvi
 ruuvi = RuuviTag()
-ruuvi._callback_handler = ruuvicb # pylint: disable=protected-access
+#ruuvi._callback_handler = ruuvicb # pylint: disable=protected-access
 last_ruuvi = utime.ticks_add(utime.ticks_ms(),-60000)

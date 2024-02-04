@@ -1,10 +1,9 @@
-import ubinascii
-import ubluetooth
+import ubinascii  # type: ignore # pylint: disable=import-error
+import ubluetooth # type: ignore # pylint: disable=import-error
+
+from micropython import const # type: ignore # pylint: disable=import-error
 
 from .decoder import decode_raw_1, decode_raw_2
-
-from micropython import const
-
 
 _IRQ_SCAN_RESULT = const(5)
 _IRQ_SCAN_DONE = const(6)
@@ -13,8 +12,8 @@ _RUUVITAG = b"\x99\x04"
 _RUUVITAG_RAW_1 = const(3)
 _RUUVITAG_RAW_2 = const(5)
 
-class RuuviTag:
-    def __init__(self, whitelist=None, blacklist=[]):
+class RuuviTag: # pylint: disable=missing-class-docstring
+    def __init__(self, whitelist=None, blacklist=[]): # pylint: disable=dangerous-default-value
         self._ble = ubluetooth.BLE()
         self._ble.active(True)
         self._ble.irq(self.irq_handler)
@@ -26,7 +25,7 @@ class RuuviTag:
 
     def irq_handler(self, event, data):
         if event == _IRQ_SCAN_RESULT:
-            addr_type, addr, connectable, rssi, adv_data = data
+            addr_type, addr, connectable, rssi, adv_data = data # pylint: disable=unused-variable
 
             addr = ubinascii.hexlify(addr)
 
@@ -64,11 +63,12 @@ class RuuviTag:
                 self._callback_handler(decode_raw_2(addr, rssi, data))
         elif event == _IRQ_SCAN_DONE:
             # Scan duration finished or manually stopped.
-            pass
+            self._callback_handler(None)
 
-    def scan(self):
+    def scan(self, callback=None):
         self._tags = []
         self._addrs = []
+        self._callback_handler = callback
         self._ble.gap_scan(5000, 30000, 30000)
 
     def stop(self):
