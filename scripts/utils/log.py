@@ -4,6 +4,7 @@ from utils import mqtt
 from utils.timeutils import strftime
 
 EXCEPTION_FILE = "exception.txt"
+DEBUGGING = False
 
 #Print and send status messages
 def status(message, logit=False):
@@ -18,6 +19,13 @@ def status(message, logit=False):
             mqtt.send_mqtt(topic,message)
         except Exception as e: # pylint: disable=broad-except
             log_exception(e)
+
+#Print and send status messages
+def debug(message):
+    print(message)
+    message = myid.pico + ": " + message
+    topic = 'pico/'+myid.pico+'/debug'
+    mqtt.send_mqtt(topic,message)
 
 def log(message):
     """Function to write status message to exception logfile"""

@@ -6,17 +6,7 @@ from utils import myid
 from utils import leds
 from utils import light
 from utils import wifi
-from utils.log import status
-
-debugging = False
-
-#Print and send status messages
-def debug(message):
-    print(message)
-    if debugging:
-        message = myid.pico + ": " + message
-        topic = 'pico/'+myid.pico+'/debug'
-        mqtt.send_mqtt(topic,message)
+from utils.log import status, debug
 
 def send_control(payload):
     topic = 'pico/lights'
