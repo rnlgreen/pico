@@ -36,7 +36,7 @@ def ruuvicb(ruuvitag):
                     value = value / 100
                 mqtt.send_mqtt(topic,str(value))
         no_ruuvi_since_start = False
-    else:
+    elif not got_one:
         log.status("No tags found")
 
 def get_readings():
