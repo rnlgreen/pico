@@ -32,7 +32,7 @@ def main():
             return "Wi-Fi Lost"
 
         #Wait a bit
-        time.sleep(0.2)
+        time.sleep(0.5)
 
 if __name__ == "__main__":
     main()
