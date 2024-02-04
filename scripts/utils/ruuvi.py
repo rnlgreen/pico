@@ -40,7 +40,7 @@ def ruuvicb(ruuvitag):
         log.status("No tags found")
 
 def get_readings():
-    global got_one # pylint: disable=global-statement
+    global got_one, last_ruuvi # pylint: disable=global-statement
     ruuvi_elapsed = utime.ticks_diff(utime.ticks_ms(),last_ruuvi)
     #Check we've got an update from RuuviTag
     if ruuvi_elapsed > 70000 and not no_ruuvi_since_start and not got_one:
@@ -49,6 +49,7 @@ def get_readings():
         or (ruuvi_elapsed >= 60000 and got_one)):  #or wait 60 seconds after we got one
         #gc.collect()
         #Get Ruuvi Data
+        last_ruuvi = utime.ticks_ms() #to avoid multiple scans kicking off
         got_one = False
         log.debug("Scanning...")
         gc.collect() #Do a quick garbage collect
