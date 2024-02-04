@@ -6,10 +6,11 @@ import utime # type: ignore # pylint: disable=import-error
 from utils import mqtt
 from utils import myid
 from utils import light
+from utils import log
 
 from lib.neopixel import Neopixel # pylint: disable=import-error
 
-DEBUGGING = False
+log.DEBUGGING = False
 
 #INITIAL_COLOUR = [0, 255, 255] #CYAN
 INITIAL_COLOUR = [210, 200, 160]
@@ -18,16 +19,6 @@ INITIAL_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,INITIAL_COLOUR)) + ")"
 #Light thresholds
 DIM = 45
 BRIGHT = 55 #(was 55)
-
-
-#Print and send status messages
-def debug(message):
-    """Debug message"""
-    print(message)
-    if DEBUGGING:
-        message = myid.pico + ": " + message
-        topic = 'pico/'+myid.pico+'/debug'
-        mqtt.send_mqtt(topic,message)
 
 #Send control message to MQTT
 def send_control(payload):
@@ -65,7 +56,7 @@ def manage_lights():
             #Turn off for high light levels
             if lightlevel > BRIGHT and not lightsoff:
                 status("Turning lights off (auto)")
-                debug("lightlevel: {lightlevel}")
+                log.debug("lightlevel: {lightlevel}")
                 if running: #Remember if we were running a lighting effect before we turn off
                     previously_running = effect
                 else:
@@ -94,7 +85,9 @@ def manage_lights():
                         send_control(f"brightness:{new_brightness_level}")
                         updated = True
                     else:
-                        debug("Skipping brightness change {brightness} -> {new_brightness_level} to avoid flutter ({h}), brightness: {lightlevel}")
+                        msg = f"Skipping brightness change {brightness} -> {new_brightness_level}"
+                        msg += f" to avoid flutter ({h}), brightness: {lightlevel}"
+                        log.debug(msg)
         elif not lightsoff: #If out of control hours then turn off
             status("Turning lights off (auto)")
             if running: #Remember if we were running a lighting effect before we turn off
@@ -277,10 +270,10 @@ def send_colour():
         hexcolour = f"#{colour[0]:02x}{colour[1]:02x}{colour[2]:02x}"
         mqtt.send_mqtt(f"pico/{myid.pico}/status/colour",str(hexcolour))
 
-#RGB to hex, used to send updates back to Node-Red
-def rgb_to_hex(rgb):
-    """RGB to Hex for Node-Red"""
-    return '#%02x%02x%02x' % rgb
+# #RGB to hex, used to send updates back to Node-Red
+# def rgb_to_hex(rgb):
+#     """RGB to Hex for Node-Red"""
+#     return '#%02x%02x%02x' % rgb
 
 #Return current time in milliseconds
 def millis():
