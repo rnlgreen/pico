@@ -9,6 +9,8 @@ from utils import ruuvi
 def get_status():
     """Get garage door status"""
     door.get_status()
+    ruuvi.get_status()
+
 
 def main():
     """pico 6 main routine"""

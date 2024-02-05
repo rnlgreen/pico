@@ -16,6 +16,7 @@ def send_mqtt(topic,message):
 #Return i2cscan to status commands
 def get_status():
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
+    ruuvi.get_status()
     # gc.collect()
     # status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
