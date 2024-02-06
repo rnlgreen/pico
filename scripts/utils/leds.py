@@ -177,11 +177,11 @@ def fade_rgb(fr, fg, fb, fw, br, bg, bb, bw, factor):
 #Set the whole strip to a new colour
 def set_all(r=0, g=0, b=0, w=0):
     """Set all pixels to new values"""
-    global colour, pixel_colours, lightsoff # pylint: disable=global-variable-not-assigned
+    global colour, lightsoff # pylint: disable=global-statement
     colour = [r, g, b]
     strip.fill((r, g, b))
     for p in range(numPixels):
-        pixel_colours[p] = [r, g, b, w]
+        pixel_colours[p] = [r, g, b, w] # pixel_colours doesn't need to be "global" as it is mutated
     strip.show()
     if colour == [0, 0, 0]:
         lightsoff = True
@@ -190,8 +190,8 @@ def set_all(r=0, g=0, b=0, w=0):
 
 #Set an individual pixel to a new colour
 def set_pixel(i=0, r=0, g=0, b=0, w=0):
+    #No need for global when using lists like this
     """Set an individual pixel to a new colour"""
-    global pixel_colours # pylint: disable=global-variable-not-assigned,global-statement
     strip[i] = (r, g, b, w)
     pixel_colours[i] = [r, g, b, w]
 
