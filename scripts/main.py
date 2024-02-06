@@ -228,8 +228,9 @@ if not TESTMODE:
             main_result = main.main()
             try:
                 slack.send_msg(pico,f":warning: Restarting after dropping through: {main_result}")
-            except Exception: # pylint: disable=broad-except
+            except Exception as oops1: # pylint: disable=broad-except
                 log.log("Failed to send message to Slack")
+                exception = log.log_exception(oops1)
             restart("Dropped through")
         #Catch any exceptions detected by the pico specific code
         except Exception as oops: # pylint: disable=broad-except
@@ -242,6 +243,7 @@ if not TESTMODE:
                 slack.send_msg(pico,f":fire: Restarting after exception:\n{exception}")
             except Exception as oops2: # pylint: disable=broad-except
                 log.log("Failed to send message to Slack")
+                exception = log.log_exception(oops2)
             restart("Main Exception")
     else:
         print(f"Unknown pico {pico} or no main script not found")
@@ -249,6 +251,6 @@ if not TESTMODE:
             log.status(f"Unknown pico {pico}")
             slack.send_msg(pico,f":interrobang: Restarting - unknown {pico} or no script to run")
         except Exception as oops2: # pylint: disable=broad-except
-            log.log("Failed to send message to Slack")
+            log.log(f"Failed to send message to Slack {oops2}")
         time.sleep(60)
         restart("Unknown pico")
