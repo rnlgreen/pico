@@ -1,5 +1,5 @@
 #Functions to collect and send data from RuuviTags
-#import gc # Garbage collector
+import gc # Garbage collector
 import utime # type: ignore # pylint: disable=import-error
 from ruuvitag import RuuviTag
 from utils import mqtt
@@ -66,7 +66,7 @@ def get_readings():
         scanning = True #to avoid multiple scans kicking off
         got_one = False
         log.debug("Scanning...")
-        #gc.collect() #Do a quick garbage collect
+        gc.collect() #Do a quick garbage collect
         ruuvi.scan(ruuvicb) #scans for 5 seconds
     return True
 
