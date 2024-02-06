@@ -51,8 +51,7 @@ def get_status():
     status(f"Latest temperature = {last_temp}")
     status(f"Latest humidity: {last_humidity}")
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
-    gc.collect()
-    status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
+    ruuvi.get_status()
 
 def main():
     global last_temp, last_humidity, last_sent # pylint: disable=global-statement

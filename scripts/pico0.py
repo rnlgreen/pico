@@ -42,7 +42,8 @@ def get_status():
     # status(f"brightness: {leds.brightness}")
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     gc.collect()
-    status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
+    ruuvi.get_status()
+
     # #i2c sensor
     # i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=400000)
     # devices = i2c.scan()
