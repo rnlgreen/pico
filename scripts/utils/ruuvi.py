@@ -68,7 +68,7 @@ def get_readings():
         #Get Ruuvi Data
         scanning = True #to avoid multiple scans kicking off
         got_one = False
-        if ruuvi_elapsed < 60000:
+        if ruuvi_elapsed < 60000 and not no_ruuvi_since_start:
             log.status("Retrying scan...")
         log.debug("Scanning...")
         gc.collect() #Do a quick garbage collect
