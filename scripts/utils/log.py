@@ -33,8 +33,8 @@ def log(message):
         with open(EXCEPTION_FILE,"at",encoding="utf-8") as file:
             file.write(f"{strftime()}: {myid.pico} {message}\n")
             file.close()
-    except Exception: # pylint: disable=broad-except
-        status("Unable to log message to file")
+    except Exception as e: # pylint: disable=broad-except
+        status(f"Unable to log message to file: {e}")
 
 def log_exception(e):
     """Function to log exceptions to file"""
