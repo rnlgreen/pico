@@ -1,8 +1,7 @@
-import ustruct
-import ubinascii
+import ustruct   # type: ignore # pylint: disable=import-error
+#import ubinascii # type: ignore # pylint: disable=import-error
 
 from .format import RuuviTagRAWv1, RuuviTagRAWv2
-
 
 def decode_raw_1(mac, rssi, data):
     """RuuviTag RAW 1 decoder"""
