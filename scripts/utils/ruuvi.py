@@ -1,5 +1,5 @@
 #Functions to collect and send data from RuuviTags
-import gc # Garbage collector
+#import gc # Garbage collector
 import utime # type: ignore # pylint: disable=import-error
 from ruuvitag import RuuviTag
 from utils import mqtt
@@ -20,6 +20,9 @@ def get_status():
     log.status(f"got_one: {got_one}")
     log.status(f"scanning: {scanning}")
     log.status(f"last_ruuvi_time: {last_ruuvi_time}")
+    #log.debug(f"blacklist unique values: {len(set(ruuvi._blacklist))}", subtopic="blacklist")
+    #log.debug(f"blacklist: {ruuvi._blacklist}", subtopic="blacklist")
+    log.debug(f"addrs: {ruuvi._addrs}", subtopic="addrs")
 
 #Callback handler that receives a tuple of data from the RuuviTag class object
 #RuuviTagRAWv2(mac=b'f34584d173cb', rssi=-100, format=5, humidity=91.435, temperature=9.01,
@@ -47,9 +50,12 @@ def ruuvicb(ruuvitag):
                     value = value / 100
                 mqtt.send_mqtt(topic,str(value))
         no_ruuvi_since_start = False
-    else:
+    else: #scanning finished
         scanning = False
         log.debug("Scanning complete")
+        #if len(set(ruuvi._blacklist)) > bl:
+        #    bl = len(set(ruuvi._blacklist))
+        #    log.status(f"Blacklist now {bl}")
         if got_one:
             log.debug(f"Found: {','.join(found)}")
             found = []
@@ -64,19 +70,19 @@ def get_readings():
         get_status()
         return False
     elif ((ruuvi_elapsed >= 10000 and not got_one and not scanning) #keep trying every 10 seconds
-        or (ruuvi_elapsed >= 60000 and got_one)):  #or wait 60 seconds after we got one
+       or (ruuvi_elapsed >= 60000 and got_one and not scanning)):  #wait 60 seconds after we got one
         #Get Ruuvi Data
         scanning = True #to avoid multiple scans kicking off
         got_one = False
         if ruuvi_elapsed < 60000 and not no_ruuvi_since_start:
             log.status("Retrying scan...")
         log.debug("Scanning...")
-        gc.collect() #Do a quick garbage collect
         ruuvi.scan(ruuvicb) #scans for 5 seconds
     return True
 
 #Inititialise Ruuvi
 ruuvi = RuuviTag()
+
 #ruuvi._callback_handler = ruuvicb # pylint: disable=protected-access
 last_ruuvi = utime.ticks_add(utime.ticks_ms(),-30000)
 last_ruuvi_time = strftime()

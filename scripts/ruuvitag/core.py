@@ -39,7 +39,7 @@ class RuuviTag: # pylint: disable=missing-class-docstring
             # Return if tag is not manufacturer Ruuvi Innovations and add
             # device to blacklist
             if not data[:2] == _RUUVITAG:
-                self._blacklist.append(addr)
+                #self._blacklist.append(addr) #RG: blacklist is the cause of our memory leak
                 return
 
             # Append tag addr to scanned addresses to prevent multible results

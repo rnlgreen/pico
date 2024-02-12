@@ -17,11 +17,9 @@ def send_mqtt(topic,message):
 def get_status():
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     ruuvi.get_status()
-    # gc.collect()
-    # status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
 def main():
-    #memory_check = utime.time()
+    memory_check = utime.time()
 
     while True:
         #Get RuuviTag readings, returns false if we haven't had any for a while
@@ -37,10 +35,10 @@ def main():
         if not wifi.check_wifi():
             return "Wi-Fi Lost"
 
-        # #Report memory usage
-        # if utime.time() - memory_check > 600:
-        #     memory_check = utime.time()
-        #     get_status()
+        #Report memory usage
+        if utime.time() - memory_check > 600:
+            memory_check = utime.time()
+            get_status()
 
         utime.sleep(0.5)
 
