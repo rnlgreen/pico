@@ -21,10 +21,12 @@ def status(message, logit=False):
             log_exception(e)
 
 #Print and send status messages
-def debug(message):
+def debug(message, subtopic = None):
     print(message)
     message = myid.pico + ": " + message
     topic = 'pico/'+myid.pico+'/debug'
+    if not subtopic is None:
+        topic = topic + "/" + subtopic
     mqtt.send_mqtt(topic,message)
 
 def log(message):
