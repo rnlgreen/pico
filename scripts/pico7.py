@@ -15,12 +15,11 @@ def send_mqtt(topic,message):
 
 #Return i2cscan to status commands
 def get_status():
+    gc.collect()
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     ruuvi.get_status()
 
 def main():
-    memory_check = utime.time()
-
     while True:
         #Get RuuviTag readings, returns false if we haven't had any for a while
         if not ruuvi.get_readings():
@@ -35,16 +34,10 @@ def main():
         if not wifi.check_wifi():
             return "Wi-Fi Lost"
 
-        #Report memory usage
-        if utime.time() - memory_check > 600:
-            memory_check = utime.time()
-            get_status()
-
         utime.sleep(0.5)
 
 pico = myid.get_id()
-#where = myid.where[pico]
-where = "garage1"
+where = myid.where[pico]
 
 if __name__ == "__main__":
     main()

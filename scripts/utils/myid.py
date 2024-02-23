@@ -18,7 +18,7 @@ picos = {
 where = {
             "pico0": "loft", 
             "pico1": "loft",
-            "pico2": "garage",
+            "pico2": "loft2",
             "pico3": "kitchen",
             "pico4": "kitchen",
             "pico5": "kitchen",

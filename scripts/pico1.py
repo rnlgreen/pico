@@ -1,16 +1,16 @@
 """Main routine for Pico1"""
 #Initialise the traps
 import time
+from machine import Pin # type: ignore # pylint: disable=import-error
 from utils import trap
 from utils import mqtt
 from utils import wifi
 from utils import ruuvi
 from utils.log import status
-from machine import Pin # type: ignore # pylint: disable=import-error
 
 def get_status():
-    """get trap status"""
     trap.get_status()
+    ruuvi.get_status()
 
 def main():
     """Main loop for pico1 - mouse trap"""
