@@ -10,7 +10,7 @@ from utils import mqtt # pylint: disable=import-error
 from utils.blink import blink # pylint: disable=import-error,no-name-in-module
 
 do_beam = True
-do_servo = True #for some reason it is now not working :(
+do_servo = True 
 
 BEAM_PIN = 22
 SERVO_PIN = 28
