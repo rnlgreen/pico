@@ -72,7 +72,7 @@ def main():
             return
 
     trap.traps = {
-            "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0},
+            "Trap 2": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0},
     }
 
     if do_I2C:
