@@ -20,6 +20,10 @@ INITIAL_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,INITIAL_COLOUR)) + ")"
 DIM = 45
 BRIGHT = 55 #(was 55)
 
+#Light On/Off Schedule
+LIGHTS_OFF = 0
+LIGHTS_ON = 7
+
 #Send control message to MQTT
 def send_control(payload):
     """Send message to MQTT"""
@@ -52,7 +56,7 @@ def manage_lights():
             if hour == 23:
                 hour = 0
         #Only manage lights between certain hours
-        if (hour >= 6 or hour < 2) and not test_off: #from 06:00 to 01:59
+        if (hour >= LIGHTS_ON or hour < LIGHTS_OFF) and not test_off: #e.g. from > 7 or < 0
             #Turn off for high light levels
             if lightlevel > BRIGHT and not lightsoff:
                 status("Turning lights off (auto)")
