@@ -469,7 +469,7 @@ def now_running(new_effect):
 #LED control function to accept commands and launch effects
 def led_control(command="",arg=""):
     """Process control commands"""
-    command = command.lower()
+    command = command.lower().strip()
     #status(f"received command {command}..")
     global saturation, next_up, auto, hue, boost # pylint: disable=global-statement
     if command.startswith("rgb"):
