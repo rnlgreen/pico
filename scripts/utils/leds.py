@@ -471,7 +471,7 @@ def led_control(command="",arg=""):
     """Process control commands"""
     command = command.lower().strip()
     #status(f"received command {command}..")
-    global saturation, next_up, auto, hue, boost # pylint: disable=global-statement
+    global saturation, next_up, auto, hue, boost, stop # pylint: disable=global-statement
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
         try:
@@ -518,7 +518,8 @@ def led_control(command="",arg=""):
         if running:
             if command not in ["off","auto_off"]:
                 next_up = command
-            effects[command]()
+            stop = True
+            #effects[command]()
         else: #otherwise just run the effect or off
             try:
                 #status(f"Calling {effects[command]}")
