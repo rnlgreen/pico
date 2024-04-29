@@ -26,8 +26,11 @@ def send_mqtt(topic,message):
     if mqtt.client is not False:
         try:
             mqtt.send_mqtt(topic,message)
+            return True
         except Exception as e: # pylint: disable=broad-except
+            mqtt.client = False # Adding this here to avoid repeatedly trying to use MQTT
             log.log_exception(e)
+            return False
 
 #Check if a local file exists
 def file_exists(filename):
@@ -153,7 +156,8 @@ def on_message(topic, payload):
         main.led_control("boost",payload)
     elif topic == "pico/poll":
         heartbeat_topic = "pico/"+pico+"/heartbeat"
-        send_mqtt(heartbeat_topic,"Yes, I'm here")
+        if not send_mqtt(heartbeat_topic,"Yes, I'm here"):
+            restart("MQTT Failure detected")
 
 
 ### INITIALISATION STEPS ###
@@ -230,7 +234,7 @@ if not TESTMODE:
                 slack.send_msg(pico,f":warning: Restarting after dropping through: {main_result}")
             except Exception as oops1: # pylint: disable=broad-except
                 log.log("Failed to send message to Slack")
-                exception = log.log_exception(oops1)
+                log.log_exception(oops1)
             restart("Dropped through")
         #Catch any exceptions detected by the pico specific code
         except Exception as oops: # pylint: disable=broad-except
@@ -243,7 +247,7 @@ if not TESTMODE:
                 slack.send_msg(pico,f":fire: Restarting after exception:\n{exception}")
             except Exception as oops2: # pylint: disable=broad-except
                 log.log("Failed to send message to Slack")
-                exception = log.log_exception(oops2)
+                log.log_exception(oops2)
             restart("Main Exception")
     else:
         print(f"Unknown pico {pico} or no main script not found")

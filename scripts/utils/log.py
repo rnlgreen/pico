@@ -7,7 +7,7 @@ EXCEPTION_FILE = "exception.txt"
 DEBUGGING = False
 
 #Print and send status messages
-def status(message, logit=False):
+def status(message, logit=False, handling_exception=False):
     """Function for reporting status."""
     print(message)
     if logit:
@@ -18,7 +18,9 @@ def status(message, logit=False):
         try:
             mqtt.send_mqtt(topic,message)
         except Exception as e: # pylint: disable=broad-except
-            log_exception(e)
+            mqtt.client = False # just adding this in here to try and avoid a failure loop
+            if not handling_exception:
+                log_exception(e)
 
 #Print and send status messages
 def debug(message, subtopic = None):
@@ -56,8 +58,8 @@ def log_exception(e):
         sys.print_exception(f, output2) # pylint: disable=maybe-no-member
         print(f"Failed to write exception:\n{output2.getvalue()}")
     #Try sending the original exception to MQTT
-    try:
-        status(f"Caught exception:\n{exception1}")
-    except Exception: # pylint: disable=broad-except
-        pass
-    return exception1
+    if mqtt.client is not False:
+        try:
+            status(f"Caught exception:\n{exception1}", handling_exception=True)
+        except Exception: # pylint: disable=broad-except
+            pass
