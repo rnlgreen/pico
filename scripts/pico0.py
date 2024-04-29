@@ -5,7 +5,7 @@ from utils import mqtt
 from utils import myid
 #from utils import leds
 #from utils import am2320
-#from utils import light
+from utils import light
 from utils import wifi
 #from utils import trap
 from utils.log import status
@@ -21,7 +21,7 @@ from utils import ruuvi
 I2CID = 1
 SDAPIN = 26 #GPIO26
 SCLPIN = 27 #GPIO27
-photoPIN = 18 #GPIO18
+photoPIN = 28 #GPIO28 - has to be one of the ADC pins - defined in light module
 
 # trap.traps = {
 #         "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": False, "spring trigger": 0},
@@ -57,7 +57,7 @@ def get_status():
     #     status(f"I2C device found at 0x{devices[0]:02X}")
     # status(f"Latest temperature = {last_temp}")
     # status(f"Latest humidity: {last_humidity}")
-    #status(f"Light level: {light.readLight()}")
+    #status(f"Light level: {light.readLight(photoPIN)}")
 
 # #LED control function to accept commands and launch effects - called from main.py
 # def led_control(command=""):
@@ -83,6 +83,8 @@ def main():
     # if mqtt.client is not False:
     #     mqtt.client.subscribe("pico/lights") # type: ignore
 
+    last_light = utime.time()
+
     #Main loop
     while True:
         # #Check the trap status
@@ -106,9 +108,9 @@ def main():
             status("RuuviTag data missing")
             return "RuuviTag data missing"
 
-        # if utime.time() - last_light >= 5:
-        #     light.send_measurement(where,"light",light.readLight())
-        #     last_light = utime.time()
+        if utime.time() - last_light >= 5:
+            light.send_measurement(where,"light",light.readLight(photoPIN))
+            last_light = utime.time()
 
         #Check for messages
         if mqtt.client is not False:
