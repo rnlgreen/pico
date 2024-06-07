@@ -204,6 +204,7 @@ if ipaddr:
         mqtt.client.subscribe("pico/all/control") # type: ignore
         mqtt.client.subscribe("pico/poll") # type: ignore
 else: #No WiFi connection so need to restart
+    time.sleep(10)
     restart("No Wifi")
 
 #Let Slack know we're up
@@ -233,12 +234,13 @@ if not TESTMODE:
             log.status(f"Free memory: {gc.mem_free()}") # pylint: disable=no-member
             log.status(f"Calling {pico}.py main()")
             main_result = main.main()
-            try:
-                slack.send_msg(pico,f":warning: Restarting after dropping through: {main_result}")
-            except Exception as oops1: # pylint: disable=broad-except
-                log.log("Failed to send message to Slack")
-                log.log_exception(oops1)
-            restart("Dropped through")
+            if not main_result == "Wi-Fi Lost":
+                try:
+                    slack.send_msg(pico,f":warning: Restarting after dropping through: {main_result}")
+                except Exception as oops1: # pylint: disable=broad-except
+                    log.log("Failed to send message to Slack")
+                    log.log_exception(oops1)
+            restart(f"Dropped through: {main_result}")
         #Catch any exceptions detected by the pico specific code
         except Exception as oops: # pylint: disable=broad-except
             exception = log.log_exception(oops)

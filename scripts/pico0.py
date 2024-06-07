@@ -104,13 +104,13 @@ def main():
             #     status(f"Exception: {e}")
 
         #Get RuuviTag readings, returns false if we haven't had any for a while
-        if not ruuvi.get_readings():
-            status("RuuviTag data missing")
-            return "RuuviTag data missing"
+        #if not ruuvi.get_readings():
+        #    status("RuuviTag data missing")
+        #    return "RuuviTag data missing"
 
-        if utime.time() - last_light >= 5:
-            light.send_measurement(where,"light",light.readLight(photoPIN))
-            last_light = utime.time()
+        #if utime.time() - last_light >= 5:
+        #    light.send_measurement(where,"light",light.readLight(photoPIN))
+        #    last_light = utime.time()
 
         #Check for messages
         if mqtt.client is not False:

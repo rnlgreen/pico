@@ -1,6 +1,7 @@
 #Wi-Fi specific functions
 import time
 import secrets
+import socket
 import network # type: ignore # pylint: disable=import-error
 from utils.log import log
 
@@ -39,4 +40,12 @@ def check_wifi():
         log(f"wlan.status(): {wlan.status()}")
         return False
     else:
+        #Now check the network is working
+        #This depends on the ttl value of the hostname looked up
+        #Most times getadrinfo will get the cached result
+        try:
+            socket.getaddrinfo("condor.rghome",21)
+        except: #pylint: disable=bare-except
+            log("socket error, assume the network is down")
+            return False
         return True
