@@ -7,7 +7,7 @@ from machine import reset # pylint: disable=import-error # type: ignore
 #Restart picox``
 def restart(reason):
     """Function to restart the pico"""
-    log.status(f'Restarting: {reason}')
+    #log.status(f'Restarting: {reason}') #Skipping status log as likely to be low on memory
     log.log(f"Restarting: {reason}")
     if mqtt.client is not False:
         try:
@@ -15,4 +15,8 @@ def restart(reason):
         except Exception as e: # pylint: disable=broad-except
             log.log_exception(e)
     time.sleep(1)
-    reset()
+    log.log("... in restart, about to reset()")
+    try:
+        reset()
+    except Exception as e: # pylint: disable=broad-except
+        log.log_exception(e)

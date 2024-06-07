@@ -219,10 +219,13 @@ if not TESTMODE:
     #Assuming we have the time now get the init time
     timeInit = time.time()
 
-    #Upload latest local log file
-    report_exceptions()
-
     if not newpico and file_exists(f"{pico}.py"):
+        #Report that we are up
+        log.status(f"{pico} is up, starting main", logit=True)
+
+        #Upload latest local log file
+        report_exceptions()
+
         #Now load and call the specific code for this pico
         try:
             main = __import__(pico)
@@ -258,3 +261,7 @@ if not TESTMODE:
             log.log(f"Failed to send message to Slack {oops2}")
         time.sleep(60)
         restart("Unknown pico")
+
+#We should never get here... but just in case
+log.log("Dropped all the way through, attempting restart")
+restart("The twilight zone")

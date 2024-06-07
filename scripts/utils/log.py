@@ -63,3 +63,4 @@ def log_exception(e):
             status(f"Caught exception:\n{exception1}", handling_exception=True)
         except Exception: # pylint: disable=broad-except
             pass
+    return exception1
