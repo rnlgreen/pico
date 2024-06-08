@@ -11,6 +11,7 @@ from utils import mqtt
 from utils import ntp
 from utils import ftp
 from utils import slack
+from utils import status
 from utils.blink import blink
 from utils.timeutils import strftime, uptime
 from utils import log
@@ -47,13 +48,6 @@ def dir_exists(foldername):
         return (uos.stat(foldername)[0] & 0x8000) == 0
     except OSError:
         return False
-
-#Function to return total and free space
-def fs_stats():
-    fs_stat = uos.statvfs('/')
-    t = fs_stat[0] * fs_stat[2] / 1024
-    f = fs_stat[0] * fs_stat[3] / 1024
-    return 100*f/t
 
 #Function to check for new code and download it from FTP site
 def reload():
@@ -149,6 +143,7 @@ def on_message(topic, payload):
             log.status(f"Uptime: {uptime(timeInit)}")
         elif command == "status":
             log.status(f"Uptime: {uptime(timeInit)}")
+            log.status(f"Temperature: {status.read_internal_temperature()}C")
             main.get_status()
         elif command == "clear":
             log.status("Clearing exception log")
@@ -185,9 +180,9 @@ ipaddr = wifi.wlan_connect(pico)
 
 #If we got an IP address we can update code adn setup MQTT connection and subscriptions
 if ipaddr:
-    log.status(f"Wi-Fi: {ipaddr}")
+    log.status(f"Wi-Fi: {ipaddr}", logit=True)
 
-    log.status("Attempting time sync")
+    log.status("Attempting time sync", logit=True)
     ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
 
     #Try MQTT connect here so we get reload log events
@@ -195,7 +190,7 @@ if ipaddr:
         restart("No MQTT connection")
 
     log.status("-----------------------")
-    log.status("Initialising")
+    log.status("Initialising", logit=True)
 
     #Get latest code by calling reload(); it returns the number of files updated
     if reload() > 0:
@@ -205,7 +200,7 @@ if ipaddr:
     #Subscribe to the relevant channels
     if mqtt.client is not False:
         #Subscribe to control and heartbeat channels
-        #log.status("Subscribing to MQTT")
+        log.status("Subscribing to MQTT", logit=True)
         mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/all/control") # type: ignore
@@ -229,7 +224,7 @@ if not TESTMODE:
 
     if not newpico and file_exists(f"{pico}.py"):
         #Report that we are up
-        log.status(f"{pico} is up, starting main", logit=True)
+        log.status(f"{pico} is up", logit=True)
 
         #Upload latest local log file
         report_exceptions()
@@ -238,9 +233,10 @@ if not TESTMODE:
         try:
             main = __import__(pico)
             gc.collect()
-            log.status(f"Free memory: {gc.mem_free()}") # pylint: disable=no-member
-            log.status(f"Free storage: {fs_stats()}%") # pylint: disable=no-member
-            log.status(f"Calling {pico}.py main()")
+            log.status(f"Free memory: {gc.mem_free()}", logit=True) # pylint: disable=no-member
+            log.status(f"Free storage: {status.fs_stats()}%", logit=True) # pylint: disable=no-member
+            log.status(f"Temperature: {status.read_internal_temperature()}C", logit=True)
+            log.status(f"Calling {pico}.py main()", logit=True)
             main_result = main.main()
             if not main_result == "Wi-Fi Lost":
                 try:
