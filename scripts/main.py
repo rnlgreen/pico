@@ -2,6 +2,7 @@
 import time
 import gc
 import secrets
+import uos # type: ignore # pylint: disable=import-error
 
 #Import my supporting code
 from utils import myid
@@ -14,7 +15,6 @@ from utils.blink import blink
 from utils.timeutils import strftime, uptime
 from utils import log
 from utils.control import restart
-import uos # pylint: disable=import-error # type: ignore
 
 TESTMODE = False
 EXCEPTION_FILE = "exception.txt"
@@ -47,6 +47,13 @@ def dir_exists(foldername):
         return (uos.stat(foldername)[0] & 0x8000) == 0
     except OSError:
         return False
+
+#Function to return total and free space
+def fs_stats():
+    fs_stat = uos.statvfs('/')
+    t = fs_stat[0] * fs_stat[2] / 1024
+    f = fs_stat[0] * fs_stat[3] / 1024
+    return 100*f/t
 
 #Function to check for new code and download it from FTP site
 def reload():
@@ -232,6 +239,7 @@ if not TESTMODE:
             main = __import__(pico)
             gc.collect()
             log.status(f"Free memory: {gc.mem_free()}") # pylint: disable=no-member
+            log.status(f"Free storage: {fs_stats()}%") # pylint: disable=no-member
             log.status(f"Calling {pico}.py main()")
             main_result = main.main()
             if not main_result == "Wi-Fi Lost":
