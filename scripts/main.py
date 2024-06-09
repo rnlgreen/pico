@@ -50,7 +50,7 @@ def dir_exists(foldername):
         return False
 
 #Function to check for new code and download it from FTP site
-def reload():
+def reload(cleanup=False):
     """Function to reload new code if there is any"""
     # log.status("Checking for new code")
     totalfiles = 0
@@ -67,7 +67,7 @@ def reload():
                 if not dir_exists(source):
                     log.status(f"Creating new folder {source}", True)
                     uos.mkdir(source)
-                numfiles = ftp.get_changedfiles(session,source)
+                numfiles = ftp.get_changedfiles(session,source,cleanup)
                 totalfiles += numfiles
             ftp.ftpquit(session)
             if totalfiles > 0:
@@ -132,8 +132,10 @@ def on_message(topic, payload):
         if command == "blink":
             log.status("blinking")
             blink(0.1,0.1,5)
-        elif command == "reload":
-            reload()
+        #elif command == "reload": #These just result in memory issues and corrupt files
+        #    reload()
+        #elif command == "cleanup":
+        #    reload(cleanup=True)
         elif command == "restart":
             restart("mqtt command")
         elif command == "datetime":
@@ -193,7 +195,8 @@ if ipaddr:
         restart("No MQTT connection")
 
     #Get latest code by calling reload(); it returns the number of files updated
-    if reload() > 0:
+    if reload(cleanup=False) > 0:
+        log.status("Restarting...")
         slack.send_msg(pico,":repeat: Restarting to load new code")
         restart("new code")
 
