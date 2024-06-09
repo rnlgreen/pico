@@ -42,16 +42,12 @@ def check_sha256(file_name, original_sha256):
         if original_sha256 == sha256_returned:
             print (f"sha256 verified for {file_name}")
             return True
-        elif sha256_returned == "xxx":
+        if sha256_returned == "xxx":
             print ("Skipping file with failed sha256 check")
             return True
-        else:
-            #status ("Changed: {}".format(file_name))
-            #status ("{} <> {}".format(sha256_returned,original_sha256))
-            return False
-    else: #file doesn't exist so needs copying
-        print (f"New file found: {file_name}")
         return False
+    print (f"New file found: {file_name}")
+    return False
 
 if __name__ == "__main__":
     check_sha256(testfile, test_sha256)

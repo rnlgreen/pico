@@ -10,7 +10,7 @@ from utils import mqtt # pylint: disable=import-error
 from utils.blink import blink # pylint: disable=import-error,no-name-in-module
 
 do_beam = True
-do_servo = True 
+do_servo = True
 
 BEAM_PIN = 22
 SERVO_PIN = 28
@@ -103,11 +103,13 @@ def break_beam_callback(pin_details):
 def set_servo(angle):
     #Validate the angle in case I get it wrong
     angle = max(min(90,angle),-90)
-    """servo control"""
+
+    #servo control
     #Declare PWM Pin
     frequency = 50
     servo = PWM(Pin(SERVO_PIN))
     servo.freq(frequency)
+
     #some documentation suggests duty of:
     # 1ms = 0 degrees, 1.5ms = 90 degrees, 2ms = 180 degrees (based on 20ms (50Hz) cycle)
     #https://youtu.be/_fdwE4EznYo sees similar behaviour as me,
@@ -118,6 +120,7 @@ def set_servo(angle):
     #from testing it seems my motor needs 2000 to 7830 (same mid point of 4915)
     #duty = 1000 + angle * 50.0/9.0
     mid_duty = 65536*1.5/20
+
     #returns [min_duty -> (mid_duty + min_duty)] for -90 to 90
     duty = int(mid_duty + (angle * (mid_duty - min_duty))/90)
     print(f"Setting angle to {angle}, duty {duty}")

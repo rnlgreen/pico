@@ -1,6 +1,7 @@
 #Util function to send message to Slack
 from secrets import webhook
 import urequests # type: ignore # pylint: disable=import-error
+from utils import log
 
 #Format and send the message to Slack
 def send_msg(pico,msg):
@@ -14,6 +15,10 @@ def send_msg(pico,msg):
     else:
         icon = ":large_blue_diamond:"
     data = f"{{'text':'{msg}',  'username': '{pico}', 'icon_emoji': '{icon}'}}"
-    resp = urequests.post(URL, data=data, headers=headers)
+    try:
+        resp = urequests.post(URL, data=data, headers=headers)
+    except Exception as oops: # pylint: disable=broad-except
+        log.log("Failed to send message to Slack")
+        log.log_exception(oops)
     #print(resp.content)
     return resp

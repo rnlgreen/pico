@@ -1,3 +1,4 @@
+#MQTT test code to figure out special character issue
 import time
 from utils import myid
 from utils import wifi

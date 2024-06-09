@@ -1,8 +1,8 @@
 #pico0 main code
 import time
 import gc
-import utils.mqtt as mqtt
-import utils.leds as leds
+from utils import mqtt
+from utils import leds
 from utils import wifi
 from utils.log import status
 

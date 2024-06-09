@@ -20,9 +20,9 @@ def status(message):
 def set_time():
     NTP_QUERY = bytearray(48)
     NTP_QUERY[0] = 0x1B
-    addr = socket.getaddrinfo(host, 123)[0][-1]
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
+        addr = socket.getaddrinfo(host, 123)[0][-1]
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.settimeout(10)
         s.sendto(NTP_QUERY, addr)
         msg = s.recv(48)

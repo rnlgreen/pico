@@ -180,6 +180,9 @@ ipaddr = wifi.wlan_connect(pico)
 
 #If we got an IP address we can update code adn setup MQTT connection and subscriptions
 if ipaddr:
+    log.status("-----------------------")
+    log.status("Initialising", logit=True)
+
     log.status(f"Wi-Fi: {ipaddr}", logit=True)
 
     log.status("Attempting time sync", logit=True)
@@ -188,9 +191,6 @@ if ipaddr:
     #Try MQTT connect here so we get reload log events
     if mqtt.mqtt_connect(client_id=pico) is False:
         restart("No MQTT connection")
-
-    log.status("-----------------------")
-    log.status("Initialising", logit=True)
 
     #Get latest code by calling reload(); it returns the number of files updated
     if reload() > 0:
@@ -239,11 +239,7 @@ if not TESTMODE:
             log.status(f"Calling {pico}.py main()", logit=True)
             main_result = main.main()
             if not main_result == "Wi-Fi Lost":
-                try:
-                    slack.send_msg(pico,f":warning: Restarting after dropping through: {main_result}")
-                except Exception as oops1: # pylint: disable=broad-except
-                    log.log("Failed to send message to Slack")
-                    log.log_exception(oops1)
+                slack.send_msg(pico,f":warning: Restarting after dropping through: {main_result}")
             restart(f"Dropped through: {main_result}")
         #Catch any exceptions detected by the pico specific code
         except Exception as oops: # pylint: disable=broad-except
@@ -252,19 +248,12 @@ if not TESTMODE:
             time.sleep(10)
             #Assume MQTT might be broken so don't try and send the restarting message
             mqtt.client = False
-            try:
-                slack.send_msg(pico,f":fire: Restarting after exception:\n{exception}")
-            except Exception as oops2: # pylint: disable=broad-except
-                log.log("Failed to send message to Slack")
-                log.log_exception(oops2)
+            slack.send_msg(pico,f":fire: Restarting after exception:\n{exception}")
             restart("Main Exception")
     else:
         print(f"Unknown pico {pico} or no main script not found")
-        try:
-            log.status(f"Unknown pico {pico}")
-            slack.send_msg(pico,f":interrobang: Restarting - unknown {pico} or no script to run")
-        except Exception as oops2: # pylint: disable=broad-except
-            log.log(f"Failed to send message to Slack {oops2}")
+        log.status(f"Unknown pico {pico}")
+        slack.send_msg(pico,f":interrobang: Restarting - unknown {pico} or no script to run")
         time.sleep(60)
         restart("Unknown pico")
 
