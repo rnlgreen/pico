@@ -21,14 +21,9 @@ start_angle = -5
 end_angle = 10
 min_duty = 1900 #through testing this is a reasonable approximation for -90 degrees
 
-'''
-traps = {
-            "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0},
-            "Trap 2": {"button": Pin(17, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0}
-}
-'''
-
+#Traps hash is set by the picox.py code
 traps = {}
+beam_trap = "" #The trap that the beam relates to
 
 #Return formatted time string
 def strftime():
@@ -75,11 +70,11 @@ def break_beam_callback(pin_details):
     """Beam callback"""
     global ir_last_sent, done_servo # pylint: disable=global-statement
     dt = strftime()
-    print(f"Beam break for pin {pin_details}")
+    print(f"Beam break for pin {pin_details}") #e.g. "Pin(GPIO22, mode=IN, pull=PULL_UP)""
     #Blink the LED - useful when testing the trap
     blink(0.2,0,1)
     #Check trap status and only send status updates and alerts if the trap is open
-    if not traps["Trap 1"]["sprung"]:
+    if not traps[beam_trap]["sprung"]:
         #If we haven't triggered the trap previously then do it now
         if not done_servo:
             status(f"{dt}: Closing trap!")

@@ -8,6 +8,7 @@ from utils import wifi
 from utils import ruuvi
 from utils.log import status
 
+#Status reporting
 def get_status():
     trap.get_status()
     ruuvi.get_status()
@@ -17,6 +18,7 @@ def main():
     trap.traps = {
             "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0},
     }
+    trap.beam_trap = "Trap 1"
     while True:
         #Check the traps
         trap.trap()

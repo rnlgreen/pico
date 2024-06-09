@@ -40,7 +40,7 @@ def send_measurement(what,value):
     if mqtt.client is not False:
         mqtt.send_mqtt(topic,str(value))
 
-#Return i2cscan to status commands
+#Status reporting
 def get_status():
     ruuvi.get_status()
     trap.get_status()
@@ -74,6 +74,7 @@ def main():
     trap.traps = {
             "Trap 2": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": True, "spring trigger": 0},
     }
+    trap.beam_trap = "Trap 2"
 
     if do_I2C:
         last_sent = utime.ticks_add(utime.ticks_ms(),-60000)
