@@ -177,6 +177,8 @@ else:
     print(f"Unrecognised ID: {pico}")
     newpico = True
 
+log.status("Initialising, about to connect Wi-Fi", logit=True)
+
 #Call wifi_connect with our hostname; my routine tries multiple times to connect
 ipaddr = wifi.wlan_connect(pico)
 

@@ -3,19 +3,10 @@ import socket
 import time
 import struct
 import machine # type: ignore # pylint: disable=import-error
-from utils import mqtt
-from utils import myid
+from utils import log
 
 NTP_DELTA = 2208988800
 host = "0.uk.pool.ntp.org"
-
-#Print and send status messages
-def status(message):
-    print(message)
-    message = myid.pico + ": " + message
-    topic = 'pico/'+myid.pico+'/status'
-    if mqtt.client is not False:
-        mqtt.send_mqtt(topic,message)
 
 def set_time():
     NTP_QUERY = bytearray(48)
@@ -27,7 +18,7 @@ def set_time():
         s.sendto(NTP_QUERY, addr)
         msg = s.recv(48)
     except Exception as e: # pylint: disable=broad-exception-caught
-        status(f"Exception getting NTP: {e}")
+        log.status(f"Exception getting NTP: {e}", logit=True)
         return False
     finally:
         s.close()
