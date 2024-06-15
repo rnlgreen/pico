@@ -19,7 +19,7 @@ def wlan_connect(hostname): # pylint: disable=unused-argument
             #wlan.config(dhcp_hostname = hostname)
             network.hostname(hostname)
         except Exception as e: # pylint: disable=broad-exception-caught
-            log.status(f"Unable to set hostname", logit=True, handling_exception=True)
+            log.status("Unable to set hostname", logit=True, handling_exception=True)
             log.log_exception(e)
         attempts = 0
         while attempts < 5 and not wlan.isconnected():
