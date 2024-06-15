@@ -23,13 +23,13 @@ EXCEPTION_FILE = "exception.txt"
 #Send message with specific topic
 def send_mqtt(topic,message):
     """Function for sending MQTT message."""
-    print(f"{topic}: {message}")
     if mqtt.client is not False:
         try:
             mqtt.send_mqtt(topic,message)
             return True
         except Exception as e: # pylint: disable=broad-except
             mqtt.client = False # Adding this here to avoid repeatedly trying to use MQTT
+            log.status("Error sending to mqtt", logit=True, handling_exception=True)
             log.log_exception(e)
             return False
 
@@ -79,11 +79,12 @@ def reload(cleanup=False):
             message = "FTP error occurred"
             log.status(message)
     except Exception as e: # pylint: disable=broad-except
+        log.status("Failed during reload", logit=True, handling_exception=True)
         log.log_exception(e)
     return totalfiles
 
 #Check if there is a local exception file from before and copy to FTP site
-def report_exceptions():
+def upload_exceptions():
     """Function to upload exception files via FTP"""
     print("Checking for exception file")
     if file_exists(EXCEPTION_FILE):
@@ -97,6 +98,7 @@ def report_exceptions():
                 ftp.ftpquit(session)
                 #os.remove(EXCEPTION_FILE)
         except Exception as e: # pylint: disable=broad-except
+            log.status("Error uploading exception log", logit=True, handling_exception=True)
             log.log_exception(e)
 
 def clear_log():
@@ -106,9 +108,15 @@ def clear_log():
             file.write(f"{strftime()}: {pico} Cleared exception log\n")
             file.close()
         #Load the cleared file up to FTP site
-        report_exceptions()
+        upload_exceptions()
     except Exception: # pylint: disable=broad-except
         log.log("Failed to create new exception file {EXCEPTION_FILE}")
+
+def log_versions():
+    _, _, release, version, machine = uos.uname()
+    log.log(machine)
+    log.log(version)
+    return release
 
 #Attempt NTP sync
 def do_ntp_sync():
@@ -178,22 +186,19 @@ else:
     newpico = True
 
 log.status("Initialising, about to connect Wi-Fi", logit=True)
+mp_release = log_versions()
 
 #Call wifi_connect with our hostname; my routine tries multiple times to connect
 ipaddr = wifi.wlan_connect(pico)
 
 #If we got an IP address we can update code adn setup MQTT connection and subscriptions
 if ipaddr:
-    log.status("-----------------------")
-    log.status("Initialising", logit=True)
-
     log.status(f"Wi-Fi: {ipaddr}", logit=True)
-
     log.status("Attempting time sync", logit=True)
     ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
 
     #Try MQTT connect here so we get reload log events
-    if mqtt.mqtt_connect(client_id=pico) is False:
+    if not mqtt.mqtt_connect(client_id=pico):
         restart("No MQTT connection")
 
     #Get latest code by calling reload(); it returns the number of files updated
@@ -232,12 +237,13 @@ if not TESTMODE:
         log.status(f"{pico} is up", logit=True)
 
         #Upload latest local log file
-        report_exceptions()
+        upload_exceptions()
 
         #Now load and call the specific code for this pico
         try:
             main = __import__(pico)
             gc.collect()
+            log.status(f"MicroPython {mp_release}")
             log.status(f"Free memory: {gc.mem_free()}", logit=True) # pylint: disable=no-member
             log.status(f"Free storage: {status.fs_stats()}%", logit=True) # pylint: disable=no-member
             log.status(f"Temperature: {status.read_internal_temperature()}C", logit=True)
@@ -248,12 +254,13 @@ if not TESTMODE:
             restart(f"Dropped through: {main_result}")
         #Catch any exceptions detected by the pico specific code
         except Exception as oops: # pylint: disable=broad-except
+            log.status("Handling main exception", logit=True, handling_exception=True)
             exception = log.log_exception(oops)
-            #Now pause a while then restart
-            time.sleep(10)
             #Assume MQTT might be broken so don't try and send the restarting message
             mqtt.client = False
             slack.send_msg(pico,f":fire: Restarting after exception:\n{exception}")
+            #Now pause a while then restart
+            time.sleep(10)
             restart("Main Exception")
     else:
         print(f"Unknown pico {pico} or no main script not found")

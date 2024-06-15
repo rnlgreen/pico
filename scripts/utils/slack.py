@@ -18,7 +18,7 @@ def send_msg(pico,msg):
     try:
         resp = urequests.post(URL, data=data, headers=headers)
     except Exception as oops: # pylint: disable=broad-except
-        log.log("Failed to send message to Slack")
+        log.status("Failed to send message to Slack", logit=True, handling_exception=True)
         log.log_exception(oops)
     #print(resp.content)
     return resp

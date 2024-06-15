@@ -14,28 +14,29 @@ def wlan_connect(hostname): # pylint: disable=unused-argument
     try:
         wlan = network.WLAN(network.STA_IF)
         wlan.active(True)
+        #The following config should work but wasn't yet merged with the latest build of micropython
+        try:
+            #wlan.config(dhcp_hostname = hostname)
+            network.hostname(hostname)
+        except Exception as e: # pylint: disable=broad-exception-caught
+            log.status(f"Unable to set hostname", logit=True, handling_exception=True)
+            log.log_exception(e)
         attempts = 0
         while attempts < 5 and not wlan.isconnected():
             attempts += 1
-            print(f"Connecting to {secrets.ssid}...")
-            #The following config should work but wasn't yet merged with the latest build of micropython
-            try:
-                #wlan.config(dhcp_hostname = hostname)
-                network.hostname(hostname)
-            except: # pylint: disable=bare-except
-                print("Unable to set hostname")
+            log.status(f"Connecting to {secrets.ssid}...", logit=True)
             wlan.connect(secrets.ssid,secrets.wlan_pass)
             time.sleep(5)
-            print(wlan.isconnected())
     except Exception as e: # pylint: disable=broad-exception-caught
-        log.status(f"Exception connecting to Wi-Fi: {e}", logit=True)
+        log.status(f"Exception connecting to Wi-Fi: {e}", logit=True, handling_exception=True)
+        log.log_exception(e)
         return False
 
     if wlan.isconnected():
-        print(wlan.ifconfig())
+        log.status(wlan.ifconfig(), logit=True)
         return wlan.ifconfig()[0]
     else:
-        print("Failed to connect to WLAN")
+        log.status("Failed to connect to WLAN", logit=True)
         return False
 
 def check_wifi():

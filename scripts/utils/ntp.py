@@ -18,7 +18,8 @@ def set_time():
         s.sendto(NTP_QUERY, addr)
         msg = s.recv(48)
     except Exception as e: # pylint: disable=broad-exception-caught
-        log.status(f"Exception getting NTP: {e}", logit=True)
+        log.status(f"Exception getting NTP", logit=True, handling_exception=True)
+        log.log_exception(e)
         return False
     finally:
         s.close()
