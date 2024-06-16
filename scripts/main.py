@@ -198,10 +198,6 @@ if ipaddr:
 
     log.log("Attempting time sync")
     ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
-    if not ntp_sync:
-        log.log("Pausing before restart (NTP)")
-        time.sleep(30)
-        restart("Failed to get NTP")
 
     log.log("Attempting MQTT connection")
     #Try MQTT connect here so we get reload log events

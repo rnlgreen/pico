@@ -6,7 +6,7 @@ import machine # type: ignore # pylint: disable=import-error
 from utils import log
 
 NTP_DELTA = 2208988800
-host = "0.uk.pool.ntp.org"
+host = "condor.rghome"
 
 def set_time():
     NTP_QUERY = bytearray(48)
