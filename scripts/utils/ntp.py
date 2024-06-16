@@ -17,12 +17,11 @@ def set_time():
         s.settimeout(10)
         s.sendto(NTP_QUERY, addr)
         msg = s.recv(48)
+        s.close()
     except Exception as e: # pylint: disable=broad-exception-caught
-        log.status(f"Exception getting NTP", logit=True, handling_exception=True)
+        log.status("Exception getting NTP", logit=True, handling_exception=True)
         log.log_exception(e)
         return False
-    finally:
-        s.close()
     #status("NTP fetch was successful")
     val = struct.unpack("!I", msg[40:44])[0]
     t = val - NTP_DELTA

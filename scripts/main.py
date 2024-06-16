@@ -145,6 +145,7 @@ def on_message(topic, payload):
         #elif command == "cleanup":
         #    reload(cleanup=True)
         elif command == "restart":
+            log.status("Restarting")
             restart("mqtt command")
         elif command == "datetime":
             thetime = strftime()
@@ -194,11 +195,19 @@ ipaddr = wifi.wlan_connect(pico)
 #If we got an IP address we can update code adn setup MQTT connection and subscriptions
 if ipaddr:
     log.status(f"Wi-Fi: {ipaddr}", logit=True)
-    log.status("Attempting time sync", logit=True)
-    ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
 
+    log.log("Attempting time sync")
+    ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
+    if not ntp_sync:
+        log.log("Pausing before restart (NTP)")
+        time.sleep(30)
+        restart("Failed to get NTP")
+
+    log.log("Attempting MQTT connection")
     #Try MQTT connect here so we get reload log events
     if not mqtt.mqtt_connect(client_id=pico):
+        log.log("Pausing befire restart (MQTT)")
+        time.sleep(30)
         restart("No MQTT connection")
 
     #Get latest code by calling reload(); it returns the number of files updated
