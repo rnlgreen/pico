@@ -8,7 +8,7 @@ from machine import reset # pylint: disable=import-error # type: ignore
 def restart(reason):
     """Function to restart the pico"""
     #log.status(f'Restarting: {reason}') #Skipping status log as likely to be low on memory
-    log.log(f"Restarting: {reason}")
+    log.log(f"Restart reason: {reason}")
     if mqtt.client is not False:
         try:
             mqtt.client.disconnect()

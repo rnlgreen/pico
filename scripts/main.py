@@ -86,7 +86,7 @@ def reload(cleanup=False):
 #Check if there is a local exception file from before and copy to FTP site
 def upload_exceptions():
     """Function to upload exception files via FTP"""
-    print("Checking for exception file")
+    print("Uploading latest exception file")
     if file_exists(EXCEPTION_FILE):
         # log.status("Uploading exception file")
         #import os
@@ -190,10 +190,18 @@ log.status("Initialising, about to connect Wi-Fi", logit=True)
 mp_release = log_versions()
 
 #Call wifi_connect with our hostname; my routine tries multiple times to connect
-ipaddr = wifi.wlan_connect(pico)
+try:
+    ipaddr = wifi.wlan_connect(pico)
+except Exception as wlan_error: # pylint: disable=broad-except
+    log.status("Exception in wlan_connect", logit=True, handling_exception=True)
+    exception = log.log_exception(wlan_error)
+    ipaddr = False
 
 #If we got an IP address we can update code adn setup MQTT connection and subscriptions
 if ipaddr:
+    restart_reason = log.restart_reason()
+    slack.send_msg(pico,f":repeat: Restart reason was: {restart_reason}")
+
     log.status(f"Wi-Fi: {ipaddr}", logit=True)
 
     log.log("Attempting time sync")

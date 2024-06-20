@@ -36,7 +36,6 @@ def log(message):
     try:
         with open(EXCEPTION_FILE,"at",encoding="utf-8") as file:
             file.write(f"{strftime()}: {myid.pico} {message}\n")
-            file.close()
     except Exception as e: # pylint: disable=broad-except
         status(f"Unable to log message to file: {e}")
 
@@ -64,3 +63,19 @@ def log_exception(e):
         except Exception: # pylint: disable=broad-except
             pass
     return exception1
+
+def restart_reason():
+    """Function to report the last restart reason"""
+    reason = "unknown"
+    try:
+        with open(EXCEPTION_FILE,"r",encoding="utf-8") as file:
+            for line in file:
+                if "Restart reason:" in line:
+                    reason = " ".join(line.split()[5:])
+                if "is up" in line:
+                    reason = "crash or power loss?"
+        status(f"Restart reason was: {reason}")
+    except Exception as e: # pylint: disable=broad-except
+        status("Unable to read exception log", logit=True)
+        log_exception(e)
+    return reason
