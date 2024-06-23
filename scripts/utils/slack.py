@@ -16,7 +16,7 @@ def send_msg(pico,msg):
         icon = ":large_blue_diamond:"
     data = f"{{'text':'{msg}',  'username': '{pico}', 'icon_emoji': '{icon}'}}"
     try:
-        resp = urequests.post(URL, data=data, headers=headers)
+        urequests.post(URL, data=data, headers=headers)
     except Exception as oops: # pylint: disable=broad-except
         log.status("Failed to send message to Slack", logit=True, handling_exception=True)
         log.log_exception(oops)
