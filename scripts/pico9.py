@@ -1,4 +1,4 @@
-"""Main routine for Pico8"""
+"""Main routine for Pico9"""
 #Initialise the traps
 import time
 from utils import mqtt

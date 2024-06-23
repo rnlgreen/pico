@@ -286,6 +286,8 @@ if not TESTMODE:
     else:
         print(f"Unknown pico {pico} or no main script not found")
         log.status(f"Unknown pico {pico}")
+        #Upload latest local log file
+        upload_exceptions()
         slack.send_msg(pico,f":interrobang: Restarting - unknown {pico} or no script to run")
         time.sleep(60)
         restart("Unknown pico")
