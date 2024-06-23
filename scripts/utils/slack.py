@@ -20,5 +20,5 @@ def send_msg(pico,msg):
     except Exception as oops: # pylint: disable=broad-except
         log.status("Failed to send message to Slack", logit=True, handling_exception=True)
         log.log_exception(oops)
-    #print(resp.content)
-    return resp
+        return False
+    return True

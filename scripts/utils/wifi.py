@@ -7,10 +7,11 @@ from utils import log
 
 #Global varaible so other functions can test the status
 wlan = False
+wifi_reason = "unknown"
 
 def wlan_connect(hostname): # pylint: disable=unused-argument
     """" Connect to Wi-FI, returns ip address or False if fails """
-    global wlan # pylint: disable=global-statement
+    global wlan, wifi_reason # pylint: disable=global-statement
     try:
         wlan = network.WLAN(network.STA_IF)
         wlan.active(True)
@@ -30,6 +31,7 @@ def wlan_connect(hostname): # pylint: disable=unused-argument
     except Exception as e: # pylint: disable=broad-exception-caught
         log.status(f"Exception connecting to Wi-Fi: {e}", logit=True, handling_exception=True)
         log.log_exception(e)
+        wifi_reason = "Failed to connect Wi-Fi"
         return False
 
     if wlan.isconnected():
@@ -37,13 +39,16 @@ def wlan_connect(hostname): # pylint: disable=unused-argument
         return wlan.ifconfig()[0]
     else:
         log.status("Failed to connect to WLAN", logit=True)
+        wifi_reason = "Failed to connect Wi-Fi"
         return False
 
 def check_wifi():
+    global wifi_reason # pylint: disable=global-statement
     if wlan.isconnected() is not True or wlan.status() != 3:
         log.status("Wi-Fi down", logit=True)
         log.status(f"wlan.isconnected(): {wlan.isconnected()}")
         log.status(f"wlan.status(): {wlan.status()}")
+        wifi_reason = "Wi-Fi not connected"
         return False
     else:
         #Now check the network is working
@@ -53,5 +58,6 @@ def check_wifi():
             socket.getaddrinfo("condor.rghome",21)
         except: #pylint: disable=bare-except
             log.status("socket error, assume the network is down")
+            wifi_reason = "DNS lookup failed"
             return False
         return True

@@ -156,6 +156,11 @@ def on_message(topic, payload):
             log.status(f"Uptime: {uptime(timeInit)}")
             log.status(f"Temperature: {status.read_internal_temperature()}C")
             main.get_status()
+        elif command=="temperature":
+            temperature = status.read_internal_temperature()
+            temp_topic = f"temperature/{pico}"
+            if not send_mqtt(temp_topic,temperature):
+                restart("MQTT Failure detected")
         elif command == "clear":
             log.status("Clearing exception log")
             clear_log()
@@ -168,7 +173,7 @@ def on_message(topic, payload):
     elif topic == "pico/lights/boost":
         main.led_control("boost",payload)
     elif topic == "pico/poll":
-        heartbeat_topic = "pico/"+pico+"/heartbeat"
+        heartbeat_topic = f"pico/{pico}/heartbeat"
         if not send_mqtt(heartbeat_topic,"Yes, I'm here"):
             restart("MQTT Failure detected")
 
@@ -200,11 +205,11 @@ except Exception as wlan_error: # pylint: disable=broad-except
 #If we got an IP address we can update code adn setup MQTT connection and subscriptions
 if ipaddr:
     restart_reason = log.restart_reason()
-    slack.send_msg(pico,f":repeat: Restart reason was: {restart_reason}")
+    slack.send_msg(pico,f":repeat: Restart reason: {restart_reason}")
 
     log.status(f"Wi-Fi: {ipaddr}", logit=True)
 
-    log.log("Attempting time sync")
+    log.log("Attempting time sync #1")
     ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
 
     log.log("Attempting MQTT connection")
@@ -218,7 +223,7 @@ if ipaddr:
     if reload(cleanup=False) > 0:
         log.status("Restarting...")
         slack.send_msg(pico,":repeat: Restarting to load new code")
-        restart("new code")
+        restart("New code loaded")
 
     #Subscribe to the relevant channels
     if mqtt.client is not False:
@@ -230,16 +235,17 @@ if ipaddr:
         mqtt.client.subscribe("pico/poll") # type: ignore
 else: #No WiFi connection so need to restart
     time.sleep(10)
-    restart("No Wifi")
+    restart(f"No Wi-Fi: {wifi.wifi_reason}")
 
 #Let Slack know we're up
-print("Posting to Slack")
+log.status("Posting to Slack", logit=True)
 slack.send_msg(pico,f":up: {pico} is up")
 
 if not TESTMODE:
     #Have another go at syncing the time if that failed during initialisation
     if ipaddr and not ntp_sync:
         #Retry NTP sync
+        log.log("Attempting time sync #2")
         ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
 
     #Assuming we have the time now get the init time
@@ -264,6 +270,8 @@ if not TESTMODE:
             main_result = main.main()
             if not main_result == "Wi-Fi Lost":
                 slack.send_msg(pico,f":warning: Restarting after dropping through: {main_result}")
+            else:
+                main_result = f"Wi-Fi Lost: {wifi.wifi_reason}"
             restart(f"Dropped through: {main_result}")
         #Catch any exceptions detected by the pico specific code
         except Exception as oops: # pylint: disable=broad-except

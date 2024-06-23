@@ -74,7 +74,7 @@ def restart_reason():
                     reason = " ".join(line.split()[5:])
                 if "is up" in line:
                     reason = "crash or power loss?"
-        status(f"Restart reason was: {reason}")
+        status(f"Restart reason: {reason}")
     except Exception as e: # pylint: disable=broad-except
         status("Unable to read exception log", logit=True)
         log_exception(e)
