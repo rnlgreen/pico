@@ -51,13 +51,23 @@ def check_wifi():
         wifi_reason = "Wi-Fi not connected"
         return False
     else:
-        #Now check the network is working
-        #This depends on the ttl value of the hostname looked up
-        #Most times getadrinfo will get the cached result
-        try:
-            socket.getaddrinfo("condor.rghome",21)
-        except: #pylint: disable=bare-except
-            log.status("socket error, assume the network is down")
+        dns_working = False
+        tries = 0
+        while not dns_working and tries < 2:
+            tries += 1
+            #Now check the network is working
+            #This depends on the ttl value of the hostname looked up
+            #Most times getadrinfo will get the cached result
+            try:
+                socket.getaddrinfo("condor.rghome",21)
+                dns_working = True
+            except Exception as e: #pylint: disable=bare-except
+                log.status(f"DNS error {e}")
+            if not dns_working and tries < 2:
+                time.sleep(5)
+                log.status("...retrying DNS lookup")
+        if not dns_working:
             wifi_reason = "DNS lookup failed"
             return False
-        return True
+        else:
+            return True

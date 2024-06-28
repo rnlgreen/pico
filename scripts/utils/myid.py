@@ -23,10 +23,10 @@ where = {
             "pico4": "kitchen",
             "pico5": "kitchen",
             "pico6": "garage",
-            "pico7": "unknown",
-            "pico8": "unknown",
-            "pico9": "unknown",
-            "pico10": "unknown",
+            "pico7": "playroom",
+            "pico8": "spare",
+            "pico9": "spare",
+            "pico10": "spare",
             "picoX": "spare"
         }
 
