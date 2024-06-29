@@ -61,11 +61,11 @@ def check_wifi():
             try:
                 socket.getaddrinfo("condor.rghome",21)
                 dns_working = True
-            except Exception as e: #pylint: disable=bare-except
-                log.status(f"DNS error {e}")
-            if not dns_working and tries < 2:
+            except Exception as e: #pylint: disable=broad-exception-caught
+                log.status(f"DNS error {e}",logit=True)
+            if not dns_working and tries < 3:
                 time.sleep(5)
-                log.status("...retrying DNS lookup")
+                log.status("...retrying DNS lookup",logit=True)
         if not dns_working:
             wifi_reason = "DNS lookup failed"
             return False

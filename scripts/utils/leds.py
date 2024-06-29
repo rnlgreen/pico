@@ -59,7 +59,7 @@ def manage_lights():
         if (hour >= LIGHTS_ON or hour < LIGHTS_OFF) and not test_off: #e.g. from > 7 or < 0
             #Turn off for high light levels
             if lightlevel > BRIGHT and not lightsoff:
-                status("Turning lights off (auto)")
+                log.status("Turning lights off (auto)")
                 log.debug("lightlevel: {lightlevel}")
                 if running: #Remember if we were running a lighting effect before we turn off
                     previously_running = effect
@@ -78,14 +78,14 @@ def manage_lights():
                     if abs(new_brightness_level - brightness) > 5 or  h > 0.1:
                         #If the lights are off then we need to turn them on
                         if lightsoff:
-                            status("Turning lights on")
+                            log.status("Turning lights on")
                             if previously_running != "":
-                                status(f"Restarting {previously_running}")
+                                log.status(f"Restarting {previously_running}")
                                 send_control(previously_running)
                             else:
                                 if colour == [0, 0, 0]:
                                     send_control(INITIAL_COLOUR_COMMAND)
-                        # status(f"Brightness {brightness} -> {new_brightness_level}")
+                        # log.status(f"Brightness {brightness} -> {new_brightness_level}")
                         send_control(f"brightness:{new_brightness_level}")
                         updated = True
                     else:
@@ -93,9 +93,9 @@ def manage_lights():
                         msg += f" to avoid flutter ({h}), brightness: {lightlevel}"
                         log.debug(msg)
         elif not lightsoff: #If out of control hours then turn off
-            status("Turning lights off (auto)")
+            log.status("Turning lights off (auto)")
             if running: #Remember if we were running a lighting effect before we turn off
-                status(f"Remembering effect: {effect}")
+                log.status(f"Remembering effect: {effect}")
                 previously_running = effect
             else:
                 previously_running = ""
@@ -203,7 +203,7 @@ def set_pixel(i=0, r=0, g=0, b=0, w=0):
 def get_pixel_rgb(i):
     """Get current rgb value of pixel"""
     if i >= numPixels or i < 0:
-        status(f"Out of range pixel: {i}")
+        log.status(f"Out of range pixel: {i}")
         return 0,0,0,0
     else:
         r, g, b, _ = pixel_colours[i]
@@ -372,7 +372,7 @@ def xmas():
 #New train function with hopefully better logic
 def train(num_carriages=5, colour_list=[], iterations=0): # pylint: disable=dangerous-default-value
     """train sequence"""
-    status(f"Starting with {num_carriages}, {colour_list}, {iterations}")
+    log.status(f"Starting with {num_carriages}, {colour_list}, {iterations}")
     now_running("Train")
 
     #limit_run is a flag to say whether we are running a limited number of passes
@@ -382,7 +382,7 @@ def train(num_carriages=5, colour_list=[], iterations=0): # pylint: disable=dang
         for c in range(num_carriages):
             colour_list += [wheel(int(255*c/num_carriages))]
 
-    status(f"Colour list: {colour_list}")
+    log.status(f"Colour list: {colour_list}")
 
     #progression is a counter to say how far the train has travelled
     progression = numPixels
@@ -412,7 +412,7 @@ def train(num_carriages=5, colour_list=[], iterations=0): # pylint: disable=dang
         time.sleep(0.75 * dyndelay / 1000)
     set_all(0, 0, 0)
     now_running("None")
-    status("Exiting")
+    log.status("Exiting")
 
 #Stop running functions and if not running turn off
 #Called from Node-Red
@@ -437,7 +437,7 @@ def off(from_auto=False):
         strip.clear()
         strip.show()
         lightsoff = True
-        status("LEDs Off")
+        #status("LEDs Off")
 
 #Off command called via manage_lights through MQTT
 def auto_off():
@@ -452,7 +452,7 @@ def now_running(new_effect):
         running = False
         stop = False
         if not effect == "None":
-            status(f"Completed {effect}")
+            log.status(f"Completed {effect}")
         if not next_up == "None":
             new_effect = next_up
             next_up = "None"
@@ -461,9 +461,9 @@ def now_running(new_effect):
             off()
     else:
         running = True
-        status(f"Starting {new_effect}")
+        log.status(f"Starting {new_effect}")
     effect = new_effect
-    status(f"Running: {running}; previously_running: {previously_running}; effect: {effect}")
+    log.status(f"Running: {running}; previously_running: {previously_running}; effect: {effect}")
     mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
 
 #LED control function to accept commands and launch effects
@@ -478,7 +478,7 @@ def led_control(command="",arg=""):
             r, g, b = [int(x) for x in command[4:-1].split(", ")]
             set_colour([r, g, b])
         except: # pylint: disable=bare-except
-            status(f"Invalid RGB command: {command}")
+            log.status(f"Invalid RGB command: {command}")
     elif command.startswith("hue:"):
         _, h = command.split(":")
         h = int(h) + 225
@@ -492,9 +492,9 @@ def led_control(command="",arg=""):
     elif command.startswith("saturation:"):
         _, s = command.split(":")
         saturation = int(s)
-        status(f"Saturation set to: {s}")
+        log.status(f"Saturation set to: {s}")
     elif command == "auto":
-        status(f"Turning auto {arg}")
+        log.status(f"Turning auto {arg}")
         if arg == "off":
             auto = False
         else:
@@ -502,13 +502,13 @@ def led_control(command="",arg=""):
         if master:
             mqtt.send_mqtt("pico/"+myid.pico+"/status/auto",arg)
     elif command == "boost":
-        status(f"Turning boost {arg}")
+        log.status(f"Turning boost {arg}")
         if arg == "off":
             boost = False
-            status("Boost off")
+            log.status("Boost off")
         else:
             boost = True
-            status("Boost on")
+            log.status("Boost on")
         if master:
             manage_lights()
     elif command == "test_off":
@@ -531,17 +531,9 @@ def led_control(command="",arg=""):
                 #status("main.py caught exception: {}".format(e))
                 sys.print_exception(e, output) # pylint: disable=no-member
                 exception = output.getvalue()
-                status(f"Main caught exception:\n{exception}")
+                log.status(f"Main caught exception:\n{exception}")
                 import utils.slack as slack
                 slack.send_msg(myid.pico,f"{myid.pico} caught exception:\n{exception}")
-
-#Print and send status messages
-def status(message):
-    """report status"""
-    print(message)
-    message = myid.pico + ": " + message
-    topic = 'pico/'+myid.pico+'/status'
-    mqtt.send_mqtt(topic,message)
 
 #Check for new MQTT instructions
 def check_mqtt():
@@ -559,7 +551,7 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
 
     #Create strip object
     #parameters: number of LEDs, state machine ID, GPIO number and mode (RGB or RGBW)
-    status("Initialising strip")
+    log.status("Initialising strip")
     #strip = Neopixel(numPixels, 0, 0, "GRBW")
     strip = Neopixel(numPixels, 0, GPIO, strip_type)
     pixel_colours = [[0, 0, 0, 0]] * numPixels
