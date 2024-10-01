@@ -327,7 +327,7 @@ def rainbow():
                     n = 0
                 t = millis()
         time.sleep(dyndelay / 1000)
-    set_all(0, 0, 0)
+    #set_all(0, 0, 0)
     now_running("None")
 
 #Step round the colour palette, with a 120 degree offset based on the pico ID
@@ -365,7 +365,7 @@ def xmas():
                 send_colour()
                 n = 0
         time.sleep(dyndelay / 1000)
-    set_all(0, 0, 0)
+    #set_all(0, 0, 0)
     now_running("None")
 
 #Train
@@ -410,7 +410,7 @@ def train(num_carriages=5, colour_list=[], iterations=0): # pylint: disable=dang
                 manage_lights()
                 t = millis()
         time.sleep(0.75 * dyndelay / 1000)
-    set_all(0, 0, 0)
+    #set_all(0, 0, 0)
     now_running("None")
     log.status("Exiting")
 
@@ -444,21 +444,26 @@ def auto_off():
     #status("Running off(True)")
     off(True)
 
-#Function to report now running
-def now_running(new_effect):
+#Function to report now running, also used to trigger the next effect if switching from one to another
+def now_running(new_effect): #new_effect is the name of the new effect that just launched
     """Report what is running"""
     global effect, stop, running, next_up # pylint: disable=global-statement
     if new_effect == "None":
+        #reset running and stop flags
         running = False
         stop = False
-        if not effect == "None":
+        if not effect == "None":  # we running something so log that it finished
             log.status(f"Completed {effect}")
-        if not next_up == "None":
-            new_effect = next_up
-            next_up = "None"
-            led_control(new_effect)
+        if not next_up == "stopping":
+            if not next_up == "None":
+                new_effect = next_up # store 'next_up' as 'new_effect' so that we can reset 'next_up'
+                next_up = "None"
+                led_control(new_effect)
+            else:
+                off()
         else:
-            off()
+            #Just stopping existing effect to set new_effect to "None" and leave the lights on
+            next_up = "None"
     else:
         running = True
         log.status(f"Starting {new_effect}")
@@ -517,23 +522,24 @@ def led_control(command="",arg=""):
         #If running and command is an effect turn the lights off and queue up the new effect
         if running:
             if command not in ["off","auto_off"]:
-                next_up = command
+                next_up = command #Store the new routine so that it gets called by ""
             stop = True
             #effects[command]()
         else: #otherwise just run the effect or off
-            try:
-                #status(f"Calling {effects[command]}")
-                effects[command]()
-            except Exception as e: # pylint: disable=broad-exception-caught
-                import io # pylint: disable=import-outside-toplevel
-                import sys # pylint: disable=import-outside-toplevel
-                output = io.StringIO()
-                #status("main.py caught exception: {}".format(e))
-                sys.print_exception(e, output) # pylint: disable=no-member
-                exception = output.getvalue()
-                log.status(f"Main caught exception:\n{exception}")
-                import utils.slack as slack
-                slack.send_msg(myid.pico,f"{myid.pico} caught exception:\n{exception}")
+            if command != "stopping":
+                try:
+                    #status(f"Calling {effects[command]}")
+                    effects[command]()
+                except Exception as e: # pylint: disable=broad-exception-caught
+                    import io # pylint: disable=import-outside-toplevel
+                    import sys # pylint: disable=import-outside-toplevel
+                    output = io.StringIO()
+                    #status("main.py caught exception: {}".format(e))
+                    sys.print_exception(e, output) # pylint: disable=no-member
+                    exception = output.getvalue()
+                    log.status(f"Main caught exception:\n{exception}")
+                    import utils.slack as slack
+                    slack.send_msg(myid.pico,f"{myid.pico} caught exception:\n{exception}")
 
 #Check for new MQTT instructions
 def check_mqtt():
@@ -580,13 +586,13 @@ speed = 90
 dyndelay = 0
 brightness = -1
 stop = False
-running = False
-lightsoff = True
-effect = "None"
-next_up = "None"
-auto = True
-boost = False
-previously_running = ""
+running = False             # Flag to say if we are running a light sequence or not
+lightsoff = True            # Flag to say if the lights are off or not
+effect = "None"             # The currently running effect
+next_up = "None"            # Set to "command", a key value for effects (perhaps should be the value?)
+auto = True                 # Automatic light brightness control
+boost = False               # Add a litle more to the auto lighting
+previously_running = ""     # Remember what we were running when we automatically turn the lights off
 last_lights = 0
 master = False
 test_off = False
