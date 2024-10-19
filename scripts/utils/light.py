@@ -11,7 +11,7 @@ def readLight(photoGP=photoPIN):
     """Measure light levels"""
     photoRes = ADC(Pin(photoGP))
     light = photoRes.read_u16()
-    light = round(light/65535*100,2)
+    light = round(100*light/65535,2)
     return light
 
 #Calculate how close the new brightness is to a threshold

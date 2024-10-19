@@ -1,6 +1,6 @@
 """pico0 main code"""
 import gc # Garbage Collector
-import utime # type: ignore # pylint: disable=import-error # MicroPython time function (time is an alias to utime)
+import time # type: ignore # pylint: disable=import-error # MicroPython time function (time is an alias to utime)
 from utils import mqtt
 from utils import myid
 #from utils import leds
@@ -57,7 +57,7 @@ def get_status():
     #     status(f"I2C device found at 0x{devices[0]:02X}")
     # status(f"Latest temperature = {last_temp}")
     # status(f"Latest humidity: {last_humidity}")
-    #status(f"Light level: {light.readLight(photoPIN)}")
+    status(f"Light level: {light.readLight(photoPIN)}")
 
 # #LED control function to accept commands and launch effects - called from main.py
 # def led_control(command=""):
@@ -83,7 +83,7 @@ def main():
     # if mqtt.client is not False:
     #     mqtt.client.subscribe("pico/lights") # type: ignore
 
-    last_light = utime.time()
+    last_light = time.time()
 
     #Main loop
     while True:
@@ -92,7 +92,7 @@ def main():
 
         #Get and send a light reading
         # if utime.ticks_diff(utime.ticks_ms(),last_sent) >= 60000:
-        #     last_sent = utime.ticks_ms()
+            # last_sent = utime.ticks_ms()
             # try:
             #     sensor.measure()
             #     light.send_measurement(where,"temperature",sensor.temperature())
@@ -108,9 +108,10 @@ def main():
         #    status("RuuviTag data missing")
         #    return "RuuviTag data missing"
 
-        #if utime.time() - last_light >= 5:
-        #    light.send_measurement(where,"light",light.readLight(photoPIN))
-        #    last_light = utime.time()
+        if time.time() - last_light >= 0:
+            lightlevel = light.readLight(photoPIN)
+            light.send_measurement(where,"light",lightlevel)
+            last_light = time.time()
 
         #Check for messages
         if mqtt.client is not False:
@@ -122,7 +123,7 @@ def main():
         if not wifi.check_wifi():
             return "Wi-Fi Lost"
 
-        utime.sleep(0.5)
+        time.sleep(0.5)
 
 pico = myid.get_id()
 where = myid.where[pico]

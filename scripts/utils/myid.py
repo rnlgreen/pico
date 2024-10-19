@@ -16,7 +16,7 @@ picos = {
             "e661413e7509e23": "picoX"
         }
 where = {
-            "pico0": "study", 
+            "pico0": "test", 
             "pico1": "loft",
             "pico2": "loft2",
             "pico3": "kitchen",
@@ -24,7 +24,7 @@ where = {
             "pico5": "kitchen",
             "pico6": "garage",
             "pico7": "playroom",
-            "pico8": "spare",
+            "pico8": "loft",
             "pico9": "spare",
             "pico10": "spare",
             "picoX": "spare"

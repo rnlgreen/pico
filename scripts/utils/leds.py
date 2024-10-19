@@ -120,6 +120,7 @@ def rgb_to_hsv(r, g, b):
     mx = max(r, g, b)
     mn = min(r, g, b)
     df = mx-mn
+    h = 0
     if mx == mn:
         h = 0
     elif mx == r:
@@ -454,7 +455,7 @@ def now_running(new_effect): #new_effect is the name of the new effect that just
         stop = False
         if not effect == "None":  # we running something so log that it finished
             log.status(f"Completed {effect}")
-        if not next_up == "stopping":
+        if not next_up == "stopping": # pylint: disable=used-before-assignment
             if not next_up == "None":
                 new_effect = next_up # store 'next_up' as 'new_effect' so that we can reset 'next_up'
                 next_up = "None"
