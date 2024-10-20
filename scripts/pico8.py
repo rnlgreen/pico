@@ -1,13 +1,17 @@
 """Main routine for Pico8"""
 #Monitors the heat and water valves using photoresistors
 import time
+import gc
 from machine import Pin, ADC # type: ignore # pylint: disable=import-error
 from utils import mqtt
 from utils import wifi
 from utils import myid
+from utils import slack
 from utils.log import status
 
-pins = {"heat": 26, "water": 27}
+sensors = {"heat": {"pin": 26, "state": "off", "ontime": 0}, "water": {"pin": 27, "state": "off", "ontime": 0}}
+states = {"on": 100, "off": 0}
+
 #heatPIN  = 26 #GPIO26 - ADC0 - has to be one of the ADC pins - defined in light module
 #waterPIN = 27 #GPIO27 - ADC1 - has to be one of the ADC pins - defined in light module
 
@@ -21,7 +25,12 @@ def readLight(adc_pin):
 
 def get_status():
     for which in ['heat','water']:
-        status(f"{which} valve light level: {readLight(pins[which])}")
+        status(f"{which} is currently {sensors[which]['state']}")
+        status(f"{which} valve light level: {readLight(sensors[which]['pin'])}")
+    status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
+    gc.collect()
+    status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
+
     return
 
 #Send measurement
@@ -33,18 +42,29 @@ def send_measurement(here,what,value):
         mqtt.send_mqtt(topic,str(value))
 
 def main():
-    last_reading = time.time()
+    last_update = 0
+    do_update = True
 
     while True:
-        if time.time() - last_reading >= 5:
-            for which in ['heat','water']:
-                lightlevel = readLight(pins[which])
-                if lightlevel > 25:
-                    send_measurement(where,which,100)
-                else:
-                    send_measurement(where,which,0)
+        do_update = (time.time() - last_update) >= 60 #Update once a minute regardless
 
-            last_reading = time.time()
+        for which in ['heat','water']:
+            lightlevel = readLight(sensors[which]["pin"])
+            if lightlevel > 25:
+                newstate = "on"
+            else:
+                newstate = "off"
+            if not newstate == sensors[which]["state"] or do_update:
+                if not newstate == sensors[which]["state"]:
+                    sensors[which]["state"] = newstate
+                    if newstate == "on":
+                        slack.send_msg(myid.pico,f"{which} is now {newstate}")
+                        sensors[which]["ontime"] = time.time()
+                    else:
+                        on_duration = round((time.time() - sensors[which]["ontime"]) / 60,2)
+                        slack.send_msg(myid.pico,f"{which} is now {newstate}; was on for {on_duration} mins")
+                send_measurement(where,which,states[newstate])
+                last_update = time.time()
 
         #Check for messages
         if mqtt.client is not False:
