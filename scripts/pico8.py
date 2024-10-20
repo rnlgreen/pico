@@ -7,9 +7,10 @@ from utils import mqtt
 from utils import wifi
 from utils import myid
 from utils import slack
+from utils import ruuvi
 from utils.log import status
 
-sensors = {"heat": {"pin": 26, "state": "off", "ontime": 0}, "water": {"pin": 27, "state": "off", "ontime": 0}}
+sensors = {"heating": {"pin": 26, "state": "off", "ontime": 0}, "water": {"pin": 27, "state": "off", "ontime": 0}}
 states = {"on": 100, "off": 0}
 
 #heatPIN  = 26 #GPIO26 - ADC0 - has to be one of the ADC pins - defined in light module
@@ -24,9 +25,10 @@ def readLight(adc_pin):
     return light
 
 def get_status():
-    for which in ['heat','water']:
+    for which in ['heating','water']:
         status(f"{which} is currently {sensors[which]['state']}")
         status(f"{which} valve light level: {readLight(sensors[which]['pin'])}")
+    ruuvi.get_status()
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     gc.collect()
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
@@ -48,7 +50,7 @@ def main():
     while True:
         do_update = (time.time() - last_update) >= 60 #Update once a minute regardless
 
-        for which in ['heat','water']:
+        for which in ['heating','water']:
             lightlevel = readLight(sensors[which]["pin"])
             if lightlevel > 25:
                 newstate = "on"
@@ -65,6 +67,11 @@ def main():
                         slack.send_msg(myid.pico,f"{which} is now {newstate}; was on for {on_duration} mins")
                 send_measurement(where,which,states[newstate])
                 last_update = time.time()
+
+        #Get RuuviTag readings, returns false if we haven't had any for a while
+        if not ruuvi.get_readings():
+            status("RuuviTag data missing")
+            return "RuuviTag data missing"
 
         #Check for messages
         if mqtt.client is not False:
