@@ -10,7 +10,9 @@ from utils import slack
 from utils import ruuvi
 from utils.log import status
 
-sensors = {"heating": {"pin": 26, "state": "off", "ontime": 0}, "water": {"pin": 27, "state": "off", "ontime": 0}}
+sensors = {"heating": {"pin": 26, "state": "off", "ontime": 0, "icon": "hot_springs"},
+           "water": {"pin": 27, "state": "off", "ontime": 0, "icon": "potable_water"}}
+
 states = {"on": 100, "off": 0}
 
 #heatPIN  = 26 #GPIO26 - ADC0 - has to be one of the ADC pins - defined in light module
@@ -57,14 +59,15 @@ def main():
             else:
                 newstate = "off"
             if not newstate == sensors[which]["state"] or do_update:
+                icon = sensors[which]["icon"]
                 if not newstate == sensors[which]["state"]:
                     sensors[which]["state"] = newstate
                     if newstate == "on":
-                        slack.send_msg(myid.pico,f"{which} is now {newstate}")
+                        slack.send_msg(myid.pico,f"{icon} {which} is now {newstate}")
                         sensors[which]["ontime"] = time.time()
                     else:
                         on_duration = round((time.time() - sensors[which]["ontime"]) / 60,2)
-                        slack.send_msg(myid.pico,f"{which} is now {newstate}; was on for {on_duration} mins")
+                        slack.send_msg(myid.pico,f"{icon} {which} is now {newstate}; was on for {on_duration} mins")
                 send_measurement(where,which,states[newstate])
                 last_update = time.time()
 
