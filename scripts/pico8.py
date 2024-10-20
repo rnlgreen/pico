@@ -10,8 +10,8 @@ from utils import slack
 from utils import ruuvi
 from utils.log import status
 
-sensors = {"heating": {"pin": 26, "state": "off", "ontime": 0, "icon": "hot_springs"},
-           "water": {"pin": 27, "state": "off", "ontime": 0, "icon": "potable_water"}}
+sensors = {"heating": {"pin": 26, "state": "off", "ontime": 0, "icon": ":hot_springs:"},
+           "water": {"pin": 27, "state": "off", "ontime": 0, "icon": ":potable_water:"}}
 
 states = {"on": 100, "off": 0}
 
