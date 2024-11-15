@@ -212,6 +212,9 @@ except Exception as wlan_error: # pylint: disable=broad-except
     exception = log.log_exception(wlan_error)
     ipaddr = False
 
+ntp_sync = False #just to avoid an pylint error
+timeInit = 0 #and the same
+
 #If we got an IP address we can update code adn setup MQTT connection and subscriptions
 if ipaddr:
     restart_reason = log.restart_reason()
