@@ -15,6 +15,8 @@ sensors = {"heating": {"pin": 26, "state": "off", "ontime": 0, "icon": ":hot_spr
 
 states = {"on": 100, "off": 0}
 
+ON_LIGHT_LEVEL = 15
+
 #heatPIN  = 26 #GPIO26 - ADC0 - has to be one of the ADC pins - defined in light module
 #waterPIN = 27 #GPIO27 - ADC1 - has to be one of the ADC pins - defined in light module
 
@@ -54,7 +56,7 @@ def main():
 
         for which in ['heating','water']:
             lightlevel = readLight(sensors[which]["pin"])
-            if lightlevel > 25:
+            if lightlevel > ON_LIGHT_LEVEL:
                 newstate = "on"
             else:
                 newstate = "off"
