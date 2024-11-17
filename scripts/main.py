@@ -164,8 +164,8 @@ def on_message(topic, payload):
             log.status(f"Uptime: {uptime(timeInit)}")
         elif command == "status":
             log.status(f"Uptime: {uptime(timeInit)}")
-            log.status(f"Temperature: {status.read_internal_temperature()}C")
-            main.get_status()
+            log.status(f"My temperature: {status.read_internal_temperature()}C")
+            main.get_status() # pylint: disable=used-before-assignment
         elif command=="temperature":
             temperature = status.read_internal_temperature()
             temp_topic = f"temperature/{pico}"
