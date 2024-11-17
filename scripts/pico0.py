@@ -1,6 +1,9 @@
 """pico0 main code"""
 import gc # Garbage Collector
 import time # type: ignore # pylint: disable=import-error # MicroPython time function (time is an alias to utime)
+import machine # pylint: disable=import-error
+import onewire # pylint: disable=import-error
+import ds18x20 # pylint: disable=import-error
 from utils import mqtt
 from utils import myid
 #from utils import leds
@@ -10,7 +13,7 @@ from utils import wifi
 #from utils import trap
 from utils.log import status
 # from machine import I2C, Pin # type: ignore # pylint: disable=import-error
-from utils import ruuvi
+#from utils import ruuvi
 
 #Pins from left to right:
 #1: Voltage in, 3-5 VDC
@@ -22,6 +25,9 @@ I2CID = 1
 SDAPIN = 26 #GPIO26
 SCLPIN = 27 #GPIO27
 photoPIN = 28 #GPIO28 - has to be one of the ADC pins - defined in light module
+
+ds_pin = machine.Pin(22)
+ds_sensor = ds18x20.DS18X20(onewire.OneWire(ds_pin))
 
 # trap.traps = {
 #         "Trap 1": {"button": Pin(16, Pin.IN, Pin.PULL_UP), "sprung": False, "spring trigger": 0},
@@ -42,7 +48,7 @@ def get_status():
     # status(f"brightness: {leds.brightness}")
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     gc.collect()
-    ruuvi.get_status()
+    #ruuvi.get_status()
 
     # #i2c sensor
     # i2c = I2C(id=I2CID, scl=Pin(SCLPIN), sda=Pin(SDAPIN), freq=400000)
@@ -58,6 +64,14 @@ def get_status():
     # status(f"Latest temperature = {last_temp}")
     # status(f"Latest humidity: {last_humidity}")
     status(f"Light level: {light.readLight(photoPIN)}")
+
+    #Temperature sensors
+    roms = ds_sensor.scan()
+    ds_sensor.convert_temp()
+    time.sleep(0.75)
+    for rom in roms:
+        tempC = ds_sensor.read_temp(rom)
+        status(f'temperature (C): {tempC:.2f}')
 
 # #LED control function to accept commands and launch effects - called from main.py
 # def led_control(command=""):
@@ -108,10 +122,10 @@ def main():
         #    status("RuuviTag data missing")
         #    return "RuuviTag data missing"
 
-        if time.time() - last_light >= 0:
-            lightlevel = light.readLight(photoPIN)
-            light.send_measurement(where,"light",lightlevel)
-            last_light = time.time()
+        #if time.time() - last_light >= 0:
+        #    lightlevel = light.readLight(photoPIN)
+        #    light.send_measurement(where,"light",lightlevel)
+        #    last_light = time.time()
 
         #Check for messages
         if mqtt.client is not False:
