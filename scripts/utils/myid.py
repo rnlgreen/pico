@@ -13,8 +13,10 @@ picos = {
             "e661413e7705623": "pico8",
             "e661413e79c4823": "pico9",
             "e6613010f2eac2e": "pico10",
-            "e661413e7509e23": "picoX"
+            "e661413e7509e23": "picoX",
+            "a868d6a1a9e561d5": "pico2w0",
         }
+
 where = {
             "pico0": "test", 
             "pico1": "loft",
@@ -25,9 +27,14 @@ where = {
             "pico6": "garage",
             "pico7": "playroom",
             "pico8": "loft",
-            "pico9": "spare",
+            "pico9": "airing_cupboard",
             "pico10": "spare",
-            "picoX": "spare"
+            "picoX": "spare",
+            "pico2w0": "spare",
+            "pico2w1": "spare",
+            "pico2w2": "spare",
+            "pico2w3": "spare",
+            "pico2w4": "spare",
         }
 
 pico = "unknown"
