@@ -30,8 +30,8 @@ def get_status():
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
 #LED control function to accept commands and launch effects
-def led_control(command="",arg=""):
-    leds.led_control(command,arg)
+def led_control(topic,payload):
+    leds.led_control(topic,payload)
 
 #Called my main.py
 def main():

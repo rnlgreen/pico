@@ -1,7 +1,7 @@
 """Utility functions to do pretty things with a WS2812 LED strip"""
 import time
 from math import sqrt
-#import random
+import random
 import utime # type: ignore # pylint: disable=import-error
 from utils import mqtt
 from utils import myid
@@ -107,7 +107,7 @@ def manage_lights():
 def list_to_rgb(c):
     """Convert list to rgb values"""
     r, g, b = c
-    if not saturation == 100:
+    if saturation != 100:
         h, s, v = rgb_to_hsv(r, g, b)
         s = saturation / 100
         r, g, b = hsv_to_rgb(h, s, v)
@@ -338,10 +338,14 @@ def xmas():
     now_running("Christmas")
     #lightsoff = False
     set_speed(75)
-    #We are using picos 3, 4, 5
-    hue = int(0 + int(myid.pico[4]) * 65536 / 3)
+    #Setup the starting hue. We are using the strip.colorHSV() function that expects 0 to 65535.
+    #We are using picos 3, 4, 5 and X (!)
+    if myid.pico == "picoX":
+        hue = int(3 * 163484)
+    else:
+        hue = int((-3 + int(myid.pico[4])) * 16384)
     t = millis()
-    colour = strip.colorHSV(hue, 255, 255)
+    colour = strip.colorHSV(hue, 255, 255) # hue (0-65535), saturation (0-255), brightness (0-255)
     #Returns list (r, g, b)
     strip.fill(colour)
     strip.show()
@@ -440,9 +444,105 @@ def off(from_auto=False):
         lightsoff = True
         #status("LEDs Off")
 
+# MORE LED ROUTINES
+## NOTES:
+# New routines need "settings." removed and check_mqtt() adding to the main loop
+
+# First dummy functions for "debuglog" to save me from editing stuff
+def debuglog(message):
+    log.status(message)
+
+def wait_for_pause():
+    return
+
+def show():
+    strip.show()
+
+def sleep(s):
+    time.sleep(s)
+
+#Function to sleep for 'countdown' seconds whilst keeping an eye on stop
+def sleep_for(countdown):
+    loop_sleep = 0.5
+    countdown = countdown / loop_sleep
+    while not stop and countdown > 0:
+        check_mqtt()
+        sleep(0.5)
+        countdown -= 1
+
+# Static colour setting, used by statics_cycle
+def static(block_size, colour_list, transition_time=5):
+    debuglog(f"static: {block_size}, {colour_list}")
+    num_colours = len(colour_list)
+    #debuglog(f"Number of colours: {num_colours}")
+    br = [0] * LED_COUNT
+    bg = [0] * LED_COUNT
+    bb = [0] * LED_COUNT
+    bw = [0] * LED_COUNT
+    fr = [0] * LED_COUNT
+    fg = [0] * LED_COUNT
+    fb = [0] * LED_COUNT
+    fw = [0] * LED_COUNT
+
+    #work out the new pixel colours
+    for p in range(numPixels):
+        c = int(p / block_size) % num_colours
+        fr[p], fg[p], fb[p], fw[p] = list_to_rgb(colour_list[c])
+        if p < 10:
+            debuglog(f"{p}: {fr[p]}, {fg[p]}, {fb[p]}, {fw[p]}")
+    #get the current pixel colours
+    for p in range(numPixels):
+        br[p], bg[p], bb[p], bw[p] = get_pixel_rgb(p)
+
+    #Now fade quickly from old to new
+    for intensity in range(51):
+        for i in range(numPixels):
+            r, g, b, w = fade_rgb(fr[i], fg[i], fb[i], fw[i], br[i], bg[i], bb[i], bw[i], intensity / 10)
+            set_pixel(i, r, g, b, w)
+        show()
+        sleep(transition_time / 50)
+    #debuglog("Exiting")
+
+# Cycling static display
+# Random block size
+# Goes from 2 to 5 colours
+# Steps round the wheel by 34 degress
+# Random saturation
+def statics_cycle(sleep_time=20):
+    global saturation # pylint: disable=global-statement
+    debuglog("Starting")
+    base_wheel_pos = 0
+    num_colours = 2
+    while not stop:
+        check_mqtt()
+        debuglog(f"base_wheel_pos: {base_wheel_pos}")
+        if pause:
+            wait_for_pause()
+        block_size = random.randint(2,3)
+        num_colours += 1
+        if num_colours > 4:
+            num_colours = 2
+        static_colours = [[]] * num_colours
+        #wheel uses saturation, so pick one of those first
+        #saturation = random.randint(75,100)
+        saturation = 100
+        static_colours[0] = wheel(base_wheel_pos)
+        for c in range(num_colours):
+            wheel_pos = base_wheel_pos + c * (int(255 / num_colours))
+            if wheel_pos > 255:
+                wheel_pos -= 255
+            static_colours[c] = wheel(wheel_pos)
+        static(block_size,static_colours,5)
+        #Step round the wheel by slightly less than a quarter
+        base_wheel_pos += 34
+        if base_wheel_pos > 255:
+            base_wheel_pos -= 256
+        sleep_for(sleep_time)
+    debuglog("Exiting")
+
 #Off command called via manage_lights through MQTT
 def auto_off():
-    #status("Running off(True)")
+    #log.status("Running off(True)")
     off(True)
 
 #Function to report now running, also used to trigger the next effect if switching from one to another
@@ -459,7 +559,7 @@ def now_running(new_effect): #new_effect is the name of the new effect that just
             if not next_up == "None":
                 new_effect = next_up # store 'next_up' as 'new_effect' so that we can reset 'next_up'
                 next_up = "None"
-                led_control(new_effect)
+                led_control(payload=new_effect)
             else:
                 off()
         else:
@@ -473,10 +573,25 @@ def now_running(new_effect): #new_effect is the name of the new effect that just
     mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
 
 #LED control function to accept commands and launch effects
-def led_control(command="",arg=""):
+def led_control(topic="", payload=""):
     """Process control commands"""
-    command = command.lower().strip()
-    #status(f"received command {command}..")
+    #Topic is /pico/lights or /pico/xlights with the command in payload with args after a colon
+    global xsync # pylint: disable=global-statement
+    log.status(f"received command {topic} {payload}")
+    arg = ""
+    if ":" in payload:
+        command, arg = payload.lower().strip().split(":")
+    else:
+        command = payload.lower().strip()
+    if xstrip:
+        if "xstrip" not in topic and not xsync:
+            log.status(f"xstrip ignoring {topic}")
+            return
+        if command == "xsync":
+            if arg == "on":
+                xsync = True
+            else:
+                xsync = False
     global saturation, next_up, auto, hue, boost, stop # pylint: disable=global-statement
     if command.startswith("rgb"):
         #rgb(219, 132, 56)
@@ -485,18 +600,18 @@ def led_control(command="",arg=""):
             set_colour([r, g, b])
         except: # pylint: disable=bare-except
             log.status(f"Invalid RGB command: {command}")
-    elif command.startswith("hue:"):
-        _, h = command.split(":")
+    elif command == "hue":
+        h = arg
         h = int(h) + 225
         hue = h
-    elif command.startswith("brightness:"):
-        _, b = command.split(":")
+    elif command == "brightness":
+        b = arg
         new_brightness(int(b))
-    elif command.startswith("speed:"):
-        _, s = command.split(":")
+    elif command == "speed":
+        s = arg
         set_speed(int(s))
-    elif command.startswith("saturation:"):
-        _, s = command.split(":")
+    elif command == "saturation":
+        s = arg
         saturation = int(s)
         log.status(f"Saturation set to: {s}")
     elif command == "auto":
@@ -550,11 +665,12 @@ def check_mqtt():
 
 def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     """Initialise new pixel strip"""
-    global numPixels # pylint: disable=global-statement
+    global numPixels, LED_COUNT # pylint: disable=global-statement
     global strip # pylint: disable=global-statement
     global pixel_colours # pylint: disable=global-statement
 
     numPixels = pixels
+    LED_COUNT = numPixels
 
     #Create strip object
     #parameters: number of LEDs, state machine ID, GPIO number and mode (RGB or RGBW)
@@ -578,7 +694,8 @@ def toggle_test_off():
     global test_off # pylint: disable=global-statement
     test_off = not test_off
 
-numPixels = 0
+numPixels = 0 # Set during init_strip, called by the pico'x'.py with the appropriate number
+LED_COUNT = 0
 pixel_colours = []
 colour = [0, 0, 0]
 saturation = 100
@@ -587,6 +704,7 @@ speed = 90
 dyndelay = 0
 brightness = -1
 stop = False
+pause = False
 running = False             # Flag to say if we are running a light sequence or not
 lightsoff = True            # Flag to say if the lights are off or not
 effect = "None"             # The currently running effect
@@ -598,11 +716,15 @@ last_lights = 0
 master = False
 test_off = False
 strip = False
+xstrip = False
+xsync = True
 
 effects = { "rainbow":  rainbow,
             "xmas":     xmas,
             "train":    train,
             "off":      off,
-            "auto_off": auto_off}
+            "auto_off": auto_off,
+            "statics": statics_cycle,
+            }
 
 where = myid.where[myid.pico]

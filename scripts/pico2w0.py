@@ -22,8 +22,8 @@ def get_status():
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
 #LED control function to accept commands and launch effects
-def led_control(command=""):
-    leds.led_control(command)
+def led_control(topic,payload):
+    leds.led_control(topic,payload)
 
 #Called my main.py
 def main():
@@ -31,6 +31,7 @@ def main():
     pixels = 50
     GPIO = 28
     leds.init_strip(strip_type,pixels,GPIO)
+    leds.xstrip = True
 
     if mqtt.client is not False:
         mqtt.client.subscribe("pico/lights") # type: ignore

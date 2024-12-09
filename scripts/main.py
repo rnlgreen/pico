@@ -176,12 +176,8 @@ def on_message(topic, payload):
             clear_log()
         else:
             log.status(f"Unknown command: {payload}")
-    elif topic == "pico/lights":
-        main.led_control(payload)
-    elif topic == "pico/lights/auto":
-        main.led_control("auto",payload)
-    elif topic == "pico/lights/boost":
-        main.led_control("boost",payload)
+    elif topic[0:12] == "pico/lights" or topic[0:12] == "pico/xlights":
+        main.led_control(topic,payload)
     elif topic == "pico/poll":
         heartbeat_topic = f"pico/{pico}/heartbeat"
         if not send_mqtt(heartbeat_topic,"Yes, I'm here"):
@@ -201,7 +197,7 @@ else:
     print(f"Unrecognised ID: {pico}")
     newpico = True
 
-log.status("Initialising, about to connect Wi-Fi", logit=True)
+#log.status("Initialising, about to connect Wi-Fi", logit=True)
 mp_release = log_versions()
 
 #Call wifi_connect with our hostname; my routine tries multiple times to connect
@@ -220,12 +216,12 @@ if ipaddr:
     restart_reason = log.restart_reason()
     slack.send_msg(pico,f":repeat: Restart reason: {restart_reason}")
 
-    log.status(f"Wi-Fi: {ipaddr}", logit=True)
+    #log.status(f"Wi-Fi: {ipaddr}", logit=True)
 
-    log.log("Attempting time sync #1")
+    #log.log("Attempting time sync #1")
     ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
 
-    log.log("Attempting MQTT connection")
+    #log.log("Attempting MQTT connection")
     #Try MQTT connect here so we get reload log events
     if not mqtt.mqtt_connect(client_id=pico):
         log.log("Pausing befire restart (MQTT)")
@@ -241,7 +237,7 @@ if ipaddr:
     #Subscribe to the relevant channels
     if mqtt.client is not False:
         #Subscribe to control and heartbeat channels
-        log.status("Subscribing to MQTT", logit=True)
+        #log.status("Subscribing to MQTT", logit=True)
         mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/all/control") # type: ignore
@@ -251,7 +247,7 @@ else: #No WiFi connection so need to restart
     restart(f"No Wi-Fi: {wifi.wifi_reason}")
 
 #Let Slack know we're up
-log.status("Posting to Slack", logit=True)
+#log.status("Posting to Slack", logit=True)
 slack.send_msg(pico,f":up: {pico} is up")
 
 if not TESTMODE:
