@@ -210,6 +210,7 @@ except Exception as wlan_error: # pylint: disable=broad-except
 
 ntp_sync = False #just to avoid an pylint error
 timeInit = 0 #and the same
+standalone = False
 
 #If we got an IP address we can update code adn setup MQTT connection and subscriptions
 if ipaddr:
@@ -242,13 +243,18 @@ if ipaddr:
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/all/control") # type: ignore
         mqtt.client.subscribe("pico/poll") # type: ignore
-else: #No WiFi connection so need to restart
+elif pico in myid.standalone:
+    standalone = True
+    log.log("No WiFi so running standalone")
+else:
+    #No WiFi connection so need to restart
     time.sleep(10)
     restart(f"No Wi-Fi: {wifi.wifi_reason}")
 
 #Let Slack know we're up
 #log.status("Posting to Slack", logit=True)
-slack.send_msg(pico,f":up: {pico} is up")
+if not standalone:
+    slack.send_msg(pico,f":up: {pico} is up")
 
 if not TESTMODE:
     #Have another go at syncing the time if that failed during initialisation
@@ -265,7 +271,8 @@ if not TESTMODE:
         log.status(f"{pico} is up", logit=True)
 
         #Upload latest local log file
-        upload_exceptions()
+        if not standalone:
+            upload_exceptions()
 
         #Now load and call the specific code for this pico
         try:
@@ -276,7 +283,7 @@ if not TESTMODE:
             log.status(f"Free storage: {status.fs_stats()}%", logit=True) # pylint: disable=no-member
             log.status(f"Temperature: {status.read_internal_temperature()}C", logit=True)
             log.status(f"Calling {pico}.py main()", logit=True)
-            main_result = main.main()
+            main_result = main.main(standalone)
             if not main_result == "Wi-Fi Lost":
                 slack.send_msg(pico,f":warning: Restarting after dropping through: {main_result}")
             else:

@@ -39,6 +39,8 @@ where = {
 
 pico = "unknown"
 
+standalone = ["pico2w0", "picoX"]
+
 def get_id():
     """Get pico id based on machine ID"""
     global pico # pylint: disable=global-statement
