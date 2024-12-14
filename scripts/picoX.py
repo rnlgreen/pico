@@ -3,21 +3,23 @@
 import time
 import gc
 from utils import mqtt
+from utils import settings
 from utils import leds
 from utils import wifi
 from utils.log import status,log
+from utils.common import set_brightness, set_all
 
 def get_status():
-    status(f"running: {leds.running}")
-    status(f"effect: {leds.effect}")
-    status(f"stop: {leds.stop}")
-    status(f"speed: {leds.speed}")
-    status(f"dyndelay: {leds.dyndelay}")
-    status(f"brightness: {leds.brightness}")
-    status(f"colour: {leds.colour}")
-    status(f"hue: {leds.hue}")
-    status(f"lightsoff: {leds.lightsoff}")
-    status(f"Auto control: {leds.auto}")
+    status(f"running: {settings.running}")
+    status(f"effect: {settings.effect}")
+    status(f"stop: {settings.stop}")
+    status(f"speed: {settings.speed}")
+    status(f"dyndelay: {settings.dyndelay}")
+    status(f"brightness: {settings.brightness}")
+    status(f"colour: {settings.colour}")
+    status(f"hue: {settings.hue}")
+    status(f"lightsoff: {settings.lightsoff}")
+    status(f"Auto control: {settings.auto}")
     gc.collect()
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
@@ -27,38 +29,32 @@ def led_control(topic,payload):
 
 #Called by main.py
 def main(standalone = False):
-    standalone = True
     if standalone:
         log("Running standalone")
 
     strip_type = "GRB"
     pixels = 50
     GPIO = 28
+    settings.xstrip = True
     leds.init_strip(strip_type,pixels,GPIO)
-    leds.xstrip = True
-    leds.xsync = False
 
     if standalone:
-        #sequence = ["rainbow", "train", "statics"]
-        #sequence_no = 0
-        brightness = 15
-        effect_duration = 60
+        set_brightness(60)
+        effect_duration = 20
+        led_control("standalone xlights","speed:90")
         while True:
             if mqtt.client is not False:
                 mqtt.client.check_msg()
-            #led_control("standalone xlights",f"{sequence[sequence_no]}:{effect_duration}")
-            led_control("standalone xlights",f"brightness:{brightness}")
-            led_control("standalone xlights","speed:90")
+            settings.speed = 90
             led_control("standalone xlights",f"rainbow2:{effect_duration}")
-#            led_control("standalone xlights",f"brightness:{brightness}")
-            led_control("standalone xlights","speed:85")
-            led_control("standalone xlights",f"train:{effect_duration}")
-#            led_control("standalone xlights",f"brightness:{brightness}")
-            led_control("standalone xlights","speed:90")
             led_control("standalone xlights",f"statics:{effect_duration}")
-            #sequence_no += 1
-            #if sequence_no == len(sequence):
-            #    sequence_no = 0
+            set_all(0, 0, 30)
+            led_control("standalone xlights",f"twinkling:{effect_duration}")
+            set_all(255, 200, 0)
+            led_control("standalone xlights",f"shimmer:{effect_duration}")
+            set_all(0, 30, 0)
+            settings.speed = 30
+            led_control("standalone xlights",f"splashing:{effect_duration}")
     else:
         if mqtt.client is not False:
             mqtt.client.subscribe("pico/xlights") # type: ignore
