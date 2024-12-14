@@ -4,19 +4,20 @@ import gc
 from utils import mqtt
 from utils import leds
 from utils import wifi
+from utils import settings
 from utils.log import status
 
 def get_status():
-    status(f"running: {leds.running}")
-    status(f"effect: {leds.effect}")
-    status(f"stop: {leds.stop}")
-    status(f"speed: {leds.speed}")
-    status(f"dyndelay: {leds.dyndelay}")
-    status(f"brightness: {leds.brightness}")
-    status(f"colour: {leds.colour}")
-    status(f"hue: {leds.hue}")
-    status(f"lightsoff: {leds.lightsoff}")
-    status(f"Auto control: {leds.auto}")
+    status(f"running: {settings.running}")
+    status(f"effect: {settings.effect}")
+    status(f"stop: {settings.stop}")
+    status(f"speed: {settings.speed}")
+    status(f"dyndelay: {settings.dyndelay}")
+    status(f"brightness: {settings.brightness}")
+    status(f"colour: {settings.colour}")
+    status(f"hue: {settings.hue}")
+    status(f"lightsoff: {settings.lightsoff}")
+    status(f"Auto control: {settings.auto}")
     gc.collect()
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 

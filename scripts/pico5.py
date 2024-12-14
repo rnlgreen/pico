@@ -6,6 +6,7 @@ from utils import myid
 from utils import leds
 from utils import light
 from utils import wifi
+from utils import settings
 from utils.log import status, debug
 
 def send_control(payload):
@@ -13,19 +14,19 @@ def send_control(payload):
     mqtt.send_mqtt(topic,payload)
 
 def get_status():
-    status(f"running: {leds.running}")
-    status(f"effect: {leds.effect}")
-    status(f"stop: {leds.stop}")
-    status(f"speed: {leds.speed}")
-    status(f"dyndelay: {leds.dyndelay}")
-    status(f"brightness: {leds.brightness}")
-    status(f"colour: {leds.colour}")
-    status(f"hue: {leds.hue}")
-    status(f"lightsoff: {leds.lightsoff}")
+    status(f"running: {settings.running}")
+    status(f"effect: {settings.effect}")
+    status(f"stop: {settings.stop}")
+    status(f"speed: {settings.speed}")
+    status(f"dyndelay: {settings.dyndelay}")
+    status(f"brightness: {settings.brightness}")
+    status(f"colour: {settings.colour}")
+    status(f"hue: {settings.hue}")
+    status(f"lightsoff: {settings.lightsoff}")
     status(f"Light level: {light.readLight()}")
-    status(f"Auto control: {leds.auto}")
-    status(f"Boost control: {leds.boost}")
-    status(f"previously_running: {leds.previously_running}")
+    status(f"Auto control: {settings.auto}")
+    status(f"Boost control: {settings.boost}")
+    status(f"previously_running: {settings.previously_running}")
     gc.collect()
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
@@ -38,14 +39,14 @@ def main():
     strip_type = "GRB"
     pixels = 72
     GPIO = 28
-    leds.master = True
+    settings.master = True
     leds.init_strip(strip_type,pixels,GPIO)
 
     if mqtt.client is not False:
         mqtt.client.subscribe("pico/lights")
         mqtt.client.subscribe("pico/lights/+")
     light.last_reading = time.time()
-    leds.last_lights = time.time()
+    settings.last_lights = time.time()
     updated = False #Flag to limit lighting auto updates to every other second
     while True:
         if mqtt.client is not False:
@@ -56,9 +57,9 @@ def main():
             light.send_measurement(where,"light",lightlevel)
             light.last_reading = time.time()
         #Manage light level every second
-        if time.time() - leds.last_lights >= 1:
-            leds.last_lights = time.time()
-            if leds.auto:
+        if time.time() - settings.last_lights >= 1:
+            settings.last_lights = time.time()
+            if settings.auto:
                 if not updated: #If we updated last time the lights won't have finished fading yet
                     #Manage LEDs based on light level and time of day
                     updated = leds.manage_lights()

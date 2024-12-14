@@ -1,0 +1,26 @@
+#shared settings
+numPixels = 0 # Set during init_strip, called by the pico'x'.py with the appropriate number
+LED_COUNT = 0
+colour = [0, 0, 0]
+saturation = 100
+hue = 0
+speed = 90
+dyndelay = 0
+brightness = -1
+stop = False
+auto = True                 # Automatic light brightness control
+master = False
+running = False
+boost = False               # Add a litle more to the auto lighting
+xstrip = False
+xsync = True
+lightsoff = True            # Flag to say if the lights are off or not
+effect = "None"             # The currently running effect
+stop_after = 0
+next_up = "None"            # Set to "command", a key value for effects (perhaps should be the value?)
+previously_running = ""     # Remember what we were running when we automatically turn the lights off
+strip = None
+pixel_colours = []
+running = False             # Flag to say if we are running a light sequence or not
+last_lights = 0
+splash_size = 4
