@@ -1,12 +1,13 @@
 """Utility functions to do pretty things with a WS2812 LED strip"""
 import time
-from math import sqrt, sin, pi, radians  # Used in bouncing_balls
+from math import sqrt, sin, radians  # Used in bouncing_balls
 import random
 import utime # type: ignore # pylint: disable=import-error
 from utils import mqtt
 from utils import myid
 from utils import light
 from utils import log
+
 from utils.colours import colours
 
 from lib.neopixel import Neopixel # pylint: disable=import-error
@@ -301,6 +302,10 @@ def ticks_diff(start,now):
     diff = time.ticks_diff(int(now),int(start)) # pylint: disable=no-member
     return diff
 
+#Check if it is time to finish, if we are running standalone
+def time_to_go():
+    return (stop_after > 0 and time.time() > stop_after)
+
 #Rotate the strip through a rainbow of colours
 def rainbow():
     """Rainbow sequence"""
@@ -312,7 +317,7 @@ def rainbow():
     t = millis()
     n = 0
     updated = False
-    while not stop and not (stop_after > 0 and time.time() > stop_after):
+    while not stop and not time_to_go():
         check_mqtt()
         colour = strip.colorHSV(hue, 255, 255)
         #Returns list (r, g, b)
@@ -345,7 +350,7 @@ def rainbowCycle(iterations=0):
     now_running("rainbowCycle")
     speedfactor = 1  # smaller is faster, no less than 0.1
     limit_run = iterations > 0
-    while not (stop or (limit_run and iterations == 0)) and not (stop_after > 0 and time.time() > stop_after):
+    while not (stop or (limit_run and iterations == 0)) and not time_to_go():
         if pause:
             wait_for_pause()
         for j in range(256):
@@ -381,7 +386,7 @@ def xmas():
     strip.fill(colour)
     strip.show()
     n = 0
-    while not stop and not (stop_after > 0 and time.time() > stop_after):
+    while not stop and not time_to_go():
         check_mqtt()
         colour = strip.colorHSV(hue, 255, 255)
         #Returns list (r, g, b)
@@ -402,59 +407,6 @@ def xmas():
                 n = 0
         time.sleep(dyndelay / 1000)
     #set_all(0, 0, 0)
-    now_running("None")
-
-#Train
-#New train function with hopefully better logic
-def train(num_carriages=5, colour_list=[], iterations=0): # pylint: disable=dangerous-default-value
-    #debuglog(f"Starting with {num_carriages}, {colour_list}, {iterations}")
-    now_running("train")
-
-    #limit_run is a flag to say whether we are running a limited number of passes
-    limit_run = iterations > 0
-
-    if len(colour_list) == 0:
-        for c in range(num_carriages):
-            colour_list += [wheel(int(255*c/num_carriages))]
-
-    debuglog(f"Colour list: {colour_list}")
-
-    #progression is a counter to say how far the train has travelled
-    progression = numPixels
-
-    while not (stop or (limit_run and iterations == 0)) and not (stop_after > 0 and time.time() > stop_after):
-        if pause:
-            wait_for_pause()
-
-        #carriage_length = number of pixels / number of visible carriages
-        carriage_length = int(numPixels / num_carriages)
-
-        #train_length = number of carriages * length of each carriage
-        #train_length can be smaller or larger than the number of pixels
-        train_length = carriage_length * len(colour_list)
-
-        progression += 1
-        #if (progression > train_length) and (progression > numPixels):
-        #    progression = 0
-
-        for i in range(numPixels):
-            #n is the relative position of this carriages as they progress
-            n = progression % train_length
-            intensity = max(0, (0.5 + sin(pi * (-0.5 + (num_carriages * 2 * (i - n))/numPixels)))/1.5)
-
-            if progression > i:
-                carriage_no = int((progression - i) / carriage_length) % len(colour_list)
-                mycolour = colour_list[carriage_no]
-                r, g, b, w = list_to_rgb(mycolour, intensity*100)
-            else:
-                r, g, b, w = [0, 0, 0, 0]
-
-            set_pixel(i, r, g, b, w)
-
-        show()
-        if stop:
-            break
-        sleep(0.75 * dyndelay / 1000)
     now_running("None")
 
 #Stop running functions and if not running turn off
@@ -551,7 +503,7 @@ def statics_cycle(sleep_time=20):
     now_running("statics_cycle")
     base_wheel_pos = 0
     num_colours = 2
-    while not stop and not (stop_after > 0 and time.time() > stop_after):
+    while not stop and not time_to_go():
         check_mqtt()
         debuglog(f"base_wheel_pos: {base_wheel_pos}")
         if pause:
@@ -588,7 +540,8 @@ def shimmer(shimmer_width=5,iterations=0):
     #Even numbers of steps mean pixels turn off at the lowest level
     #eg. width 6, or width 5 with a 0.5 delta
     loop_delta = 0.2 #1 gives 100,60,20 brightness, 0.5 gives 100,80,60,40,20,0 levels
-    while not (stop or (limit_run and iterations == 0)) and not (stop_after > 0 and time.time() > stop_after):
+    while not (stop or (limit_run and iterations == 0)) and not time_to_go():
+        check_mqtt()
         if pause:
             wait_for_pause()
         j = 0
@@ -671,6 +624,8 @@ def splashing(num=5,colour_list=[],leave=False): # pylint: disable=dangerous-def
     total_elapsed = 0
 
     while num > 0:
+        check_mqtt()
+
         if pause:
             wait_for_pause()
 
@@ -693,7 +648,7 @@ def splashing(num=5,colour_list=[],leave=False): # pylint: disable=dangerous-def
 
             #If the splash angle goes above 180 it's time to create a new splash
             if splashes[s].rotation > 180 or (leave and splashes[s].rotation >= 90):
-                if not stop and not (stop_after > 0 and time.time() > stop_after):
+                if not stop and not time_to_go():
                     if rand_colours:
                         colour = wheel(random.randint(0, 255))
                     else:
@@ -730,6 +685,115 @@ def splashing(num=5,colour_list=[],leave=False): # pylint: disable=dangerous-def
 
         sleep(0.005) # Sleep a little to give the CPU a break
     #debuglog(f"Average elapsed time: {total_elapsed / iterations}ms")
+    now_running("None")
+
+# Class the defines an individual twink
+class twink: #pylint: disable=missing-class-docstring
+    #On creation of a twink call new() to initialise settings
+    def __init__(self, twinkling_start, colour_list, colour_index):
+        self.new(twinkling_start, colour_list, colour_index)
+
+    #Function to generate a new set of twink settings when one expires
+    def new(self, twinkling_start, colour_list, colour_index):
+        m = millis()
+        if twinkling_start: #quick start if first time around
+            self.start    = m + (random.randint(0,250) * 100 / max(5, speed))
+            self.end      = self.start + (random.randint(100,500) * 100 / max(5, speed))
+        else:
+            self.start    = m + (random.randint(250,500) * 100 / max(5, speed))
+            self.end      = self.start + (random.randint(750,1250) * 100 / max(5, speed))
+        self.position = random.randint(0, numPixels - 1)
+        self.colour   = colour_list[colour_index]
+
+# One funtion to manage lots of twinkles - using twink class
+def twinkling(num=0,colour_list=[]): #pylint: disable=dangerous-default-value
+    now_running("twinkling")
+    if num == 0:
+        if colour_list == []: #fewer pixels needed if all white
+            numTwinkles = int(numPixels / 5) # some number of twinkles to do
+        else:
+            numTwinkles = int(numPixels / 2) # some number of twinkles to do
+    else:
+        numTwinkles = num
+
+    if colour_list == []:
+        colour_list = [[255, 255, 255, 255]]
+
+    debuglog(f"Number of twinkles: {numTwinkles}")
+
+    colour_index   = 0
+    old_speed = speed
+    twinkling_start = True
+    count_lit = 0
+
+    twinks = []
+
+    #Initialise all the twinks
+    for _ in range(numTwinkles):
+        twinks.append(twink(twinkling_start, colour_list, colour_index))
+        colour_index += 1
+        if colour_index == len(colour_list):
+            colour_index = 0
+
+    #Time to fade the pixels in and out, in milliseconds
+    fade_time = 150
+
+    while not stop or count_lit > 0 and not time_to_go():
+        check_mqtt()
+        if pause:
+            wait_for_pause()
+
+        #start by clearing all pixels
+        last_colour = colour
+        r, g, b, w = list_to_rgb(last_colour)
+        set_all(r, g, b, w)
+        count_lit = 0
+        m = millis()
+        for t in range(numTwinkles):
+            #If this twinkle has out lived it's life:
+            if m > twinks[t].end: #time to turn this one off
+                if not stop: #if we are not stopping then reset the twink
+                    if old_speed == speed: #same speed, so just reset the twink
+                        twinks[t].new(twinkling_start, colour_list, colour_index)
+                        colour_index += 1
+                        if colour_index >= len(colour_list):
+                            colour_index = 0
+                    else: #just pick a new end time and keep it lit for now
+                        twinks[t].end = twinks[t].start + (random.randint(750,1250) * 100 / max(5, speed))
+                        if not twinks[t].colour == last_colour:
+                            r, g, b, w = list_to_rgb(twinks[t].colour)
+                        count_lit += 1
+                        set_pixel(twinks[t].position,r, g, b, w)
+            #if we are displaying this twinkle:
+            elif twinks[t].start < m < twinks[t].end:
+                if old_speed != speed: #speed has changed so adjust the end time by a random proportion
+                    twinks[t].end =  twinks[t].end + (random.randint(750,1250) * 100 / max(5, speed)) * random.uniform(0, 1)
+                #Now set the colour for this pixel
+                count_lit += 1
+                #Adjust the pixel intensity to fade in and out
+                if (twinks[t].start + fade_time) < m < (twinks[t].end - fade_time):
+                    #if not twinks[t].colour == last_colour:   # <--- what is this doing!!?
+                    r, g, b, w = list_to_rgb(twinks[t].colour)
+                else:
+                    if m - twinks[t].start < fade_time:
+                        b = 100 * (m - twinks[t].start) / fade_time
+                    else:
+                        b = 100 * (twinks[t].end - m) / fade_time
+                    r, g, b, w = list_to_rgb(twinks[t].colour,b)
+                set_pixel(twinks[t].position,r, g, b, w)
+            else: #not time to turn this on yet, but might want to adjust the start time
+                if stop: #set end time to 0 to avoid turning this on in the future
+                    twinks[t].end = 0
+                elif old_speed != speed: #speed has changed so adjust the start time by a random proportion
+                    twinks[t].start = twinks[t].start + (random.randint(250,500) * 100 / max(5, speed)) * random.uniform(0, 1)
+
+        twinkling_start = False
+        #debuglog("Speed now {:>3}; currently lit: {:>3}".format(speed,count_lit))
+        show()
+        old_speed = speed
+
+        #Sleep a bit to give the pi a rest
+        sleep(0.005)
     now_running("None")
 
 #Off command called via manage_lights through MQTT
@@ -856,14 +920,18 @@ def check_mqtt():
     if mqtt.client:
         mqtt.client.check_msg()
 
-def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
+def init_strip(strip_type="GRBW",pixels=16,GPIO=0,x=False):
     """Initialise new pixel strip"""
     global numPixels, LED_COUNT # pylint: disable=global-statement
     global strip # pylint: disable=global-statement
     global pixel_colours # pylint: disable=global-statement
+    global xstrip # pylint: disable=global-statement
 
     numPixels = pixels
     LED_COUNT = numPixels
+
+    if x:
+        xstrip = True
 
     #Create strip object
     #parameters: number of LEDs, state machine ID, GPIO number and mode (RGB or RGBW)
@@ -910,12 +978,12 @@ stop_after = 0
 
 effects = { "rainbow":   rainbow,
             "xmas":      xmas,
-            "train":     train,
             "off":       off,
             "auto_off":  auto_off,
             "statics":   statics_cycle,
             "shimmer":   shimmer,
             "splashing": splashing,
+            "twinkle": twinkling,
             }
 
 where = myid.where[myid.pico]
