@@ -176,7 +176,7 @@ def on_message(topic, payload):
             clear_log()
         else:
             log.status(f"Unknown command: {payload}")
-    elif topic[0:12] == "pico/lights" or topic[0:12] == "pico/xlights":
+    elif topic == "pico/lights" or topic == "pico/xlights":
         main.led_control(topic,payload)
     elif topic == "pico/poll":
         heartbeat_topic = f"pico/{pico}/heartbeat"
@@ -283,7 +283,10 @@ if not TESTMODE:
             log.status(f"Free storage: {status.fs_stats()}%", logit=True) # pylint: disable=no-member
             log.status(f"Temperature: {status.read_internal_temperature()}C", logit=True)
             log.status(f"Calling {pico}.py main()", logit=True)
-            main_result = main.main(standalone)
+            if standalone:
+                main_result = main.main(standalone)
+            else:
+                main_result = main.main()
             if not main_result == "Wi-Fi Lost":
                 slack.send_msg(pico,f":warning: Restarting after dropping through: {main_result}")
             else:
