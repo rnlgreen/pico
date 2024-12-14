@@ -4,6 +4,7 @@ import secrets
 import socket
 import network # type: ignore # pylint: disable=import-error
 from utils import log
+from utils.blink import blink
 
 #Global varaible so other functions can test the status
 wlan = False
@@ -24,10 +25,11 @@ def wlan_connect(hostname): # pylint: disable=unused-argument
             log.log_exception(e)
         attempts = 0
         while attempts < 5 and not wlan.isconnected():
+            blink(0.2,0.1,1)
             attempts += 1
             log.status(f"Connecting to {secrets.ssid}...", logit=True)
             wlan.connect(secrets.ssid,secrets.wlan_pass)
-            time.sleep(5)
+            time.sleep(2)
     except Exception as e: # pylint: disable=broad-exception-caught
         log.status(f"Exception connecting to Wi-Fi: {e}", logit=True, handling_exception=True)
         log.log_exception(e)
