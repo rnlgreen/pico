@@ -4,7 +4,7 @@ import time
 import gc
 from utils import mqtt
 from utils import settings
-from utils import more_leds as leds
+from utils import leds
 from utils import wifi
 from utils.log import status, log
 
