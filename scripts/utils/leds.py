@@ -125,7 +125,10 @@ def led_control(topic="", payload=""):
                 try:
                     #status(f"Calling {effects[command]}")
                     if arg != "":
-                        settings.stop_after = time.time() + int(arg)
+                        if arg == "-1":
+                            settings.stop_after = -1
+                        else:
+                            settings.stop_after = time.time() + int(arg)
                     effects[command]()
                 except Exception as e: # pylint: disable=broad-exception-caught
                     import io # pylint: disable=import-outside-toplevel
@@ -598,6 +601,10 @@ def twinkling(num=0,colour_list=[]): # pylint: disable=dangerous-default-value
     twinkling_start = True
     count_lit = 0
 
+    if settings.cycle:
+        settings.hue = 0
+        settings.colour = hsv_to_colour(settings.hue,255,30)
+
     twinks = []
 
     #Initialise all the twinks
@@ -610,9 +617,14 @@ def twinkling(num=0,colour_list=[]): # pylint: disable=dangerous-default-value
     #Time to fade the pixels in and out, in milliseconds
     fade_time = 150
 
-    while count_lit > 0:
+    while count_lit > 0 or not (settings.stop or time_to_go()):
         check_mqtt()
         #start by clearing all pixels
+        if settings.cycle:
+            settings.hue += 10
+            if settings.hue > 65535:
+                settings.hue -= 65535
+            settings.colour = hsv_to_colour(settings.hue,255,30)
         last_colour = settings.colour
         r, g, b, w = list_to_rgb(last_colour)
         set_all(r, g, b, w)
