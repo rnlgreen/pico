@@ -206,7 +206,11 @@ def ticks_diff(start,now):
 
 #Check if it is time to finish, if we are running standalone
 def time_to_go():
-    return (settings.stop_after > 0 and time.time() > settings.stop_after)
+    if settings.stop_after == 1: #Button has been pressed, time to move on
+        return True
+    if settings.stop_after > 1 and time.time() > settings.stop_after and not settings.singlepattern:
+        return True
+    return False
 
 #Translate sleep to time.sleep
 def sleep(s):
