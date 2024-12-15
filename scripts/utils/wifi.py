@@ -29,7 +29,7 @@ def wlan_connect(hostname): # pylint: disable=unused-argument
             attempts += 1
             log.status(f"Connecting to {secrets.ssid}...", logit=True)
             wlan.connect(secrets.ssid,secrets.wlan_pass)
-            time.sleep(2)
+            time.sleep(5)
     except Exception as e: # pylint: disable=broad-exception-caught
         log.status(f"Exception connecting to Wi-Fi: {e}", logit=True, handling_exception=True)
         log.log_exception(e)
