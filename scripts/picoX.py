@@ -40,7 +40,7 @@ def main(standalone = False):
 
     if standalone:
         set_brightness(60)
-        effect_duration = 20
+        effect_duration = 60
         led_control("standalone xlights","speed:90")
         while True:
             if mqtt.client is not False:
@@ -49,7 +49,8 @@ def main(standalone = False):
             led_control("standalone xlights",f"rainbow2:{effect_duration}")
             led_control("standalone xlights",f"statics:{effect_duration}")
             set_all(0, 0, 30)
-            led_control("standalone xlights",f"twinkling:{effect_duration}")
+            settings.cycle=True
+            led_control("standalone xlights",f"twinkling:{-1}")
             set_all(255, 200, 0)
             led_control("standalone xlights",f"shimmer:{effect_duration}")
             set_all(0, 30, 0)
