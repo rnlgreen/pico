@@ -2,11 +2,18 @@
 #Initialise the traps
 import time
 import gc
+from machine import Pin # pylint: disable=import-error
 from utils import mqtt
 from utils import settings
 from utils import leds
 from utils import wifi
-from utils.log import status, log
+from utils.blink import blink
+from utils.log import status
+from utils.common import set_brightness, set_all
+
+BUTTON = 15
+SWITCH = 17
+effect_duration = 60
 
 def get_status():
     status(f"running: {settings.running}")
@@ -19,6 +26,7 @@ def get_status():
     status(f"hue: {settings.hue}")
     status(f"lightsoff: {settings.lightsoff}")
     status(f"Auto control: {settings.auto}")
+    status(f"Single pattern: {settings.singlepattern}")
     gc.collect()
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
@@ -26,29 +34,62 @@ def get_status():
 def led_control(topic,payload):
     leds.led_control(topic,payload)
 
+def button_callback(_):
+    blink(0.1,0,1)
+    status("Skipping to next sequence")
+    settings.stop_after = 1 # Specific setting to trigger time_to_go()
+
+def switch_callback(pin):
+    blink(0.1,0,1)
+    if pin.value() == 1:
+        status("Single pattern")
+        settings.singlepattern = True
+        settings.stop_after = 0 # Flag to not stop
+    else:
+        if settings.singlepattern:
+            status("Multiple patterns")
+            settings.stop_after = 2 # Not 0 or 1 but something in the past
+            settings.singlepattern = False
+
 #Called my main.py
 def main(standalone = True):
+    standalone = True
     if standalone:
-        log("Running standalone")
+        status("Running standalone")
 
     strip_type = "GRB"
     pixels = 50
     GPIO = 28
-    xstrip = True
-    leds.init_strip(strip_type,pixels,GPIO,xstrip)
+    leds.init_strip(strip_type,pixels,GPIO)
+
+    button = Pin(BUTTON, Pin.IN, Pin.PULL_UP)
+    button.irq(button_callback, Pin.IRQ_FALLING)
+    switch = Pin(SWITCH, Pin.IN, Pin.PULL_UP)
+    switch.irq(switch_callback, Pin.IRQ_FALLING | Pin.IRQ_RISING)
 
     if standalone:
-        effect_duration = 15
-        sequence = ["rainbow", "statics", "shimmer", "splashing", "twinkling"]
-        sequence_no = 0
-        led_control("standalone xlights","brightness:30")
+        if switch.value() == 1:
+            settings.singlepattern = True
+            status("Single pattern mode")
+        else:
+            settings.singlepattern = False
+            status("Multiple pattern mode")
+        set_brightness(5)
+        led_control("standalone xlights","speed:90")
         while True:
             if mqtt.client is not False:
                 mqtt.client.check_msg()
-            led_control("standalone xlights",f"{sequence[sequence_no]}:{effect_duration}")
-            sequence_no += 1
-            if sequence_no == len(sequence):
-                sequence_no = 0
+            settings.speed = 90
+            led_control("standalone xlights",f"rainbow2:{effect_duration}")
+            led_control("standalone xlights",f"statics:{effect_duration}")
+            set_all(0, 0, 30)
+            settings.cycle=True
+            led_control("standalone xlights",f"twinkling:{-1}")
+            set_all(255, 200, 0)
+            led_control("standalone xlights",f"shimmer:{effect_duration}")
+            #set_all(0, 30, 0)
+            #settings.speed = 30
+            #led_control("standalone xlights",f"splashing:{effect_duration}")
     else:
         if mqtt.client is not False:
             mqtt.client.subscribe("pico/xlights") # type: ignore
@@ -59,7 +100,7 @@ def main(standalone = True):
                 mqtt.client.check_msg()
 
             #Check WiFi status
-            if not standalone and not wifi.check_wifi():
+            if not wifi.check_wifi():
                 return "Wi-Fi Lost"
 
             time.sleep(0.2)
