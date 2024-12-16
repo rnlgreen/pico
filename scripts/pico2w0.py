@@ -52,8 +52,7 @@ def switch_callback(pin):
             settings.singlepattern = False
 
 #Called my main.py
-def main(standalone = True):
-    standalone = True
+def main(standalone = False):
     if standalone:
         status("Running standalone")
 
@@ -74,7 +73,7 @@ def main(standalone = True):
         else:
             settings.singlepattern = False
             status("Multiple pattern mode")
-        set_brightness(5)
+        set_brightness(40)
         led_control("standalone xlights","speed:90")
         while True:
             if mqtt.client is not False:

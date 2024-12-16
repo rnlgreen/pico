@@ -1,5 +1,5 @@
 #shared settings
-LED_COUNT = 0               # Fixed count of physical LEDs in the strip, set by the pico'x'.py 
+LED_COUNT = 0               # Fixed count of physical LEDs in the strip, set by the pico'x'.py
 numPixels = 0               # Dynamic LED count, typically either LED_COUNT or LED_COUNT/2 for reflect mode
 colour = [0, 0, 0]          # Current background colour
 saturation = 100            # Saturation level of LEDs

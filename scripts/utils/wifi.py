@@ -37,7 +37,7 @@ def wlan_connect(hostname): # pylint: disable=unused-argument
         return False
 
     if wlan.isconnected():
-        log.status(wlan.ifconfig(), logit=True)
+        log.status(",".join(wlan.ifconfig()), logit=True)
         return wlan.ifconfig()[0]
     else:
         log.status("Failed to connect to WLAN", logit=True)

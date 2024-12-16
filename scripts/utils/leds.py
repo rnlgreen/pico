@@ -58,13 +58,13 @@ def led_control(topic="", payload=""):
     """Process control commands"""
     #Topic is pico/lights or pico/xlights with the command in payload with args after a colon
     #Standalone mode sends topic "standalone xlights" and the payload routines have a duration after the colon
-    log.status(f"received topic:{topic} payload:{payload}")
+    #log.status(f"received topic:{topic} payload:{payload}")
     arg = ""
     if ":" in payload:
         command, arg = payload.lower().strip().split(":")
     else:
         command = payload.lower().strip()
-    log.status(f"command:{command} arg:{arg}")
+    #log.status(f"command:{command} arg:{arg}")
     if settings.xstrip:
         if "xlights" not in topic and not settings.xsync:
             log.status(f"xstrip ignoring {topic}")
@@ -348,7 +348,7 @@ def debuglog(message):
 
 # Static colour setting, used by statics_cycle
 def static(block_size, colour_list, transition_time=5):
-    debuglog(f"static: {block_size}, {colour_list}")
+    #debuglog(f"static: {block_size}, {colour_list}")
     num_colours = len(colour_list)
     #debuglog(f"Number of colours: {num_colours}")
     br = [0] * settings.numPixels
@@ -390,7 +390,7 @@ def statics_cycle(sleep_time=5):
     num_colours = 2
     while not settings.stop and not time_to_go():
         check_mqtt()
-        debuglog(f"base_wheel_pos: {base_wheel_pos}")
+        #debuglog(f"base_wheel_pos: {base_wheel_pos}")
         block_size = random.randint(2,5)
         num_colours += 1
         if num_colours > 4:
