@@ -154,7 +154,8 @@ def rainbow():
         check_mqtt()
         settings.colour = hsv_to_colour(settings.hue, 255, 255)
         #Returns list (r, g, b)
-        set_all(settings.colour)
+        r, g, b, w = list_to_rgb(settings.colour)
+        set_all(r, g, b, w)
         show()
         settings.hue += 100
         if settings.hue > 65535:
@@ -214,7 +215,8 @@ def xmas():
     t = millis()
     settings.colour = hsv_to_colour(settings.hue, 255, 255) # settings.hue (0-65535), settings.saturation (0-255), brightness (0-255)
     #Returns list (r, g, b)
-    set_all(settings.colour)
+    r, g, b, w = list_to_rgb(settings.colour)
+    set_all(r, g, b, w)
     show()
     n = 0
     while not settings.stop and not time_to_go():
