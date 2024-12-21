@@ -34,14 +34,18 @@ def put_binaryfile(ftp,folder,filename):
         ftp.storbinary('STOR ' + target_file, fp)
 
 #Get the server side list of sha256 values for available code
-def get_sha256_list(ftp):
+def get_fileinfo(ftp):
     lines = []
-    ftp.retrlines('RETR sha256.txt', lines.append)
+    ftp.retrlines('RETR fileinfo.txt', lines.append)
     sha256_values = {}
+    filesize_values = {}
     for line in lines:
-        sha256value,filename = line.strip().split('  ')
-        sha256_values[filename] = sha256value
-    return sha256_values
+        filename, sha256_value, filesize_value = line.strip().split(' ')
+        if filename == "File" or filename == "__init__.py":
+            continue
+        sha256_values[filename] = sha256_value
+        filesize_values[filename] = filesize_value
+    return sha256_values, filesize_values
 
 #Get all the files on a folder (not actually used by anything at the moment)
 def get_allfiles(ftp,folder):
@@ -65,18 +69,26 @@ def get_allfiles(ftp,folder):
 def get_changedfiles(ftp,folder,cleanup=False):
     ftp.cwd(folder)
     numfiles = 0
-    sha256_values = get_sha256_list(ftp)
+    sha256_values, filesize_values = get_fileinfo(ftp)
     for filename in sha256_values: # pylint: disable=consider-using-dict-items
-        #Get compare sha256 values
-        if not check_sha256(folder+"/"+filename, sha256_values[filename]):
-            #Try getting file size to see if it is a directory
-            try:
-                ftp.size(filename) #just using size to test if the file exists
-                log.status(f"Getting {folder + '/' + filename}", logit=True)
-                get_binaryfile(ftp,folder,filename)
-                numfiles+=1
-            except: # pylint: disable=bare-except
-                log.status(f"File not found: '{folder + '/' + filename}'", logit=True)
+        fetch = False
+        try:
+            #Compare file size first, easier than chksum and avoids memory errors
+            size = ftp.size(filename) #just using size to test if the file exists
+            if size != int(filesize_values[filename]):
+                log.status(f"{filename} size {size} != {filesize_values[filename]}")
+                fetch = True
+            #Now check checksum in case the size is the same
+            elif not check_sha256(folder+"/"+filename, sha256_values[filename]):
+                log.status(f"{filename} checksum mismatch")
+                fetch = True
+        except: # pylint: disable=bare-except
+            log.status(f"File not found: '{folder + '/' + filename}'", logit=True)
+            fetch = True
+        if fetch:
+            log.status(f"Getting {folder + '/' + filename}", logit=True)
+            get_binaryfile(ftp,folder,filename)
+            numfiles+=1
     if cleanup:
         localfiles = os.listdir(folder)
         for filename in localfiles:
