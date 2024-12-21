@@ -25,10 +25,10 @@ def list_to_rgb(c, p=100):
     else:
         r, g, b, _ = (min(255, int(int(x) * (p / 100.0))) for x in c)
 
-    if settings.saturation != 100:
-        h, s, v = rgb_to_hsv(r, g, b)
-        s = settings.saturation / 100
-        r, g, b = hsv_to_rgb(h, s, v)
+#    if settings.saturation != 100:
+#        h, s, v = rgb_to_hsv(r, g, b)
+#        s = settings.saturation / 100
+#        r, g, b = hsv_to_rgb(h, s, v)
     return r, g, b, 0
 
 def hsv_to_colour(h, s=255, v=255):
@@ -86,8 +86,9 @@ def hsv_to_rgb(h, s, v):
 #Alternative wheel based on HSV
 def wheel(pos):
     """Return RGB based on Wheel position"""
-    sat = settings.saturation / 100
-    return hsv_to_rgb(pos/255,sat,1)
+    saturation = settings.saturation / 100
+    r, g, b = hsv_to_rgb(pos/255,saturation,1)
+    return ([r, g, b])
 
 # Funtion to fade colours given the foreground, background and a factor
 def fade_rgb(fr, fg, fb, fw, br, bg, bb, bw, factor):
@@ -127,6 +128,18 @@ def get_pixel_rgb(i):
     else:
         r, g, b, _ = settings.pixel_colours[i]
         return r, g, b, 0
+
+# Euclidean colour difference
+def euclidean_distance(c2):
+    #Allow for settings.colour to have a white value
+    if len(settings.colour) == 4:
+        r1, g1, b1, _ = settings.colour
+    else:
+        r1, g1, b1 = settings.colour
+
+    r2, g2, b2 = c2
+    distance = sqrt((r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2)
+    return distance
 
 #Function to set the speed during demo sequences
 def set_speed(new_speed):
