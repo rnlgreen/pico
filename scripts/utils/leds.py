@@ -1,20 +1,19 @@
 """Utility functions to do pretty things with a WS2812 LED strip"""
 import time
-from math import sin, radians  # Used in bouncing_balls
+from math import sin, radians, sqrt  # Used in bouncing_balls
 import random
 import utime # type: ignore # pylint: disable=import-error
 from utils import myid
 from utils import log
 from utils import settings
 from utils import light
-from utils.colours import colours
+from utils.colours import colours, xmas_colours
 from utils.common import list_to_rgb, set_pixel, sleep_for
 from utils.common import sleep, time_to_go, check_mqtt, wheel, rgb_to_hsv
-from utils.common import get_pixel_rgb, fade_rgb
+from utils.common import get_pixel_rgb, fade_rgb, euclidean_distance
 from utils.common import millis, set_all, show, hsv_to_colour, ticks_diff
 from utils.common import send_control, send_colour, set_speed, set_brightness
 from utils.common import off, auto_off, set_colour, new_brightness, mqtt
-#from utils.more_leds2 import statics_cycle, twinkling, splashing, shimmer
 
 from lib.neopixel import Neopixel # pylint: disable=import-error
 
@@ -37,9 +36,7 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
     settings.LED_COUNT = pixels
 
     #Create strip object
-    #parameters: number of LEDs, state machine ID, GPIO number and mode (RGB or RGBW)
     log.status("Initialising strip")
-    #strip = Neopixel(numPixels, 0, 0, "GRBW")
     settings.strip = Neopixel(pixels, 0, GPIO, strip_type)
     settings.pixel_colours = [[0, 0, 0, 0]] * pixels
     set_brightness(0)
@@ -51,20 +48,17 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
         mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness","0")
         mqtt.send_mqtt("pico/"+myid.pico+"/status/auto","on")
         mqtt.send_mqtt("pico/"+myid.pico+"/status/boost","off")
-    #now_running("None")
 
 #LED control function to accept commands and launch effects
 def led_control(topic="", payload=""):
     """Process control commands"""
     #Topic is pico/lights or pico/xlights with the command in payload with args after a colon
     #Standalone mode sends topic "standalone xlights" and the payload routines have a duration after the colon
-    #log.status(f"received topic:{topic} payload:{payload}")
     arg = ""
     if ":" in payload:
         command, arg = payload.lower().strip().split(":")
     else:
         command = payload.lower().strip()
-    #log.status(f"command:{command} arg:{arg}")
     if settings.xstrip:
         if "xlights" not in topic and not settings.xsync:
             log.status(f"xstrip ignoring {topic}")
@@ -75,7 +69,6 @@ def led_control(topic="", payload=""):
             else:
                 settings.xsync = False
     if command.startswith("rgb"):
-        #rgb(219, 132, 56)
         try:
             r, g, b = [int(x) for x in command[4:-1].split(", ")]
             set_colour([r, g, b])
@@ -119,7 +112,6 @@ def led_control(topic="", payload=""):
             if command not in ["off","auto_off"]:
                 settings.next_up = command #Store the new routine so that it gets called by ""
             settings.stop = True
-            #effects[command]()
         else: #otherwise just run the effect or off
             if command != "stopping":
                 try:
@@ -134,7 +126,6 @@ def led_control(topic="", payload=""):
                     import io # pylint: disable=import-outside-toplevel
                     import sys # pylint: disable=import-outside-toplevel
                     output = io.StringIO()
-                    #status("main.py caught exception: {}".format(e))
                     sys.print_exception(e, output) # pylint: disable=no-member
                     exception = output.getvalue()
                     log.status(f"Main caught exception:\n{exception}")
@@ -145,7 +136,6 @@ def led_control(topic="", payload=""):
 def rainbow():
     """Rainbow sequence"""
     now_running("Rainbow")
-    #set_speed(75)
     settings.hue = 0
     t = millis()
     n = 0
@@ -153,16 +143,14 @@ def rainbow():
     while not settings.stop and not time_to_go():
         check_mqtt()
         settings.colour = hsv_to_colour(settings.hue, 255, 255)
-        #Returns list (r, g, b)
         r, g, b, w = list_to_rgb(settings.colour)
         set_all(r, g, b, w)
         show()
         settings.hue += 100
         if settings.hue > 65535:
             settings.hue -= 65535
-            if settings.master and settings.auto: #if this is the master pico then send the new settings.hue to the others
+            if settings.master and settings.auto:
                 send_control(f"hue:{settings.hue}")
-        #Only pico5 controls the brightness using the light sensor
         if settings.master and settings.auto:
             if ticks_diff(t, millis()) > 1000:
                 n += 1
@@ -176,24 +164,20 @@ def rainbow():
                     n = 0
                 t = millis()
         time.sleep(settings.dyndelay / 1000)
-    #set_all(0, 0, 0)
     now_running("None")
 
 # Rainbow2 function - cycle  every settings.colour of the rainbow across all the pixels
 def rainbowCycle(iterations=0):
     now_running("rainbowCycle")
-    speedfactor = 1  # smaller is faster, no less than 0.1
     limit_run = iterations > 0
     while not (settings.stop or (limit_run and iterations == 0)) and not time_to_go():
-        check_mqtt()
         for j in range(256):
+            check_mqtt()
             for i in range(settings.numPixels):
                 r, g, b, w = list_to_rgb(wheel((int(i * 256 / settings.numPixels) + j) & 255))
                 set_pixel(i, r, g, b, w)
-#                if lcd_effects and i == numPixels / 2:
-#                    set_lcd_colour(wheel((int(i * 256 / numPixels) + j) & 255))
             show()
-            sleep(settings.dyndelay * speedfactor / 1000.0)  # Needs to run a bit faster than others
+            sleep(settings.dyndelay / 1000.0)
             if settings.stop:
                 break
         if limit_run:
@@ -213,22 +197,18 @@ def xmas():
     else:
         settings.hue = int((-3 + int(myid.pico[4])) * 16384)
     t = millis()
-    settings.colour = hsv_to_colour(settings.hue, 255, 255) # settings.hue (0-65535), settings.saturation (0-255), brightness (0-255)
-    #Returns list (r, g, b)
-    r, g, b, w = list_to_rgb(settings.colour)
-    set_all(r, g, b, w)
+    settings.colour = hsv_to_colour(settings.hue, 255, 255)
+    set_all(settings.colour)
     show()
     n = 0
     while not settings.stop and not time_to_go():
         check_mqtt()
         settings.colour = hsv_to_colour(settings.hue, 255, 255)
-        #Returns list (r, g, b)
         set_all(settings.colour)
         show()
         settings.hue += 64
         if settings.hue > 65535:
             settings.hue -= 65535
-        #Only pico5 controls the brightness using the light sensor
         if settings.master and settings.auto:
             if ticks_diff(t, millis()) > 1000:
                 n += 1
@@ -239,7 +219,6 @@ def xmas():
                 send_colour()
                 n = 0
         time.sleep(settings.dyndelay / 1000)
-    #set_all(0, 0, 0)
     now_running("None")
 
 #Function to report now running, also used to trigger the next effect if switching from one to another
@@ -258,9 +237,7 @@ def now_running(new_effect): #new_effect is the name of the new effect that just
                 led_control(payload=new_effect)
             else:
                 pass
-                #off()
         else:
-            #Just stopping existing effect to set new_effect to "None" and leave the lights on
             settings.next_up = "None"
     else:
         settings.running = True
@@ -270,13 +247,9 @@ def now_running(new_effect): #new_effect is the name of the new effect that just
     mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
 
 #Routine to manage LED brightness
-# #Control LEDs based on light and time of day
-#Returns True if lights were updated so we can slow the rate of changes
 def manage_lights():
     """Update lights based on light levels"""
-    #Get the latest rolling average light level
     lightlevel = light.rolling_average()
-    #Flag whether we changed the lights or not
     updated = False
 
     if settings.auto:
@@ -285,15 +258,12 @@ def manage_lights():
             lightlevel = light.readLight()
             light.send_measurement(where,"light",lightlevel)
             light.last_reading = time.time()
-        #Check time of day first
         hour = utime.localtime()[3]
-        #Check month to approximate daylight savings time
         month = utime.localtime()[1]
         if (month > 3 and month < 11):
             hour += 1
             if hour == 23:
                 hour = 0
-        #Only manage lights between certain hours
         if (hour >= LIGHTS_ON or hour < LIGHTS_OFF): #e.g. from > 7 or < 0
             #Turn off for high light levels
             if lightlevel > BRIGHT and not settings.lightsoff:
@@ -307,7 +277,6 @@ def manage_lights():
                 updated = True
             #Turn on or adjust for low light levels
             elif lightlevel < DIM:
-                #New brightness something between 10 and 80 step 5
                 new_brightness_level = light.get_brightness(lightlevel,settings.boost)
                 #If the brightness level has changed check for hysteresis
                 h = light.check_hysteresis(lightlevel)
@@ -323,7 +292,6 @@ def manage_lights():
                             else:
                                 if settings.colour == [0, 0, 0]:
                                     send_control(INITIAL_COLOUR_COMMAND)
-                        # log.status(f"Brightness {brightness} -> {new_brightness_level}")
                         send_control(f"brightness:{new_brightness_level}")
                         updated = True
                     else:
@@ -340,19 +308,13 @@ def manage_lights():
             send_control("auto_off")
             updated = True
     return updated
-# MORE LED ROUTINES
-## NOTES:
-# New routines need "" removed and check_mqtt() adding to the main loop
 
-# First dummy functions for "debuglog" to save me from editing stuff
 def debuglog(message):
     log.status(message)
 
 # Static colour setting, used by statics_cycle
 def static(block_size, colour_list, transition_time=5):
-    #debuglog(f"static: {block_size}, {colour_list}")
     num_colours = len(colour_list)
-    #debuglog(f"Number of colours: {num_colours}")
     br = [0] * settings.numPixels
     bg = [0] * settings.numPixels
     bb = [0] * settings.numPixels
@@ -366,8 +328,7 @@ def static(block_size, colour_list, transition_time=5):
     for p in range(settings.numPixels):
         c = int(p / block_size) % num_colours
         fr[p], fg[p], fb[p], fw[p] = list_to_rgb(colour_list[c])
-        #if p < 10:
-        #    debuglog(f"{p}: {fr[p]}, {fg[p]}, {fb[p]}, {fw[p]}")
+
     #get the current pixel colours
     for p in range(settings.numPixels):
         br[p], bg[p], bb[p], bw[p] = get_pixel_rgb(p)
@@ -379,35 +340,27 @@ def static(block_size, colour_list, transition_time=5):
             set_pixel(i, r, g, b, w)
         show()
         sleep(transition_time / 50)
-    #debuglog("Exiting")
 
 # Cycling static display
-# Random block size
-# Goes from 2 to 5 colours
-# Steps round the wheel by 34 degress
-# Random saturation
 def statics_cycle(sleep_time=5):
     now_running("statics_cycle")
     base_wheel_pos = 0
     num_colours = 2
     while not settings.stop and not time_to_go():
         check_mqtt()
-        #debuglog(f"base_wheel_pos: {base_wheel_pos}")
-        block_size = random.randint(2,5)
+        block_size = int(random.randint(2,5) * settings.numPixels / 100)
         num_colours += 1
         if num_colours > 4:
             num_colours = 2
         static_colours = [[]] * num_colours
-        #wheel uses saturation, so pick one of those first
-        #settings.saturation = random.randint(75,100)
-        settings.saturation = 100
+        settings.saturation = random.randint(75,100)
         static_colours[0] = wheel(base_wheel_pos)
         for c in range(num_colours):
             wheel_pos = base_wheel_pos + c * (int(255 / num_colours))
             if wheel_pos > 255:
                 wheel_pos -= 255
             static_colours[c] = wheel(wheel_pos)
-        static(block_size,static_colours,5)
+        static(block_size,static_colours,3)
         #Step round the wheel by slightly less than a quarter
         base_wheel_pos += 34
         if base_wheel_pos > 255:
@@ -433,7 +386,7 @@ def shimmer(shimmer_width=5,iterations=0):
                 r, g, b, w = list_to_rgb(settings.colour, p)
                 set_pixel(i, r, g, b, w)
             show()
-            sleep(settings.dyndelay * loop_delta / 1000.0)  # the more steps the lower the sleep time
+            sleep(settings.dyndelay * loop_delta / 2000.0)  # the more steps the lower the sleep time
             if settings.stop:
                 break
             j += loop_delta
@@ -469,7 +422,6 @@ class splash(): # pylint: disable=missing-class-docstring
         self.rotation += delta * settings.speed / 100                #Added speed factor
 
 #Splash puddles of colour at target pixel (class version)
-#"leave" is for painting - leaves the splash behind
 def splashing(num=5,colour_list=["-1"],leave=False): # pylint: disable=dangerous-default-value
     debuglog(f"Starting with num: {num} and colour list: {colour_list}")
     now_running("splashing")
@@ -477,7 +429,7 @@ def splashing(num=5,colour_list=["-1"],leave=False): # pylint: disable=dangerous
     colour_index = 0
     #Start by resetting to the background colour
     br, bg, bb, bw = list_to_rgb(settings.colour)
-    #set_all(br, bg, bb, bw)
+    set_all(br, bg, bb, bw)
     led_colours = [[br, bg, bb, bw]] * settings.LED_COUNT
 
     splashes = []
@@ -506,6 +458,7 @@ def splashing(num=5,colour_list=["-1"],leave=False): # pylint: disable=dangerous
     total_elapsed = 0
 
     while num > 0:
+        check_mqtt()
         if leave:
             for p in range(settings.numPixels):
                 led_colours[p] = list(get_pixel_rgb(p))
@@ -536,7 +489,6 @@ def splashing(num=5,colour_list=["-1"],leave=False): # pylint: disable=dangerous
                             colour_index = 0
                     splashes[s].new(colour)
                 else:
-                    debuglog(f"Dropping splash {s}")
                     num -= 1
                     splashes.pop(s)
                     break
@@ -554,7 +506,6 @@ def splashing(num=5,colour_list=["-1"],leave=False): # pylint: disable=dangerous
                     led_colours[p] = [min(255, x+y) for x,y in zip(led_colours[p],[fr, fg, fb, fw])]
                 else:
                     led_colours[p] = [fr, fg, fb, fw]
-                #changed[p] = True
 
         #Now set the pixels that need changing
         for p in range(settings.numPixels):
@@ -562,6 +513,49 @@ def splashing(num=5,colour_list=["-1"],leave=False): # pylint: disable=dangerous
         show()
 
         sleep(0.005) # Sleep a little to give the CPU a break
+    now_running("None")
+
+#New train function with hopefully better logic
+def train(num_carriages=-1, colour_list=[], iterations=0): # pylint: disable=dangerous-default-value
+    """train sequence"""
+    now_running("train")
+
+    #limit_run is a flag to say whether we are running a limited number of passes
+    limit_run = iterations > 0
+
+    if num_carriages == -1:
+        num_carriages = int(settings.numPixels / 28)
+    if len(colour_list) == 0:
+        colour_list = xmas_colours
+
+    log.status(f"Colour list: {colour_list}")
+
+    #progression is a counter to say how far the train has travelled
+    progression = settings.numPixels
+    t = millis()
+
+    while not (settings.stop or (limit_run and iterations == 0)) and not (settings.stop_after > 0 and time.time() > settings.stop_after):
+        check_mqtt()
+        carriage_length = int(settings.numPixels / num_carriages)
+        progression += 1
+        for i in range(settings.numPixels):
+            if progression > i:
+                carriage_no = int((progression - i) / carriage_length) % len(colour_list)
+                mycolour = colour_list[carriage_no]
+                r, g, b, _ = list_to_rgb(mycolour)
+            else:
+                r, g, b = [0, 0, 0]
+
+            set_pixel(i, r, g, b)
+        settings.strip.show()
+        if settings.stop:
+            break
+        #Only pico5 controls the brightness using the light sensor
+        if settings.master and settings.auto:
+            if ticks_diff(t, millis()) > 10000:
+                manage_lights()
+                t = millis()
+        time.sleep(0.75 * settings.dyndelay / 1000)
     now_running("None")
 
 # Class the defines an individual twink
@@ -623,7 +617,7 @@ def twinkling(num=0,colour_list=[]): # pylint: disable=dangerous-default-value
         check_mqtt()
         #start by clearing all pixels
         if settings.cycle:
-            settings.hue += 10
+            settings.hue += 30
             if settings.hue > 65535:
                 settings.hue -= 65535
             settings.colour = hsv_to_colour(settings.hue,255,30)
@@ -655,7 +649,6 @@ def twinkling(num=0,colour_list=[]): # pylint: disable=dangerous-default-value
                 count_lit += 1
                 #Adjust the pixel intensity to fade in and out
                 if (twinks[t].start + fade_time) < m < (twinks[t].end - fade_time):
-                    #if not twinks[t].colour == last_colour:   # <--- what is this doing!!?
                     r, g, b, w = list_to_rgb(twinks[t].colour)
                 else:
                     if m - twinks[t].start < fade_time:
@@ -671,13 +664,134 @@ def twinkling(num=0,colour_list=[]): # pylint: disable=dangerous-default-value
                     twinks[t].start = twinks[t].start + (random.randint(250,500) * 100 / max(5, settings.speed)) * random.uniform(0, 1)
 
         twinkling_start = False
-        #debuglog("Speed now {:>3}; currently lit: {:>3}".format(settings.speed,count_lit))
         show()
         old_speed = settings.speed
 
-        #Sleep a bit to give the pi a rest
         sleep(0.005)
     now_running("None")
+
+#class version of a wave
+class wavelet: # pylint: disable=missing-class-docstring
+    def __init__(self):
+        self.new()
+
+    def new(self):
+        #Reset the travel limits based on numPixels in case we've changed that or turned on reflect
+        min_travel = max(3, int(settings.numPixels / 4))
+        min_length = max(3, int(settings.numPixels / 20))
+        max_length = max(5, int(settings.numPixels / 4))
+        self.length = random.randint(min_length, max_length)
+
+        #Pixels at the ends of the wave are not visible, just adding 2 on rather than fix the maths
+        self.length = self.length + 2
+
+        #Start position of the wave
+        self.start = random.randint(0, settings.numPixels)
+
+        #Now choose a direction for the wave to go
+        if self.start < min_travel:
+            self.direction = 1
+        elif self.start > (settings.numPixels - min_travel):
+            self.direction = -1
+        else:
+            self.direction = random.choice([1, -1])
+
+        #Calculate a travel distance based on the start and direction of travel
+        if self.direction == 1:
+            travel = random.randint(min_travel, settings.numPixels - self.start)
+        else:
+            travel = random.randint(min_travel, self.start)
+
+        self.position = self.start
+        #Calculate the start and end of the wave, encompassing the lowest pixel to the highest pixel plus length
+        if self.direction == 1:
+            self.end = self.start + travel
+        else:
+            self.end = self.start - travel
+
+        self.distance = 0
+        while self.distance < 120:
+            self.colour = wheel(random.randint(0, 255))
+            self.distance = euclidean_distance(self.colour)
+
+        #Pick a speed
+        self.speed = random.uniform(0.1,0.8)
+
+    #Update wave position based on the elapsed time
+    def move_wave(self, elapsed):
+        delta = self.direction * self.speed * elapsed * sqrt(max(10,settings.speed)) / 100
+        self.position += delta
+
+# Another waves routine, this time for multiple waves at once - using wavelet class
+def morewaves(num_waves=3):
+    debuglog("Starting")
+
+    # Setup waves class objects
+    thewaves = [wavelet() for i in range(num_waves)]
+
+    #Grab the current time in millisecons
+    t = millis()
+    iterations = 0
+    total_elapsed = 0
+
+    while num_waves > 0 and not time_to_go():
+        check_mqtt()
+        #Start by resetting to the background colour
+        br, bg, bb, bw = list_to_rgb(settings.colour)
+        led_colours = [[br, bg, bb, bw]] * settings.LED_COUNT
+
+        #Get the elapsed time since last time we were here
+        elapsed = millis() - t
+        total_elapsed += elapsed
+        iterations += 1
+        t = millis()
+        for wv in range(num_waves):
+            thewaves[wv].move_wave(elapsed)
+
+            # Get colour of this wave
+            fr, fg, fb, fw = list_to_rgb(thewaves[wv].colour, 200)      #, 200 gives double brightness to show up better over background activity
+
+            #Loop over length of the wave
+            set_a_pixel = False
+            for i in range(thewaves[wv].length):
+                if thewaves[wv].direction == 1:
+                    p = i - thewaves[wv].length + 1 + int(thewaves[wv].position + 0.5) # The pixel we need to set
+                else:
+                    p = i + int(thewaves[wv].position + 0.5)
+
+                #We start with the wave off the end of the target window, so need to skip pixels outside that window
+                if (0 <= p < settings.numPixels) and ((thewaves[wv].direction == 1 and (thewaves[wv].start <= p <= thewaves[wv].end)) or
+                                                      (thewaves[wv].direction == -1 and (thewaves[wv].start >= p >= (thewaves[wv].end)))):
+
+                    #Calculate a factor for colour fade from one end of the wave to the other, from 0 to 1 to 0
+                    factor = 1 - abs(-1 + (2 * i) / (thewaves[wv].length - 1))
+
+                    #Calculate the intensity of this wave of colour based on the factor above
+                    r, g, b, w = fade_rgb(fr, fg, fb, fw, 0, 0, 0, 0, factor)
+
+                    #Now add the wave to the current led_colours
+                    led_colours[p] = [min(255, x+y) for x,y in zip(led_colours[p],[r, g, b, w])]
+
+                    set_a_pixel = True
+
+            #If we haven't made a pixel visible for this wave it's time to create a new wave
+            if not set_a_pixel:
+                if not settings.stop and not time_to_go():
+                    thewaves[wv].new()
+                else:
+                    debuglog(f"Dropping wave {wv}")
+                    num_waves -= 1
+                    thewaves.pop(wv)
+                    break
+
+        #Now set all the pixels that need changing
+        for p in range(settings.numPixels):
+            if not led_colours[p] == settings.pixel_colours[p]:
+                set_pixel(p, led_colours[p][0], led_colours[p][1], led_colours[p][2], led_colours[p][3])
+        show()
+
+        sleep(0.005) # Sleep a little to give the CPU a break
+    debuglog("Exiting")
 
 effects = { "rainbow":   rainbow,
             "rainbow2":  rainbowCycle,
@@ -688,6 +802,8 @@ effects = { "rainbow":   rainbow,
             "twinkling": twinkling,
             "splashing": splashing,
             "shimmer":   shimmer,
+            "train":     train,
+            "morewaves": morewaves,
             }
 
 where = myid.where[myid.pico]
