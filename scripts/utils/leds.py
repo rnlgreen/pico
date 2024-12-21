@@ -325,9 +325,24 @@ def static(block_size, colour_list, transition_time=5):
     fw = [0] * settings.numPixels
 
     #work out the new pixel colours
-    for p in range(settings.numPixels):
-        c = int(p / block_size) % num_colours
-        fr[p], fg[p], fb[p], fw[p] = list_to_rgb(colour_list[c])
+    if block_size > 0:
+        for p in range(settings.numPixels):
+            c = int(p / block_size) % num_colours
+            fr[p], fg[p], fb[p], fw[p] = list_to_rgb(colour_list[c])
+    else:
+        blocks = []
+        for i in range(len(colour_list)):
+            blocks.append(random.randint(3,max(5,int(settings.numPixels/30))))
+        p = 0
+        while p < settings.numPixels:
+            for c, color in enumerate(colour_list):
+                if p == settings.numPixels:
+                    break
+                for b in range(blocks[c]):
+                    fr[p], fg[p], fb[p], fw[p] = list_to_rgb(color)
+                    p += 1
+                    if p == settings.numPixels:
+                        break
 
     #get the current pixel colours
     for p in range(settings.numPixels):
@@ -342,13 +357,14 @@ def static(block_size, colour_list, transition_time=5):
         sleep(transition_time / 50)
 
 # Cycling static display
-def statics_cycle(sleep_time=5):
+def statics_cycle(sleep_time=10):
     now_running("statics_cycle")
     base_wheel_pos = 0
     num_colours = 2
     while not settings.stop and not time_to_go():
         check_mqtt()
-        block_size = int(random.randint(2,5) * settings.numPixels / 100)
+        #block_size = int(random.randint(2,5) * settings.numPixels / 100)
+        block_size = -1
         num_colours += 1
         if num_colours > 4:
             num_colours = 2

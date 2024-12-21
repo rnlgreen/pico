@@ -81,7 +81,7 @@ def main(standalone = False):
                 mqtt.client.check_msg()
             set_speed(100)
             led_control("standalone xlights",f"rainbow2:{effect_duration}")
-            #led_control("standalone xlights",f"statics:{effect_duration}")
+            led_control("standalone xlights",f"statics:{effect_duration}")
             set_all(30, 0, 0)
             set_speed(80)
             led_control("standalone xlights",f"morewaves:{effect_duration}")
