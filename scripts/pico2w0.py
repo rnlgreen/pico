@@ -9,11 +9,11 @@ from utils import leds
 from utils import wifi
 from utils.blink import blink
 from utils.log import status
-from utils.common import set_brightness, set_all
+from utils.common import set_brightness, set_all, set_speed
 
 BUTTON = 15
 SWITCH = 17
-effect_duration = 60
+effect_duration = 300
 
 def get_status():
     status(f"running: {settings.running}")
@@ -53,11 +53,12 @@ def switch_callback(pin):
 
 #Called my main.py
 def main(standalone = False):
+    standalone = True
     if standalone:
         status("Running standalone")
 
     strip_type = "GRB"
-    pixels = 50
+    pixels = 288
     GPIO = 28
     leds.init_strip(strip_type,pixels,GPIO)
 
@@ -78,17 +79,23 @@ def main(standalone = False):
         while True:
             if mqtt.client is not False:
                 mqtt.client.check_msg()
-            settings.speed = 90
+            set_speed(100)
             led_control("standalone xlights",f"rainbow2:{effect_duration}")
-            led_control("standalone xlights",f"statics:{effect_duration}")
+            #led_control("standalone xlights",f"statics:{effect_duration}")
+            set_all(30, 0, 0)
+            set_speed(80)
+            led_control("standalone xlights",f"morewaves:{effect_duration}")
             set_all(0, 0, 30)
             settings.cycle=True
-            led_control("standalone xlights",f"twinkling:{-1}")
+            led_control("standalone xlights",f"twinkling:{effect_duration * 2}")
             set_all(255, 200, 0)
+            set_speed(100)
             led_control("standalone xlights",f"shimmer:{effect_duration}")
-            #set_all(0, 30, 0)
-            #settings.speed = 30
-            #led_control("standalone xlights",f"splashing:{effect_duration}")
+            led_control("standalone xlights",f"train:{effect_duration}")
+            set_all(0, 30, 0)
+            set_speed(90)
+            settings.splash_size = int(settings.numPixels / 10)
+            led_control("standalone xlights",f"splashing:{effect_duration}")
     else:
         if mqtt.client is not False:
             mqtt.client.subscribe("pico/xlights") # type: ignore
