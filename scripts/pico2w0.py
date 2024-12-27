@@ -35,9 +35,10 @@ def led_control(topic,payload):
     leds.led_control(topic,payload)
 
 def button_callback(_):
-    blink(0.1,0,1)
-    status("Skipping to next sequence")
-    settings.stop_after = 1 # Specific setting to trigger time_to_go()
+    if settings.stop_after != 1:
+        blink(0.1,0,1)
+        status("Skipping to next sequence")
+        settings.stop_after = 1 # Specific setting to trigger time_to_go()
 
 def switch_callback(pin):
     blink(0.1,0,1)
