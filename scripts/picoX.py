@@ -41,7 +41,7 @@ def main(standalone = False):
 
     if standalone:
         set_brightness(40)
-        effect_duration = 60
+        effect_duration = -1
         led_control("standalone xlights","speed:90")
         while True:
             if mqtt.client is not False:
