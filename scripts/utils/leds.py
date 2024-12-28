@@ -140,7 +140,7 @@ def rainbow():
     t = millis()
     n = 0
     updated = False
-    while not settings.stop and not time_to_go():
+    while not (settings.stop or time_to_go()):
         check_mqtt()
         settings.colour = hsv_to_colour(settings.hue, 255, 255)
         r, g, b, w = list_to_rgb(settings.colour)
@@ -170,7 +170,7 @@ def rainbow():
 def rainbowCycle(iterations=0):
     now_running("rainbowCycle")
     limit_run = iterations > 0
-    while not (settings.stop or (limit_run and iterations == 0)) and not time_to_go():
+    while not (settings.stop or (limit_run and iterations == 0) or time_to_go()):
         for j in range(256):
             check_mqtt()
             for i in range(settings.numPixels):
@@ -178,7 +178,7 @@ def rainbowCycle(iterations=0):
                 set_pixel(i, r, g, b, w)
             show()
             sleep(settings.dyndelay / 1000.0)
-            if settings.stop:
+            if settings.stop or time_to_go():
                 break
         if limit_run:
             iterations -= 1
@@ -201,7 +201,7 @@ def xmas():
     set_all(settings.colour)
     show()
     n = 0
-    while not settings.stop and not time_to_go():
+    while not (settings.stop or time_to_go()):
         check_mqtt()
         settings.colour = hsv_to_colour(settings.hue, 255, 255)
         set_all(settings.colour)
@@ -358,10 +358,10 @@ def static(block_size, colour_list, transition_time=5):
 
 # Cycling static display
 def statics_cycle(sleep_time=10):
-    now_running("statics_cycle")
+    #now_running("statics_cycle")
     base_wheel_pos = 0
     num_colours = 2
-    while not settings.stop and not time_to_go():
+    while not (settings.stop or time_to_go()):
         check_mqtt()
         #block_size = int(random.randint(2,5) * settings.numPixels / 100)
         block_size = -1
@@ -376,6 +376,8 @@ def statics_cycle(sleep_time=10):
             if wheel_pos > 255:
                 wheel_pos -= 255
             static_colours[c] = wheel(wheel_pos)
+            if settings.stop or time_to_go():
+                break
         static(block_size,static_colours,3)
         #Step round the wheel by slightly less than a quarter
         base_wheel_pos += 34
@@ -393,7 +395,7 @@ def shimmer(shimmer_width=5,iterations=0):
     #Even numbers of steps mean pixels turn off at the lowest level
     #eg. width 6, or width 5 with a 0.5 delta
     loop_delta = 0.2 #1 gives 100,60,20 brightness, 0.5 gives 100,80,60,40,20,0 levels
-    while not (settings.stop or (limit_run and iterations == 0)) and not time_to_go():
+    while not (settings.stop or (limit_run and iterations == 0) or time_to_go()):
         check_mqtt()
         j = 0
         while j < shimmer_width:
@@ -403,7 +405,7 @@ def shimmer(shimmer_width=5,iterations=0):
                 set_pixel(i, r, g, b, w)
             show()
             sleep(settings.dyndelay * loop_delta / 2000.0)  # the more steps the lower the sleep time
-            if settings.stop:
+            if settings.stop or time_to_go():
                 break
             j += loop_delta
         if limit_run:
@@ -439,7 +441,7 @@ class splash(): # pylint: disable=missing-class-docstring
 
 #Splash puddles of colour at target pixel (class version)
 def splashing(num=5,colour_list=["-1"],leave=False): # pylint: disable=dangerous-default-value
-    debuglog(f"Starting with num: {num} and colour list: {colour_list}")
+    debuglog(f"Starting splashing with num: {num} and colour list: {colour_list}")
     now_running("splashing")
     rand_colours = False
     colour_index = 0
@@ -473,7 +475,7 @@ def splashing(num=5,colour_list=["-1"],leave=False): # pylint: disable=dangerous
     iterations = 0
     total_elapsed = 0
 
-    while num > 0:
+    while num > 0 and not time_to_go():
         check_mqtt()
         if leave:
             for p in range(settings.numPixels):
@@ -495,7 +497,7 @@ def splashing(num=5,colour_list=["-1"],leave=False): # pylint: disable=dangerous
 
             #If the splash angle goes above 180 it's time to create a new splash
             if splashes[s].rotation > 180 or (leave and splashes[s].rotation >= 90):
-                if not settings.stop and not time_to_go():
+                if not (settings.stop or time_to_go()):
                     if rand_colours:
                         colour = wheel(random.randint(0, 255))
                     else:
@@ -550,7 +552,7 @@ def train(num_carriages=-1, colour_list=[], iterations=0): # pylint: disable=dan
     progression = settings.numPixels
     t = millis()
 
-    while not (settings.stop or (limit_run and iterations == 0)) and not (settings.stop_after > 0 and time.time() > settings.stop_after):
+    while not (settings.stop or (limit_run and iterations == 0) or time_to_go()):
         check_mqtt()
         carriage_length = int(settings.numPixels / num_carriages)
         progression += 1
@@ -564,7 +566,7 @@ def train(num_carriages=-1, colour_list=[], iterations=0): # pylint: disable=dan
 
             set_pixel(i, r, g, b)
         settings.strip.show()
-        if settings.stop:
+        if settings.stop or time_to_go():
             break
         #Only pico5 controls the brightness using the light sensor
         if settings.master and settings.auto:
@@ -645,7 +647,7 @@ def twinkling(num=0,colour_list=[]): # pylint: disable=dangerous-default-value
         for t in range(numTwinkles):
             #If this twinkle has out lived it's life:
             if m > twinks[t].end: #time to turn this one off
-                if not settings.stop and not time_to_go(): #if we are not stopping then reset the twink
+                if not (settings.stop or time_to_go()): #if we are not stopping then reset the twink
                     if old_speed == settings.speed: #same speed, so just reset the twink
                         twinks[t].new(twinkling_start, colour_list, colour_index)
                         colour_index += 1
@@ -740,7 +742,7 @@ class wavelet: # pylint: disable=missing-class-docstring
 
 # Another waves routine, this time for multiple waves at once - using wavelet class
 def morewaves(num_waves=3):
-    debuglog("Starting")
+    debuglog("Starting morewaves")
 
     # Setup waves class objects
     thewaves = [wavelet() for i in range(num_waves)]
@@ -792,7 +794,7 @@ def morewaves(num_waves=3):
 
             #If we haven't made a pixel visible for this wave it's time to create a new wave
             if not set_a_pixel:
-                if not settings.stop and not time_to_go():
+                if not (settings.stop or time_to_go()):
                     thewaves[wv].new()
                 else:
                     debuglog(f"Dropping wave {wv}")
