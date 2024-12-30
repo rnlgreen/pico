@@ -23,7 +23,7 @@ def get_sensor(byte_array):
     if hex_string in rom_hex:
         return rom_hex[hex_string]
     else:
-        return "unknown"
+        return f"{hex_string}"
 
 def get_status():
     #Temperature sensors
