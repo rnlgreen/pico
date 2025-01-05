@@ -24,15 +24,20 @@ def file_exists(filename):
     except OSError:
         return False
 
-def check_sha256(file_name, original_sha256):
+def check_sha256(file_name, original_sha256, chunk_size=1024):
     if file_exists(file_name):
         # Open,close, read file and calculate sha256 on its contents
         try:
+            sha256 = hashlib.sha256()
             with open(file_name, 'rb') as file_to_check:
-                # read contents of the file
-                data = file_to_check.read()
+                # read contents of the file in chunks to avoid memory issues
+                while True:
+                    data = file_to_check.read(chunk_size)
+                    if not data:
+                        break
+                    sha256.update(data)
                 # pipe contents of the file through
-                sha256_returned = ubinascii.hexlify(hashlib.sha256(data).digest()).decode()
+                sha256_returned = ubinascii.hexlify(sha256.digest()).decode()
         except Exception as e: # pylint: disable=broad-exception-caught
             status(f"Error finding sha256 for '{file_name}'")
             status(f"{e}")
