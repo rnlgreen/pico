@@ -146,7 +146,7 @@ def rainbow():
         r, g, b, w = list_to_rgb(settings.colour)
         set_all(r, g, b, w)
         show()
-        settings.hue += 100
+        settings.hue += 50
         if settings.hue > 65535:
             settings.hue -= 65535
             if settings.master and settings.auto:
@@ -228,8 +228,8 @@ def now_running(new_effect): #new_effect is the name of the new effect that just
         #reset running and settings.stop flags
         settings.running = False
         settings.stop = False
-        if settings.effect != "None":  # we running something so log that it finished
-            log.status(f"Completed {settings.effect}")
+        #if settings.effect != "None":  # we running something so log that it finished
+        #    log.status(f"Completed {settings.effect}")
         if not settings.next_up == "stopping": # pylint: disable=used-before-assignment
             if not settings.next_up == "None":
                 new_effect = settings.next_up # store 'next_up' as 'new_effect' so that we can reset 'next_up'
@@ -241,10 +241,23 @@ def now_running(new_effect): #new_effect is the name of the new effect that just
             settings.next_up = "None"
     else:
         settings.running = True
-        log.status(f"Starting {new_effect}")
+        #log.status(f"Starting {new_effect}")
     settings.effect = new_effect
-    log.status(f"Running: {settings.running}; previously_running: {settings.previously_running}; effect: {settings.effect}")
+    #log.status(f"Running: {settings.running}; previously_running: {settings.previously_running}; effect: {settings.effect}")
     mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
+
+#Function to return if it is daytime or not
+def daytime():
+    hour = utime.localtime()[3]
+    month = utime.localtime()[1]
+    if (month > 3 and month < 11):
+        hour += 1
+        if hour == 23:
+            hour = 0
+    if (hour >= LIGHTS_ON or hour < LIGHTS_OFF): #e.g. from > 7 or < 0
+        return True
+    else:
+        return False
 
 #Routine to manage LED brightness
 def manage_lights():
@@ -258,13 +271,7 @@ def manage_lights():
             lightlevel = light.readLight()
             light.send_measurement(where,"light",lightlevel)
             light.last_reading = time.time()
-        hour = utime.localtime()[3]
-        month = utime.localtime()[1]
-        if (month > 3 and month < 11):
-            hour += 1
-            if hour == 23:
-                hour = 0
-        if (hour >= LIGHTS_ON or hour < LIGHTS_OFF): #e.g. from > 7 or < 0
+        if daytime(): #e.g. from > 7 or < 0
             #Turn off for high light levels
             if lightlevel > BRIGHT and not settings.lightsoff:
                 log.status("Turning lights off (auto)")
@@ -357,7 +364,7 @@ def static(block_size, colour_list, transition_time=5):
         sleep(transition_time / 50)
 
 # Cycling static display
-def statics_cycle(sleep_time=10):
+def statics_cycle(sleep_time=2):
     #now_running("statics_cycle")
     base_wheel_pos = 0
     num_colours = 2
@@ -369,7 +376,7 @@ def statics_cycle(sleep_time=10):
         if num_colours > 4:
             num_colours = 2
         static_colours = [[]] * num_colours
-        settings.saturation = random.randint(75,100)
+        settings.saturation = random.randint(80,100)
         static_colours[0] = wheel(base_wheel_pos)
         for c in range(num_colours):
             wheel_pos = base_wheel_pos + c * (int(255 / num_colours))

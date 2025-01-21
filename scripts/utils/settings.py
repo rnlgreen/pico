@@ -26,3 +26,4 @@ running = False             # Flag to say if we are running a light sequence or 
 splash_size = 4             # Size of splashes in splashing
 #last_lights = 0             # Don't think this is used
 singlepattern = False       # When in standalone mode whether to loop or not
+standalone = False          # Are we running "standalone" or not

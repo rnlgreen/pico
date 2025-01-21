@@ -1,5 +1,5 @@
 """Main routine for PicoX"""
-#Initialise the traps
+#Extractor fan lights
 import time
 import gc
 from utils import mqtt
@@ -7,7 +7,7 @@ from utils import settings
 from utils import leds
 from utils import wifi
 from utils.log import status,log
-from utils.common import set_brightness
+from utils.common import set_brightness, off
 
 def get_status():
     status(f"running: {settings.running}")
@@ -31,6 +31,7 @@ def led_control(topic,payload):
 def main(standalone = False):
     standalone = True
     if standalone:
+        settings.standalone = True # Set this so it can be accessed by other functions
         log("Running standalone")
 
     strip_type = "GRB"
@@ -40,22 +41,29 @@ def main(standalone = False):
     leds.init_strip(strip_type,pixels,GPIO)
 
     if standalone:
-        set_brightness(40)
-        effect_duration = -1
+        brightness = 20
+        set_brightness(brightness)
+        settings.speed = 90
+        effect_duration = 60 # Was -1, but if we want to check the time of day to turn off we need to come back
         led_control("standalone xlights","speed:90")
         while True:
             if mqtt.client is not False:
                 mqtt.client.check_msg()
-            settings.speed = 90
-            #led_control("standalone xlights",f"test:{effect_duration}")
-            #led_control("standalone xlights",f"rainbow2:{effect_duration}")
-            set_brightness(20)
-            led_control("standalone xlights",f"statics:{effect_duration}")
-            #set_all(0, 0, 30)
-            #settings.cycle=True
-            #led_control("standalone xlights",f"twinkling:{-1}")
-            #set_all(255, 200, 0)
-            #led_control("standalone xlights",f"shimmer:{effect_duration}")
+            if not (leds.daytime() or settings.lightsoff):
+                status("Turning lights off")
+                off()
+            else:
+                if leds.daytime() and settings.lightsoff:
+                    status("Turning lights on")
+                    set_brightness(brightness)
+                #led_control("standalone xlights",f"test:{effect_duration}")
+                #led_control("standalone xlights",f"rainbow2:{effect_duration}")
+                led_control("standalone xlights",f"statics:{effect_duration}")
+                #set_all(0, 0, 30)
+                #settings.cycle=True
+                #led_control("standalone xlights",f"twinkling:{-1}")
+                #set_all(255, 200, 0)
+                #led_control("standalone xlights",f"shimmer:{effect_duration}")
     else:
         if mqtt.client is not False:
             mqtt.client.subscribe("pico/xlights") # type: ignore

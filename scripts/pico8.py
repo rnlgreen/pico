@@ -70,11 +70,13 @@ def main():
                 if not newstate == sensors[which]["state"]:
                     sensors[which]["state"] = newstate
                     if newstate == "on":
-                        slack.send_msg(myid.pico,f"{icon} {which} is now {newstate}")
+                        if not slack.send_msg(myid.pico,f"{icon} {which} is now {newstate}"):
+                            return "Slack send failure"
                         sensors[which]["ontime"] = time.time()
                     else:
                         on_duration = round((time.time() - sensors[which]["ontime"]) / 60,2)
-                        slack.send_msg(myid.pico,f"{icon} {which} is now {newstate}; was on for {on_duration} mins")
+                        if not slack.send_msg(myid.pico,f"{icon} {which} is now {newstate}; was on for {on_duration} mins"):
+                            return "Slack send failure"
                 send_measurement(where,which,states[newstate])
                 last_update = time.time()
 
