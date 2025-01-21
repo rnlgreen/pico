@@ -15,6 +15,7 @@ picos = {
             "e6613010f2eac2e": "pico10",
             "e661413e7509e23": "picoX",
             "a868d6a1a9e561d5": "pico2w0",
+            "70ad1d861c44fe22": "pico2w1",
         }
 
 where = {
@@ -29,9 +30,9 @@ where = {
             "pico8": "loft",
             "pico9": "airing_cupboard",
             "pico10": "spare",
-            "picoX": "spare",
-            "pico2w0": "spare",
-            "pico2w1": "spare",
+            "picoX": "kitchen",
+            "pico2w0": "playroom",
+            "pico2w1": "study",
             "pico2w2": "spare",
             "pico2w3": "spare",
             "pico2w4": "spare",
