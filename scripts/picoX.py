@@ -44,8 +44,9 @@ def main(standalone = False):
         brightness = 20
         set_brightness(brightness)
         settings.speed = 90
-        effect_duration = 60 # Was -1, but if we want to check the time of day to turn off we need to come back
+        effect_duration = 600 # Was -1, but if we want to check the time of day to turn off we need to come back
         led_control("standalone xlights","speed:90")
+        mqtt.client.subscribe("pico/xlights") # type: ignore
         while True:
             if mqtt.client is not False:
                 mqtt.client.check_msg()

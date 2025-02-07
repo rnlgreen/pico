@@ -1,4 +1,4 @@
-"""Main routine for PicoX"""
+"""Main routine for study lights"""
 #Initialise the traps
 import time
 import gc
@@ -7,7 +7,7 @@ from utils import settings
 from utils import leds
 from utils import wifi
 from utils.log import status
-from utils.common import set_brightness, set_speed, set_all, show
+from utils.common import new_brightness, set_speed, set_all, show
 
 BUTTON = 15
 SWITCH = 17
@@ -39,13 +39,13 @@ def main(standalone = False):
         status("Running standalone")
 
     strip_type = "GRB"
-    pixels = 81
+    pixels = 150
     GPIO = 28
     leds.init_strip(strip_type,pixels,GPIO)
 
     if standalone:
-        set_brightness(200)
-        set_all(255,255,255,255)
+        set_all(255,255,200,255)
+        new_brightness(200)
         show()
 
     while True:

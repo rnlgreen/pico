@@ -1,4 +1,4 @@
-"""Main routine for PicoX"""
+"""Main routine for xbox lights"""
 #Initialise the traps
 import time
 import gc
@@ -80,7 +80,8 @@ def main(standalone = False):
         while True:
             if mqtt.client is not False:
                 mqtt.client.check_msg()
-            set_speed(100)
+            set_speed(10)
+            led_control("standalone xlights",f"rainbow:{effect_duration}")
             led_control("standalone xlights",f"rainbow2:{effect_duration}")
             #led_control("standalone xlights",f"statics:{effect_duration}")
             set_all(30, 0, 0)
