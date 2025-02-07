@@ -176,7 +176,7 @@ def on_message(topic, payload):
             clear_log()
         else:
             log.status(f"Unknown command: {payload}")
-    elif topic == "pico/lights" or topic == "pico/xlights":
+    elif topic == "pico/lights" or topic == "pico/xlights" or topic == "pico/plights":
         main.led_control(topic,payload)
     elif topic == "pico/poll":
         heartbeat_topic = f"pico/{pico}/heartbeat"

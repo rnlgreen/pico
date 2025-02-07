@@ -21,6 +21,7 @@ stop_after = 0              # Time to stop a routine, used when in standalone mo
 next_up = "None"            # Set to "command", a key value for effects (perhaps should be the value?)
 previously_running = ""     # Remember what we were running when we automatically turn the lights off
 strip = None                # Will become the class representing the strip of LEDs
+strip2 = None               # Will become the class representing the strip of LEDs
 pixel_colours = []          # What all the pixels are currently set to
 running = False             # Flag to say if we are running a light sequence or not
 splash_size = 4             # Size of splashes in splashing

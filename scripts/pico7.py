@@ -6,6 +6,7 @@ from utils import mqtt
 from utils import wifi
 from utils.log import status
 from utils import ruuvi
+from utils import leds
 
 #Send alert
 def send_mqtt(topic,message):
@@ -19,7 +20,21 @@ def get_status():
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     ruuvi.get_status()
 
+#LED control function to accept commands and launch effects
+def led_control(topic,payload):
+    leds.led_control(topic,payload)
+
 def main():
+    strip_type = "GRB"
+    pixels = 60 #need strips to be the same length, for now...
+    GPIO1 = 28
+    GPIO2 = 27
+    leds.init_strip(strip_type,pixels,GPIO1)
+    leds.init_strip(strip_type,pixels,GPIO2,True) # True says we are setting up strip2
+
+    if mqtt.client is not False:
+        mqtt.client.subscribe("pico/plights") # type: ignore
+
     while True:
         #Get RuuviTag readings, returns false if we haven't had any for a while
         if not ruuvi.get_readings():

@@ -11,6 +11,9 @@ def set_pixel(i=0, r=0, g=0, b=0, w=0):
     #No need for global when using lists like this
     """Set an individual pixel to a new colour"""
     settings.strip[i] = (r, g, b, w)
+    if settings.strip2 is not None:
+        settings.strip2[i] = (r, g, b, w)
+
     settings.pixel_colours[i] = [r, g, b, w]
 
 # Convert a list [1, 2, 3] to integer values, and adjust for settings.saturation
@@ -104,12 +107,16 @@ def fade_rgb(fr, fg, fb, fw, br, bg, bb, bw, factor):
 #Show the LED changes
 def show():
     settings.strip.show()
+    if settings.strip2 is not None:
+        settings.strip2.show()
 
 #Set the whole strip to a new colour
 def set_all(r=0, g=0, b=0, w=0):
     """Set all pixels to new values"""
     settings.colour = [r, g, b]
     settings.strip.fill((r, g, b))
+    if settings.strip2 is not None:
+        settings.strip2.fill((r, g, b))
     for p in range(settings.numPixels):
         settings.pixel_colours[p] = [r, g, b, w] # pixel_colours doesn't need to be "global" as it is mutated
     #show()
@@ -155,6 +162,8 @@ def set_brightness(new_brightness_level):
     if not settings.brightness == new_brightness_level:
         settings.brightness = new_brightness_level
         settings.strip.brightness(settings.brightness)
+        if settings.strip2 is not None:
+            settings.strip2.brightness(settings.brightness)
         if not settings.running:
             r, g, b, _ = list_to_rgb(settings.colour)
             #need to call set_all as this is what updates pixels with the new brightness level
@@ -270,6 +279,8 @@ def off(from_auto=False):
         #hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
         #mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
         settings.strip.clear()
+        if settings.strip2 is not None:
+            settings.strip2.clear()
         show()
         settings.lightsoff = True
         #status("LEDs Off")

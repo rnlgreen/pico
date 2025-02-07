@@ -30,19 +30,28 @@ BRIGHT = 55 #(was 55)
 LIGHTS_OFF = 0
 LIGHTS_ON = 7
 
-def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
+def init_strip(strip_type="GRBW",pixels=16,GPIO=0,twostrips=False):
     """Initialise new pixel strip"""
     settings.numPixels = pixels
     settings.LED_COUNT = pixels
 
     #Create strip object
-    log.status("Initialising strip")
-    settings.strip = Neopixel(pixels, 0, GPIO, strip_type)
+    if not twostrips:
+        log.status("Initialising strip 1")
+        settings.strip = Neopixel(pixels, 0, GPIO, strip_type)
+    else:
+        log.status("Initialising strip 2")
+        settings.strip2 = Neopixel(pixels, 1, GPIO, strip_type)
+        if settings.strip2 is None:
+            log.status("failed")
+
     settings.pixel_colours = [[0, 0, 0, 0]] * pixels
     set_brightness(0)
     set_colour(INITIAL_COLOUR)
     set_speed(settings.speed)
     settings.strip.clear()
+    if settings.strip2 is not None:
+        settings.strip2.clear()
     show()
     if settings.master:
         mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness","0")
@@ -52,8 +61,9 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0):
 #LED control function to accept commands and launch effects
 def led_control(topic="", payload=""):
     """Process control commands"""
-    #Topic is pico/lights or pico/xlights with the command in payload with args after a colon
+    #Topic is pico/lights or pico/xlights or pico/plights with the command in payload with args after a colon
     #Standalone mode sends topic "standalone xlights" and the payload routines have a duration after the colon
+    #log.status(f"Received {topic} : {payload}")
     arg = ""
     if ":" in payload:
         command, arg = payload.lower().strip().split(":")
@@ -365,7 +375,7 @@ def static(block_size, colour_list, transition_time=5):
 
 # Cycling static display
 def statics_cycle(sleep_time=2):
-    #now_running("statics_cycle")
+    now_running("statics_cycle")
     base_wheel_pos = 0
     num_colours = 2
     while not (settings.stop or time_to_go()):
@@ -448,7 +458,7 @@ class splash(): # pylint: disable=missing-class-docstring
 
 #Splash puddles of colour at target pixel (class version)
 def splashing(num=5,colour_list=["-1"],leave=False): # pylint: disable=dangerous-default-value
-    debuglog(f"Starting splashing with num: {num} and colour list: {colour_list}")
+    #debuglog(f"Starting splashing with num: {num} and colour list: {colour_list}")
     now_running("splashing")
     rand_colours = False
     colour_index = 0
@@ -573,6 +583,8 @@ def train(num_carriages=-1, colour_list=[], iterations=0): # pylint: disable=dan
 
             set_pixel(i, r, g, b)
         settings.strip.show()
+        if settings.strip2 is not None:
+            settings.strip.show()
         if settings.stop or time_to_go():
             break
         #Only pico5 controls the brightness using the light sensor
@@ -603,7 +615,8 @@ class twink: # pylint: disable=missing-class-docstring
 
 # One funtion to manage lots of twinkles - using twink class
 def twinkling(num=0,colour_list=[]): # pylint: disable=dangerous-default-value
-    debuglog(f"Starting with num: {num} and colour list: {colour_list}")
+    #debuglog(f"Starting with num: {num} and colour list: {colour_list}")
+    now_running("Twinkling")
     if num == 0:
         if colour_list == []: #fewer pixels needed if all white
             numTwinkles = int(settings.numPixels / 5) # some number of twinkles to do
@@ -615,7 +628,7 @@ def twinkling(num=0,colour_list=[]): # pylint: disable=dangerous-default-value
     if colour_list == []:
         colour_list = [[255, 255, 255, 255]]
 
-    debuglog(f"Number of twinkles: {numTwinkles}")
+    #debuglog(f"Number of twinkles: {numTwinkles}")
 
     colour_index   = 0
     old_speed = settings.speed
@@ -749,7 +762,7 @@ class wavelet: # pylint: disable=missing-class-docstring
 
 # Another waves routine, this time for multiple waves at once - using wavelet class
 def morewaves(num_waves=3):
-    debuglog("Starting morewaves")
+    now_running("morewaves")
 
     # Setup waves class objects
     thewaves = [wavelet() for i in range(num_waves)]
@@ -816,6 +829,7 @@ def morewaves(num_waves=3):
         show()
 
         sleep(0.005) # Sleep a little to give the CPU a break
+    now_running("None")
     debuglog("Exiting")
 
 effects = { "rainbow":   rainbow,
