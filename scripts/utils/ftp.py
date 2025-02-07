@@ -76,11 +76,11 @@ def get_changedfiles(ftp,folder,cleanup=False):
             #Compare file size first, easier than chksum and avoids memory errors
             size = ftp.size(filename) #just using size to test if the file exists
             if size != int(filesize_values[filename]):
-                log.status(f"{filename} size {size} != {filesize_values[filename]}")
+                #log.status(f"{filename} size!")
                 fetch = True
             #Now check checksum in case the size is the same
             elif not check_sha256(folder+"/"+filename, sha256_values[filename]):
-                log.status(f"{filename} checksum mismatch")
+                #log.status(f"{filename} checksum!")
                 fetch = True
         except: # pylint: disable=bare-except
             log.status(f"File not found: '{folder + '/' + filename}'", logit=True)
