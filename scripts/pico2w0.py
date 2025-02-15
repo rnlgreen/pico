@@ -68,6 +68,15 @@ def main(standalone = False):
     switch = Pin(SWITCH, Pin.IN, Pin.PULL_UP)
     switch.irq(switch_callback, Pin.IRQ_FALLING | Pin.IRQ_RISING)
 
+    #Send a message to the playroom lights to come on
+    if mqtt.client is not False:
+        message = "brightness:30"
+        topic = 'pico/plights'
+        try:
+            mqtt.send_mqtt(topic,message)
+        except Exception: # pylint: disable=broad-except
+            mqtt.client = False # just adding this in here to try and avoid a failure loop
+
     if standalone:
         if switch.value() == 1:
             settings.singlepattern = True
