@@ -9,7 +9,7 @@ from utils import leds
 from utils import wifi
 from utils.blink import blink
 from utils.log import status
-from utils.common import set_brightness, set_all, set_speed
+from utils.common import new_brightness, set_all, set_speed
 
 BUTTON = 15
 SWITCH = 17
@@ -84,12 +84,14 @@ def main(standalone = False):
         else:
             settings.singlepattern = False
             status("Multiple pattern mode")
-        set_brightness(40)
+
         led_control("standalone xlights","speed:90")
         while True:
             if mqtt.client is not False:
                 mqtt.client.check_msg()
             set_speed(10)
+            set_all(255,0,0)
+            new_brightness(40)
             led_control("standalone xlights",f"rainbow:{effect_duration}")
             led_control("standalone xlights",f"rainbow2:{effect_duration}")
             #led_control("standalone xlights",f"statics:{effect_duration}")

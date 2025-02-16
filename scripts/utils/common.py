@@ -197,7 +197,7 @@ def new_brightness(new_level):
     old_level = settings.brightness
     if new_level != old_level:
         #status("Fading from {} to {}".format(old_level,new_level))
-        sleeptime = 1.5 #number of seconds to make the transition
+        sleeptime = 3 #number of seconds to make the transition
         sleepstep = sleeptime / abs(new_level - old_level)
         if old_level < new_level:
             start = old_level + 1
