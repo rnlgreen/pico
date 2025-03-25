@@ -1,4 +1,4 @@
-#Code for Pico2 - measure and report temperature and pressure
+#Code for Pico7 - measure and report temperature and pressure, and play desk lighting
 import gc # Garbage Collector
 import utime # type: ignore # pylint: disable=import-error # MicroPython time function (time is an alias to utime)
 from utils import myid
@@ -7,6 +7,8 @@ from utils import wifi
 from utils.log import status
 from utils import ruuvi
 from utils import leds
+from utils.common import off
+from utils.settings import lightsoff
 
 #Send alert
 def send_mqtt(topic,message):
@@ -24,6 +26,10 @@ def get_status():
 def led_control(topic,payload):
     leds.led_control(topic,payload)
 
+def heartbeat():
+    global latest_heartbeat # pylint: disable=global-statement
+    latest_heartbeat = utime.time()
+
 def main():
     strip_type = "GRB"
     pixels = 60 #need strips to be the same length, for now...
@@ -33,13 +39,19 @@ def main():
     leds.init_strip(strip_type,pixels,GPIO2,True) # True says we are setting up strip2
 
     if mqtt.client is not False:
-        mqtt.client.subscribe("pico/plights") # type: ignore
+        mqtt.client.subscribe("pico/plights") # control commands for the playdesk lights
+        mqtt.client.subscribe("pico/pico2w0/heartbeat") # monitor heartbeat to see if power is on or not
 
     while True:
         #Get RuuviTag readings, returns false if we haven't had any for a while
         if not ruuvi.get_readings():
             status("RuuviTag data missing")
             return "RuuviTag data missing"
+
+        #Check we've seen a heartbeat from pico2w0 recently, otherwise turn the lights off
+        if utime.time() - latest_heartbeat > 600 and not lightsoff:
+            status("Turning lights off")
+            off()
 
         #Check for messages
         if mqtt.client is not False:
@@ -53,6 +65,7 @@ def main():
 
 pico = myid.get_id()
 where = myid.where[pico]
+latest_heartbeat = utime.time()
 
 if __name__ == "__main__":
     main()

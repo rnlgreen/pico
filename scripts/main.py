@@ -182,7 +182,8 @@ def on_message(topic, payload):
         heartbeat_topic = f"pico/{pico}/heartbeat"
         if not send_mqtt(heartbeat_topic,"Yes, I'm here"):
             restart("MQTT Failure detected")
-
+    elif topic == "pico/pico2w0/heartbeat": # Used by pico7 to check the lights should be on still
+        main.heartbeat()
 
 ### INITIALISATION STEPS ###
 #Blink the LED to show we're starting up

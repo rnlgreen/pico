@@ -9,7 +9,7 @@ from utils import leds
 from utils import wifi
 from utils.blink import blink
 from utils.log import status
-from utils.common import new_brightness, set_all, set_speed
+from utils.common import new_brightness, set_brightness, set_all, set_speed
 
 BUTTON = 15
 SWITCH = 17
@@ -85,30 +85,15 @@ def main(standalone = False):
             settings.singlepattern = False
             status("Multiple pattern mode")
 
-        led_control("standalone xlights","speed:90")
+        set_brightness(0) #does set_all(0,0,0) and show() so don't need to do that here as well
+
         while True:
             if mqtt.client is not False:
                 mqtt.client.check_msg()
             set_speed(10)
             set_all(255,0,0)
-            new_brightness(40)
+            new_brightness(50)
             led_control("standalone xlights",f"rainbow:{effect_duration}")
-            led_control("standalone xlights",f"rainbow2:{effect_duration}")
-            #led_control("standalone xlights",f"statics:{effect_duration}")
-            set_all(30, 0, 0)
-            set_speed(80)
-            led_control("standalone xlights",f"morewaves:{effect_duration}")
-            set_all(0, 0, 30)
-            settings.cycle=True
-            led_control("standalone xlights",f"twinkling:{effect_duration}")
-            set_all(255, 200, 0)
-            set_speed(100)
-            led_control("standalone xlights",f"shimmer:{effect_duration}")
-            led_control("standalone xlights",f"train:{effect_duration}")
-            set_all(0, 30, 0)
-            set_speed(90)
-            settings.splash_size = int(settings.numPixels / 10)
-            led_control("standalone xlights",f"splashing:{effect_duration}")
     else:
         if mqtt.client is not False:
             mqtt.client.subscribe("pico/xlights") # type: ignore

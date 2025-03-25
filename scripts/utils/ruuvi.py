@@ -22,7 +22,7 @@ def get_status():
     log.status(f"last_ruuvi_time: {last_ruuvi_time}")
     #log.debug(f"blacklist unique values: {len(set(ruuvi._blacklist))}", subtopic="blacklist")
     #log.debug(f"blacklist: {ruuvi._blacklist}", subtopic="blacklist")
-    log.debug(f"addrs: {ruuvi._addrs}", subtopic="addrs")
+    log.debug(f"addrs: {ruuvi._addrs}", subtopic="addrs") # pylint: disable=protected-access
 
 #Callback handler that receives a tuple of data from the RuuviTag class object
 #RuuviTagRAWv2(mac=b'f34584d173cb', rssi=-100, format=5, humidity=91.435, temperature=9.01,

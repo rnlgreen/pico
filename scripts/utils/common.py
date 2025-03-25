@@ -10,9 +10,9 @@ from utils import log
 def set_pixel(i=0, r=0, g=0, b=0, w=0):
     #No need for global when using lists like this
     """Set an individual pixel to a new colour"""
-    settings.strip[i] = (r, g, b, w)
+    settings.strip[i] = (r, g, b, w) # pylint: disable=unsupported-assignment-operation
     if settings.strip2 is not None:
-        settings.strip2[i] = (r, g, b, w)
+        settings.strip2[i] = (r, g, b, w) # pylint: disable=unsupported-assignment-operation
 
     settings.pixel_colours[i] = [r, g, b, w]
 
