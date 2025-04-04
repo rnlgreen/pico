@@ -8,7 +8,7 @@ from utils.log import status
 from utils import ruuvi
 from utils import leds
 from utils.common import off
-from utils.settings import lightsoff
+from utils import settings
 
 #Send alert
 def send_mqtt(topic,message):
@@ -19,6 +19,9 @@ def send_mqtt(topic,message):
 #Return i2cscan to status commands
 def get_status():
     gc.collect()
+    status(f"latest_heartbeat: {latest_heartbeat}")
+    status(f"heartbeat_check: {heartbeat_check()}")
+    status(f"lightsoff: {settings.lightsoff}")
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     ruuvi.get_status()
 
@@ -29,6 +32,12 @@ def led_control(topic,payload):
 def heartbeat():
     global latest_heartbeat # pylint: disable=global-statement
     latest_heartbeat = utime.time()
+
+def heartbeat_check():
+    if latest_heartbeat < utime.time() - 300:
+        status("Heartbeat not seen in 300 seconds")
+        return False
+    return True
 
 def main():
     strip_type = "GRB"
@@ -49,7 +58,7 @@ def main():
             return "RuuviTag data missing"
 
         #Check we've seen a heartbeat from pico2w0 recently, otherwise turn the lights off
-        if utime.time() - latest_heartbeat > 600 and not lightsoff:
+        if not settings.lightsoff and not heartbeat_check():
             status("Turning lights off")
             off()
 
