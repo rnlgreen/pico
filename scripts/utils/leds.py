@@ -375,7 +375,8 @@ def static(block_size, colour_list, transition_time=5):
 
 # Cycling static display
 def statics_cycle(sleep_time=2):
-    now_running("statics_cycle")
+    if not settings.standalone:
+        now_running("statics_cycle")
     base_wheel_pos = 0
     num_colours = 2
     while not (settings.stop or time_to_go()):
@@ -401,7 +402,8 @@ def statics_cycle(sleep_time=2):
         if base_wheel_pos > 255:
             base_wheel_pos -= 256
         sleep_for(sleep_time)
-    now_running("None")
+    if not settings.standalone:
+        now_running("None")
 
 #Lighting effect to create a shimmer effect along the length of the lights
 def shimmer(shimmer_width=5,iterations=0):
