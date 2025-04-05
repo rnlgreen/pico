@@ -27,6 +27,8 @@ def get_status():
 
 #LED control function to accept commands and launch effects
 def led_control(topic,payload):
+    global latest_heartbeat # pylint: disable=global-statement
+    latest_heartbeat = utime.time()
     leds.led_control(topic,payload)
 
 def heartbeat():
@@ -34,7 +36,7 @@ def heartbeat():
     latest_heartbeat = utime.time()
 
 def heartbeat_check():
-    if latest_heartbeat < utime.time() - 300:
+    if latest_heartbeat < utime.time() - 305:
         status("Heartbeat not seen in 300 seconds")
         return False
     return True
