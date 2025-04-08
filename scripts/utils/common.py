@@ -125,6 +125,7 @@ def set_all(r=0, g=0, b=0, w=0):
         settings.lightsoff = True
     else:
         settings.lightsoff = False
+        settings.time_on = time.time()
 
 #Get the current value for a pixel
 def get_pixel_rgb(i):
@@ -170,7 +171,7 @@ def set_brightness(new_brightness_level):
             #set_all includes a call to strip.show()
             set_all(r, g, b)
             show()
-        if settings.brightness == 0:
+        if settings.brightness <= 0:
             settings.lightsoff = True
         else:
             settings.lightsoff = False
@@ -263,7 +264,7 @@ def send_control(payload):
 #Called from Node-Red
 def off(from_auto=False):
     """All off"""
-    #status(f"called with {from_auto}")
+    #log.status(f"called with {from_auto}")
     if not from_auto:
         settings.auto = False
         if settings.master:
@@ -283,7 +284,7 @@ def off(from_auto=False):
             settings.strip2.clear()
         show()
         settings.lightsoff = True
-        #status("LEDs Off")
+        log.status("LEDs Off")
 
 #Off command called via manage_lights through MQTT
 def auto_off():

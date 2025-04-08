@@ -70,8 +70,8 @@ def led_control(topic="", payload=""):
     else:
         command = payload.lower().strip()
     if settings.xstrip:
-        if "xlights" not in topic and not settings.xsync:
-            log.status(f"xstrip ignoring {topic}")
+        if "klights" not in topic and not settings.xsync:
+            log.status(f"kstrip ignoring {topic}")
             return
         if command == "xsync":
             if arg == "on":

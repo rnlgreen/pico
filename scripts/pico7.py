@@ -7,8 +7,9 @@ from utils import wifi
 from utils.log import status
 from utils import ruuvi
 from utils import leds
-from utils.common import off
+from utils.common import off, new_brightness
 from utils import settings
+from utils.uping import ping
 
 #Send alert
 def send_mqtt(topic,message):
@@ -22,6 +23,7 @@ def get_status():
     status(f"latest_heartbeat: {latest_heartbeat}")
     status(f"heartbeat_check: {heartbeat_check()}")
     status(f"lightsoff: {settings.lightsoff}")
+    status(f"brightness: {settings.brightness}")
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     ruuvi.get_status()
 
@@ -40,6 +42,27 @@ def heartbeat_check():
         status("Heartbeat not seen in 300 seconds")
         return False
     return True
+
+def check_xbox():
+    sent, recv = ping('xantus')
+    if recv > 0:
+        return True
+    else:
+        return False
+
+def xlights(on_or_off):
+    if mqtt.client is not False:
+        topic = 'pico/xlights'
+        if on_or_off == "on":
+            message = "brightness:50"
+            status("Turning xbox lights on")
+        else:
+            message = "brightness:0"
+            status("Turning xbox lights off")
+        try:
+            mqtt.send_mqtt(topic,message)
+        except Exception: # pylint: disable=broad-except
+            mqtt.client = False # just adding this in here to try and avoid a failure loop
 
 def main():
     strip_type = "GRB"
@@ -64,6 +87,18 @@ def main():
             status("Turning lights off")
             off()
 
+        #Check for Xbox Off
+        if not settings.lightsoff and (utime.time() - settings.time_on) > 90 and not check_xbox():
+            status("Xbox not on")
+            off()
+            xlights("off")
+
+        #Check for Xbox On
+        if settings.lightsoff and check_xbox():
+            status("Xbox is on!")
+            new_brightness(30)
+            xlights("on")
+
         #Check for messages
         if mqtt.client is not False:
             mqtt.client.check_msg()
@@ -72,7 +107,7 @@ def main():
         if not wifi.check_wifi():
             return "Wi-Fi Lost"
 
-        utime.sleep(0.5)
+        utime.sleep(5)
 
 pico = myid.get_id()
 where = myid.where[pico]

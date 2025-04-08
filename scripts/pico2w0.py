@@ -54,7 +54,7 @@ def switch_callback(pin):
 
 #Called my main.py
 def main(standalone = False):
-    standalone = True
+    standalone = False
     if standalone:
         status("Running standalone")
 
@@ -97,7 +97,12 @@ def main(standalone = False):
     else:
         if mqtt.client is not False:
             mqtt.client.subscribe("pico/xlights") # type: ignore
-            mqtt.client.subscribe("pico/lights") # type: ignore
+            #mqtt.client.subscribe("pico/lights") # type: ignore
+
+        set_speed(10)
+        set_all(255,0,0)
+        new_brightness(50)
+        led_control("standalone xlights",f"rainbow:{effect_duration}")
 
         while True:
             if mqtt.client is not False:
