@@ -4,7 +4,7 @@ import utime # type: ignore # pylint: disable=import-error # MicroPython time fu
 from utils import myid
 from utils import mqtt
 from utils import wifi
-from utils.log import status
+from utils.log import status, debug
 from utils import ruuvi
 from utils import leds
 from utils.common import off, new_brightness
@@ -22,6 +22,7 @@ def get_status():
     gc.collect()
     status(f"latest_heartbeat: {latest_heartbeat}")
     status(f"heartbeat_check: {heartbeat_check()}")
+    status(f"xbox: {check_xbox()}")
     status(f"lightsoff: {settings.lightsoff}")
     status(f"brightness: {settings.brightness}")
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
@@ -39,12 +40,12 @@ def heartbeat():
 
 def heartbeat_check():
     if latest_heartbeat < utime.time() - 305:
-        status("Heartbeat not seen in 300 seconds")
+        #status("Heartbeat not seen in 300 seconds")
         return False
     return True
 
 def check_xbox():
-    sent, recv = ping('xantus')
+    _, recv = ping('xantus')
     if recv > 0:
         return True
     else:
@@ -52,17 +53,23 @@ def check_xbox():
 
 def xlights(on_or_off):
     if mqtt.client is not False:
-        topic = 'pico/xlights'
+        topic = 'pico/xlights' # xlights are the backlights on the playdesk managed by pico2w0
         if on_or_off == "on":
             message = "brightness:50"
             status("Turning xbox lights on")
         else:
-            message = "brightness:0"
+            message = "off"
             status("Turning xbox lights off")
         try:
             mqtt.send_mqtt(topic,message)
         except Exception: # pylint: disable=broad-except
             mqtt.client = False # just adding this in here to try and avoid a failure loop
+
+def debug_logging():
+    debug(f"lightsoff: {settings.lightsoff}")
+    debug(f"pico2w0 heartbeat: {heartbeat_check()}")
+    debug(f"xbox on: {check_xbox()}")
+    debug(f"time since on: {utime.time() - settings.time_on}")
 
 def main():
     strip_type = "GRB"
@@ -82,6 +89,8 @@ def main():
             status("RuuviTag data missing")
             return "RuuviTag data missing"
 
+        debug_logging()
+
         #Check we've seen a heartbeat from pico2w0 recently, otherwise turn the lights off
         if not settings.lightsoff and not heartbeat_check():
             status("Turning lights off")
@@ -89,15 +98,17 @@ def main():
 
         #Check for Xbox Off
         if not settings.lightsoff and (utime.time() - settings.time_on) > 90 and not check_xbox():
-            status("Xbox not on")
-            off()
+            status("Xbox is off!")
+            led_control("plights","off")
             xlights("off")
 
         #Check for Xbox On
-        if settings.lightsoff and check_xbox():
-            status("Xbox is on!")
-            new_brightness(30)
-            xlights("on")
+        if check_xbox():
+            if settings.lightsoff: #If the lights were off then set the brightness and make sure the rear lights are on
+                status("Xbox is on!")
+                new_brightness(30)
+                xlights("on")
+            led_control("plights","playdesk")
 
         #Check for messages
         if mqtt.client is not False:

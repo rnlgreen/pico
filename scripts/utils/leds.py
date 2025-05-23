@@ -19,7 +19,7 @@ from lib.neopixel import Neopixel # pylint: disable=import-error
 
 log.DEBUGGING = False
 
-INITIAL_COLOUR = [210, 200, 160]
+INITIAL_COLOUR = [0, 0, 0]
 INITIAL_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,INITIAL_COLOUR)) + ")"
 
 #Light thresholds
@@ -39,13 +39,14 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0,twostrips=False):
     if not twostrips:
         log.status("Initialising strip 1")
         settings.strip = Neopixel(pixels, 0, GPIO, strip_type)
+        settings.pixel_colours = [[0, 0, 0, 0]] * pixels
     else:
         log.status("Initialising strip 2")
         settings.strip2 = Neopixel(pixels, 1, GPIO, strip_type)
+        settings.pixel_colours2 = [[0, 0, 0, 0]] * pixels
         if settings.strip2 is None:
             log.status("failed")
 
-    settings.pixel_colours = [[0, 0, 0, 0]] * pixels
     set_brightness(0)
     set_colour(INITIAL_COLOUR)
     set_speed(settings.speed)
@@ -64,6 +65,7 @@ def led_control(topic="", payload=""):
     #Topic is pico/lights or pico/xlights or pico/plights with the command in payload with args after a colon
     #Standalone mode sends topic "standalone xlights" and the payload routines have a duration after the colon
     #log.status(f"Received {topic} : {payload}")
+    log.debug(f"Received {topic} : {payload}")
     arg = ""
     if ":" in payload:
         command, arg = payload.lower().strip().split(":")
@@ -125,7 +127,7 @@ def led_control(topic="", payload=""):
         else: #otherwise just run the effect or off
             if command != "stopping":
                 try:
-                    #status(f"Calling {effects[command]}")
+                    #log.status(f"Calling {effects[command]}")
                     if arg != "":
                         if arg == "-1":
                             settings.stop_after = -1
@@ -174,6 +176,8 @@ def rainbow():
                     n = 0
                 t = millis()
         time.sleep(settings.dyndelay / 1000)
+    log.debug("Stopped rainbow, setting brightness to 0")
+    new_brightness(0)
     now_running("None")
 
 # Rainbow2 function - cycle  every settings.colour of the rainbow across all the pixels
@@ -254,7 +258,8 @@ def now_running(new_effect): #new_effect is the name of the new effect that just
         #log.status(f"Starting {new_effect}")
     settings.effect = new_effect
     #log.status(f"Running: {settings.running}; previously_running: {settings.previously_running}; effect: {settings.effect}")
-    mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
+    if myid.pico != "pico7":
+        mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
 
 #Function to return if it is daytime or not
 def daytime():
@@ -394,8 +399,6 @@ def statics_cycle(sleep_time=2):
             if wheel_pos > 255:
                 wheel_pos -= 255
             static_colours[c] = wheel(wheel_pos)
-            if settings.stop or time_to_go():
-                break
         static(block_size,static_colours,3)
         #Step round the wheel by slightly less than a quarter
         base_wheel_pos += 34
@@ -586,7 +589,7 @@ def train(num_carriages=-1, colour_list=[], iterations=0): # pylint: disable=dan
             set_pixel(i, r, g, b)
         settings.strip.show()
         if settings.strip2 is not None:
-            settings.strip.show()
+            settings.strip2.show()
         if settings.stop or time_to_go():
             break
         #Only pico5 controls the brightness using the light sensor
@@ -834,17 +837,87 @@ def morewaves(num_waves=3):
     now_running("None")
     debuglog("Exiting")
 
+def playdesk():
+    now_running("playdesk")
+    #start_end = [[0, 21], [22, 40], [41, 59]]
+    start_end = [[0, 40], [41, 59]]
+    num_colours = 4
+    br0 = [0] * settings.numPixels
+    bg0 = [0] * settings.numPixels
+    bb0 = [0] * settings.numPixels
+    bw0 = [0] * settings.numPixels
+    fr0 = [0] * settings.numPixels
+    fg0 = [0] * settings.numPixels
+    fb0 = [0] * settings.numPixels
+    fw0 = [0] * settings.numPixels
+
+    br1 = [0] * settings.numPixels
+    bg1 = [0] * settings.numPixels
+    bb1 = [0] * settings.numPixels
+    bw1 = [0] * settings.numPixels
+    fr1 = [0] * settings.numPixels
+    fg1 = [0] * settings.numPixels
+    fb1 = [0] * settings.numPixels
+    fw1 = [0] * settings.numPixels
+
+    colour_list = [None] * num_colours
+    #sleep_time = 10
+    transition_time = 3
+
+    base_wheel_pos = random.randint(0, 255)
+
+    for c in range(num_colours):
+        wheel_pos = base_wheel_pos + c * (int(255 / num_colours))
+        if wheel_pos > 255:
+            wheel_pos -= 255
+        colour_list[c] = wheel(wheel_pos)
+    base_wheel_pos += 34
+    if base_wheel_pos > 255:
+        base_wheel_pos -= 256
+
+    #set the new pixwel colours for each strip
+    c = 0
+    for start, end in start_end:
+        for p in range(start, end + 1):
+            fr0[p], fg0[p], fb0[p], fw0[p] = list_to_rgb(colour_list[c])
+        c += 1
+    for start, end in start_end:
+        for p in range(start, end + 1):
+            fr1[p], fg1[p], fb1[p], fw1[p] = list_to_rgb(colour_list[c])
+        c += 1
+
+    #get the current pixel colours for each strip
+    for p in range(settings.numPixels):
+        br0[p], bg0[p], bb0[p], bw0[p] = get_pixel_rgb(p)
+    for p in range(settings.numPixels):
+        br1[p], bg1[p], bb1[p], bw1[p] = get_pixel_rgb(p, 1)
+
+    #Now fade quickly from old to new
+    for intensity in range(51):
+        for i in range(settings.numPixels):
+            r, g, b, w = fade_rgb(fr0[i], fg0[i], fb0[i], fw0[i], br0[i], bg0[i], bb0[i], bw0[i], intensity / 10)
+            set_pixel(i, r, g, b, w)
+            r, g, b, w = fade_rgb(fr1[i], fg1[i], fb1[i], fw1[i], br1[i], bg1[i], bb1[i], bw1[i], intensity / 10)
+            set_pixel(i, r, g, b, w, 1)
+        show()
+        sleep(transition_time / 50)
+
+    now_running("None")
+    #debuglog("Exiting")
+
 effects = { "rainbow":   rainbow,
             "rainbow2":  rainbowCycle,
             "xmas":      xmas,
             "off":       off,
             "auto_off":  auto_off,
             "statics":   statics_cycle,
+            "static":    static,
             "twinkling": twinkling,
             "splashing": splashing,
             "shimmer":   shimmer,
             "train":     train,
             "morewaves": morewaves,
+            "playdesk": playdesk,
             }
 
 where = myid.where[myid.pico]

@@ -8,7 +8,7 @@ from utils import settings
 from utils import leds
 from utils import wifi
 from utils.blink import blink
-from utils.log import status
+from utils.log import status, debug
 from utils.common import new_brightness, set_brightness, set_all, set_speed
 
 BUTTON = 15
@@ -70,10 +70,12 @@ def main(standalone = False):
 
     #Send a message to the playroom lights to come on
     if mqtt.client is not False:
-        message = "brightness:30"
         topic = 'pico/plights'
+        message1 = "brightness:30"
+        message2 = "playdesk"
         try:
-            mqtt.send_mqtt(topic,message)
+            mqtt.send_mqtt(topic,message1)
+            mqtt.send_mqtt(topic,message2)
         except Exception: # pylint: disable=broad-except
             mqtt.client = False # just adding this in here to try and avoid a failure loop
 
@@ -99,10 +101,17 @@ def main(standalone = False):
             mqtt.client.subscribe("pico/xlights") # type: ignore
             #mqtt.client.subscribe("pico/lights") # type: ignore
 
-        set_speed(10)
-        set_all(255,0,0)
-        new_brightness(50)
-        led_control("standalone xlights",f"rainbow:{effect_duration}")
+        topic = 'pico/xlights'
+        messages = ["speed:10","brightness:50","rainbow"]
+        for message in messages:
+            try:
+                mqtt.send_mqtt(topic,message)
+            except: # pylint: disable=bare-except
+                debug("Failed to send message")
+
+        #set_all(255,0,0)
+        #new_brightness(50)
+        #led_control("standalone xlights","rainbow")
 
         while True:
             if mqtt.client is not False:
@@ -112,7 +121,8 @@ def main(standalone = False):
             if not wifi.check_wifi():
                 return "Wi-Fi Lost"
 
-            time.sleep(0.2)
+            debug("here... ")
+            time.sleep(5)
 
 if __name__ == "__main__":
     main()

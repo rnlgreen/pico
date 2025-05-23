@@ -7,14 +7,21 @@ from utils import myid
 from utils import log
 
 #Set an individual pixel to a new colour
-def set_pixel(i=0, r=0, g=0, b=0, w=0):
+def set_pixel(i=0, r=0, g=0, b=0, w=0, strip=None): #strip is 0 or 1
     #No need for global when using lists like this
     """Set an individual pixel to a new colour"""
-    settings.strip[i] = (r, g, b, w) # pylint: disable=unsupported-assignment-operation
-    if settings.strip2 is not None:
+    if strip is None:
+        settings.strip[i] = (r, g, b, w) # pylint: disable=unsupported-assignment-operation
+        settings.pixel_colours[i] = [r, g, b, w]
+        if settings.strip2 is not None:
+            settings.strip2[i] = (r, g, b, w) # pylint: disable=unsupported-assignment-operation
+            settings.pixel_colours2[i] = [r, g, b, w]
+    elif strip == 0:
+        settings.strip[i] = (r, g, b, w) # pylint: disable=unsupported-assignment-operation
+        settings.pixel_colours[i] = [r, g, b, w]
+    else:
         settings.strip2[i] = (r, g, b, w) # pylint: disable=unsupported-assignment-operation
-
-    settings.pixel_colours[i] = [r, g, b, w]
+        settings.pixel_colours2[i] = [r, g, b, w]
 
 # Convert a list [1, 2, 3] to integer values, and adjust for settings.saturation
 def list_to_rgb(c, p=100):
@@ -119,6 +126,8 @@ def set_all(r=0, g=0, b=0, w=0):
         settings.strip2.fill((r, g, b))
     for p in range(settings.numPixels):
         settings.pixel_colours[p] = [r, g, b, w] # pixel_colours doesn't need to be "global" as it is mutated
+        if settings.strip2 is not None:
+            settings.pixel_colours2[p] = [r, g, b, w] # pixel_colours doesn't need to be "global" as it is mutated
     #show()
 
     if settings.colour == [0, 0, 0]:
@@ -128,13 +137,16 @@ def set_all(r=0, g=0, b=0, w=0):
         settings.time_on = time.time()
 
 #Get the current value for a pixel
-def get_pixel_rgb(i):
+def get_pixel_rgb(i, strip=None): #strip is 0 or 1
     """Get current rgb value of pixel"""
     if i >= settings.numPixels or i < 0:
         log.status(f"Out of range pixel: {i}")
         return 0,0,0,0
     else:
-        r, g, b, _ = settings.pixel_colours[i]
+        if strip is None or strip == 0:
+            r, g, b, _ = settings.pixel_colours[i]
+        else:
+            r, g, b, _ = settings.pixel_colours2[i]
         return r, g, b, 0
 
 # Euclidean colour difference
@@ -230,8 +242,10 @@ def ticks_diff(start,now):
 #Check if it is time to finish, if we are running standalone
 def time_to_go():
     if settings.stop_after == 1: #Button has been pressed, time to move on
+        #log.status("Stop after 1")
         return True
     if settings.stop_after > 1 and time.time() > settings.stop_after and not settings.singlepattern:
+        #log.status("Stop after > 1")
         return True
     return False
 
@@ -241,12 +255,12 @@ def sleep(s):
 
 #Function to sleep for 'countdown' seconds whilst keeping an eye on stop
 def sleep_for(countdown):
+    end_millis = millis() + countdown * 1000
     loop_sleep = 0.5
     countdown = countdown / loop_sleep
-    while not settings.stop and countdown > 0:
+    while not settings.stop and ticks_diff(end_millis, millis()) > 0:
         check_mqtt()
-        sleep(0.5)
-        countdown -= 1
+        sleep(loop_sleep)
 
 #Check for new MQTT instructions
 def check_mqtt():

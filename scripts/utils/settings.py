@@ -23,6 +23,7 @@ previously_running = ""     # Remember what we were running when we automaticall
 strip = None                # Will become the class representing the strip of LEDs
 strip2 = None               # Will become the class representing the strip of LEDs
 pixel_colours = []          # What all the pixels are currently set to
+pixel_colours2 = []         # What all the pixels are currently set to
 running = False             # Flag to say if we are running a light sequence or not
 splash_size = 4             # Size of splashes in splashing
 #last_lights = 0             # Don't think this is used
