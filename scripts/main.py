@@ -72,7 +72,7 @@ def reload(cleanup=False):
                     for f in subfolderlist:
                         subfolders.append(f"{source}/{f}")
             folders += subfolders
-            log.status(f"Checking folders: {folders}",logit=True)
+            #log.status(f"Checking folders: {folders}",logit=True)
             for source in (folders):
                 ftp.cwd(session,'/pico/scripts')
                 if not dir_exists(source):
