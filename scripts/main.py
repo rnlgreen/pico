@@ -282,7 +282,7 @@ if not TESTMODE:
             log.status(f"MicroPython {mp_release}")
             log.status(f"Free memory: {gc.mem_free()}", logit=True) # pylint: disable=no-member
             log.status(f"Free storage: {status.fs_stats()}%", logit=True) # pylint: disable=no-member
-            if status.fs_stats() < 10:
+            if float(status.fs_stats()) < 10:
                 log.status("Warning: Free storage is low", logit=True)
                 slack.send_msg(pico,":warning: Warning: Free storage is low")
             log.status(f"Temperature: {status.read_internal_temperature()}C", logit=True)
