@@ -52,7 +52,7 @@ def dir_exists(foldername):
 #Function to check for new code and download it from FTP site
 def reload(cleanup=False):
     """Function to reload new code if there is any"""
-    # log.status("Checking for new code")
+    log.status("Checking for new code")
     totalfiles = 0
     try:
         session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
@@ -85,7 +85,7 @@ def reload(cleanup=False):
                 log.status(f"Updated {totalfiles} files", logit=True)
             else:
                 pass
-                #log.status("No new files found")
+                log.status("No new files found")
         else:
             log.status("FTP error occurred", logit=True)
     except Exception as e: # pylint: disable=broad-except
