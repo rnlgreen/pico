@@ -31,11 +31,29 @@ def debug(message, subtopic = None):
         topic = topic + "/" + subtopic
     mqtt.send_mqtt(topic,message)
 
+#Function to prune the exception log file to a manageable size
+def prune_log():
+    """Function to prune the exception log file to a manageable size"""
+    log_limit = 1000
+    try:
+        with open(EXCEPTION_FILE,"r",encoding="utf-8") as file:
+            lines = file.readlines()
+        if len(lines) > log_limit:
+            with open(EXCEPTION_FILE,"w",encoding="utf-8") as file:
+                #take 10% lines off the start of the file
+                for line in lines[int(len(lines)*0.1):]:
+                    file.write(line)
+            status("Pruned exception log", logit=True)
+    except Exception as e: # pylint: disable=broad-except
+        status("Unable to prune exception log", logit=True)
+        log_exception(e)
+
 def log(message):
     """Function to write status message to exception logfile"""
     try:
         with open(EXCEPTION_FILE,"at",encoding="utf-8") as file:
             file.write(f"{strftime()}: {myid.pico} {message}\n")
+        prune_log()
     except Exception as e: # pylint: disable=broad-except
         status(f"Unable to log message to file: {e}")
 
