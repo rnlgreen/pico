@@ -34,7 +34,7 @@ def debug(message, subtopic = None):
 #Function to prune the exception log file to a manageable size
 def prune_log():
     """Function to prune the exception log file to a manageable size"""
-    log_limit = 1000
+    log_limit = 2500
     try:
         with open(EXCEPTION_FILE,"r",encoding="utf-8") as file:
             lines = file.readlines()
