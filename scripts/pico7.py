@@ -85,9 +85,9 @@ def main():
 
     while True:
         #Get RuuviTag readings, returns false if we haven't had any for a while
-        if not ruuvi.get_readings():
-            status("RuuviTag data missing")
-            return "RuuviTag data missing"
+        #if not ruuvi.get_readings():
+        #    status("RuuviTag data missing")
+        #    return "RuuviTag data missing"
 
         debug_logging()
 
