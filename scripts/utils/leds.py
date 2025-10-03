@@ -19,7 +19,7 @@ from lib.neopixel import Neopixel # pylint: disable=import-error
 
 log.DEBUGGING = False
 
-INITIAL_COLOUR = [0, 0, 0]
+INITIAL_COLOUR = [128, 255, 255]
 INITIAL_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,INITIAL_COLOUR)) + ")"
 
 #Light thresholds
