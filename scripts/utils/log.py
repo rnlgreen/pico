@@ -2,6 +2,7 @@
 from utils import myid
 from utils import mqtt
 from utils.timeutils import strftime
+import uos as os # pylint: disable=import-error
 
 EXCEPTION_FILE = "exception.txt"
 DEBUGGING = False
@@ -33,20 +34,34 @@ def debug(message, subtopic = None):
 
 #Function to prune the exception log file to a manageable size
 def prune_log():
-    """Function to prune the exception log file to a manageable size"""
-    log_limit = 2500
+    """Function to prune the exception log file to a manageable size (memory-safe)."""
+    log_limit = 1500
     try:
-        with open(EXCEPTION_FILE,"r",encoding="utf-8") as file:
-            lines = file.readlines()
-        if len(lines) > log_limit:
-            with open(EXCEPTION_FILE,"w",encoding="utf-8") as file:
-                #take 10% lines off the start of the file
-                for line in lines[int(len(lines)*0.1):]:
-                    file.write(line)
+        # Stream: count lines, then rewrite skipping first 10% without loading all lines
+        total_lines = 0
+        with open(EXCEPTION_FILE, "r", encoding="utf-8") as src:
+            for _ in src:
+                total_lines += 1
+        if total_lines > log_limit:
+            remove_count = int(total_lines * 0.1)
+            status(f"Pruning exception log, too many lines ({total_lines})")
+            tmp_name = EXCEPTION_FILE + ".tmp"
+            with open(EXCEPTION_FILE, "r", encoding="utf-8") as src, open(tmp_name, "w", encoding="utf-8") as dst:
+                for i, line in enumerate(src):
+                    if i >= remove_count:
+                        dst.write(line)
+            # Replace original file with tmp (ignore errors)
+            try:
+                os.remove(EXCEPTION_FILE)
+            except Exception: # pylint: disable=broad-except
+                pass
+            try:
+                os.rename(tmp_name, EXCEPTION_FILE)
+            except Exception:# pylint: disable=broad-except
+                pass
             status("Pruned exception log", logit=True)
-    except Exception as e: # pylint: disable=broad-except
-        status("Unable to prune exception log", logit=True)
-        log_exception(e)
+    except Exception as e:  # pylint: disable=broad-except
+        status(f"Unable to prune exception log {e}")
 
 def log(message):
     """Function to write status message to exception logfile"""
