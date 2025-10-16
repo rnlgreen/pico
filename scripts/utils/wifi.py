@@ -44,14 +44,24 @@ def wlan_connect(hostname): # pylint: disable=unused-argument
         wifi_reason = "Failed to connect Wi-Fi"
         return False
 
-def check_wifi():
-    global wifi_reason # pylint: disable=global-statement
+# module-level cache for rate-limited checks
+_last_wifi_check = 0
+_last_wifi_status = True
+_wifi_check_interval = 10  # seconds
+
+def check_wifi(force=False):
+    global wifi_reason, _last_wifi_check, _last_wifi_status # pylint: disable=global-statement
+
+    now = time.time()
+    if not force and (now - _last_wifi_check) < _wifi_check_interval:
+        return _last_wifi_status
+
     if wlan.isconnected() is not True or wlan.status() != 3:
         log.status("Wi-Fi down", logit=True)
         log.status(f"wlan.isconnected(): {wlan.isconnected()}")
         log.status(f"wlan.status(): {wlan.status()}")
         wifi_reason = "Wi-Fi not connected"
-        return False
+        result = False
     else:
         dns_working = False
         tries = 0
@@ -61,7 +71,7 @@ def check_wifi():
             #This depends on the ttl value of the hostname looked up
             #Most times getadrinfo will get the cached result
             try:
-                socket.getaddrinfo("condor.rghome",21)
+                socket.getaddrinfo("condor",21)
                 dns_working = True
             except Exception as e: #pylint: disable=broad-exception-caught
                 log.status(f"DNS error {e}",logit=True)
@@ -70,6 +80,10 @@ def check_wifi():
                 log.status("...retrying DNS lookup",logit=True)
         if not dns_working:
             wifi_reason = "DNS lookup failed"
-            return False
+            result = False
         else:
-            return True
+            result = True
+
+    _last_wifi_check = now
+    _last_wifi_status = result
+    return result
