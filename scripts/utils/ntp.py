@@ -6,20 +6,21 @@ import machine # type: ignore # pylint: disable=import-error
 from utils import log
 
 NTP_DELTA = 2208988800
-host = "condor.rghome"
+host = "condor"
 
-def set_time():
+def set_time(ntphost=host):
     NTP_QUERY = bytearray(48)
     NTP_QUERY[0] = 0x1B
     try:
-        addr = socket.getaddrinfo(host, 123)[0][-1]
+        log.status(f"Getting NTP time from {ntphost}", logit=True)
+        addr = socket.getaddrinfo(ntphost, 123)[0][-1]
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.settimeout(10)
         s.sendto(NTP_QUERY, addr)
         msg = s.recv(48)
         s.close()
     except Exception as e: # pylint: disable=broad-exception-caught
-        log.status("Exception getting NTP", logit=True, handling_exception=True)
+        log.status(f"Exception getting NTP from {ntphost}", logit=True, handling_exception=True)
         log.log_exception(e)
         return False
     #status("NTP fetch was successful")
