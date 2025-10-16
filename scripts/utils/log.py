@@ -32,10 +32,14 @@ def debug(message, subtopic = None):
         topic = topic + "/" + subtopic
     mqtt.send_mqtt(topic,message)
 
+_in_prune_log = False
+
 #Function to prune the exception log file to a manageable size
 def prune_log():
     """Function to prune the exception log file to a manageable size (memory-safe)."""
-    log_limit = 1500
+    global _in_prune_log # pylint: disable=global-statement
+    _in_prune_log = True
+    log_limit = 2500
     try:
         # Stream: count lines, then rewrite skipping first 10% without loading all lines
         total_lines = 0
@@ -43,7 +47,7 @@ def prune_log():
             for _ in src:
                 total_lines += 1
         if total_lines > log_limit:
-            remove_count = int(total_lines * 0.1)
+            remove_count = int(total_lines * 0.2) #Remove 20% of lines
             status(f"Pruning exception log, too many lines ({total_lines})")
             tmp_name = EXCEPTION_FILE + ".tmp"
             with open(EXCEPTION_FILE, "r", encoding="utf-8") as src, open(tmp_name, "w", encoding="utf-8") as dst:
@@ -54,21 +58,23 @@ def prune_log():
             try:
                 os.remove(EXCEPTION_FILE)
             except Exception: # pylint: disable=broad-except
-                pass
+                status("Failed to remove old exception log")
             try:
                 os.rename(tmp_name, EXCEPTION_FILE)
             except Exception:# pylint: disable=broad-except
-                pass
+                status("Failed to rename new exception log")
             status("Pruned exception log", logit=True)
     except Exception as e:  # pylint: disable=broad-except
-        status(f"Unable to prune exception log {e}")
+        status(f"Unable to prune exception log {e}", logit=True)
+    _in_prune_log = False
 
 def log(message):
     """Function to write status message to exception logfile"""
     try:
         with open(EXCEPTION_FILE,"at",encoding="utf-8") as file:
             file.write(f"{strftime()}: {myid.pico} {message}\n")
-        prune_log()
+        if not _in_prune_log: # avoid recursion
+            prune_log()
     except Exception as e: # pylint: disable=broad-except
         status(f"Unable to log message to file: {e}")
 
