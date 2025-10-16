@@ -84,7 +84,7 @@ def reload(cleanup=False):
             if totalfiles > 0:
                 log.status(f"Updated {totalfiles} files", logit=True)
             else:
-                pass
+                #pass
                 log.status("No new files found")
         else:
             log.status("FTP error occurred", logit=True)
@@ -150,10 +150,6 @@ def on_message(topic, payload):
         if command == "blink":
             log.status("blinking")
             blink(0.1,0.1,5)
-        #elif command == "reload": #These just result in memory issues and corrupt files
-        #    reload()
-        #elif command == "cleanup":
-        #    reload(cleanup=True)
         elif command == "restart":
             log.status("Restarting")
             restart("mqtt command")
@@ -198,7 +194,6 @@ else:
     print(f"Unrecognised ID: {pico}")
     newpico = True
 
-#log.status("Initialising, about to connect Wi-Fi", logit=True)
 mp_release = log_versions()
 
 #Call wifi_connect with our hostname; my routine tries multiple times to connect
@@ -218,12 +213,8 @@ if ipaddr:
     restart_reason = log.restart_reason()
     slack.send_msg(pico,f":repeat: Restart reason: {restart_reason}")
 
-    #log.status(f"Wi-Fi: {ipaddr}", logit=True)
-
-    #log.log("Attempting time sync #1")
     ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
 
-    #log.log("Attempting MQTT connection")
     #Try MQTT connect here so we get reload log events
     if not mqtt.mqtt_connect(client_id=pico):
         log.log("Pausing befire restart (MQTT)")
@@ -239,7 +230,6 @@ if ipaddr:
     #Subscribe to the relevant channels
     if mqtt.client is not False:
         #Subscribe to control and heartbeat channels
-        #log.status("Subscribing to MQTT", logit=True)
         mqtt.client.set_callback(on_message) # type: ignore
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/all/control") # type: ignore
