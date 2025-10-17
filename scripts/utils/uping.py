@@ -20,12 +20,12 @@ def checksum(data):
     return cs
 
 def ping(host, count=4, timeout=5000, interval=10, quiet=False, size=64):
-    import utime
-    import uselect
-    import uctypes
-    import usocket
-    import ustruct
-    import urandom
+    import utime   # pylint: disable=import-error, import-outside-toplevel
+    import uselect # pylint: disable=import-error, import-outside-toplevel
+    import uctypes # pylint: disable=import-error, import-outside-toplevel
+    import usocket # pylint: disable=import-error, import-outside-toplevel
+    import ustruct # pylint: disable=import-error, import-outside-toplevel
+    import urandom # pylint: disable=import-error, import-outside-toplevel
 
     # prepare packet
     assert size >= 16, "pkt size too small"
@@ -51,7 +51,8 @@ def ping(host, count=4, timeout=5000, interval=10, quiet=False, size=64):
     sock.settimeout(timeout/1000)
     addr = usocket.getaddrinfo(host, 1)[0][-1][0] # ip address
     sock.connect((addr, 1))
-    not quiet and print("PING %s (%s): %u data bytes" % (host, addr, len(pkt)))
+    if not quiet:
+        print("PING %s (%s): %u data bytes" % (host, addr, len(pkt)))
 
     seqs = list(range(1, count+1)) # [1,2,...,count]
     c = 1
@@ -80,13 +81,13 @@ def ping(host, count=4, timeout=5000, interval=10, quiet=False, size=64):
                 resp = socks[0].recv(4096)
                 resp_mv = memoryview(resp)
                 h2 = uctypes.struct(uctypes.addressof(resp_mv[20:]), pkt_desc, uctypes.BIG_ENDIAN)
-                # TODO: validate checksum (optional)
                 seq = h2.seq
                 if h2.type==0 and h2.id==h.id and (seq in seqs): # 0: ICMP_ECHO_REPLY
                     t_elasped = (utime.ticks_us()-h2.timestamp) / 1000
                     ttl = ustruct.unpack('!B', resp_mv[8:9])[0] # time-to-live
                     n_recv += 1
-                    not quiet and print("%u bytes from %s: icmp_seq=%u, ttl=%u, time=%f ms" % (len(resp), addr, seq, ttl, t_elasped))
+                    if not quiet:
+                        print("%u bytes from %s: icmp_seq=%u, ttl=%u, time=%f ms" % (len(resp), addr, seq, ttl, t_elasped))
                     seqs.remove(seq)
                     if len(seqs) == 0:
                         finish = True
@@ -102,6 +103,6 @@ def ping(host, count=4, timeout=5000, interval=10, quiet=False, size=64):
 
     # close
     sock.close()
-    ret = (n_trans, n_recv)
-    not quiet and print("%u packets transmitted, %u packets received" % (n_trans, n_recv))
+    if not quiet:
+        print("%u packets transmitted, %u packets received" % (n_trans, n_recv))
     return (n_trans, n_recv)

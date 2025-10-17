@@ -45,10 +45,15 @@ def heartbeat_check():
     return True
 
 def check_xbox():
-    _, recv = ping('xantus')
-    if recv > 0:
-        return True
-    else:
+    try:
+        sent, recv = ping('xantus')
+        status(f"Ping sent: {sent}, received: {recv}")
+        if recv > 0:
+            return True
+        else:
+            return False
+    except Exception as e: # pylint: disable=broad-except
+        status(f"Ping exception in check_xbox: {e}", logit=True)
         return False
 
 def xlights(on_or_off):
