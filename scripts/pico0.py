@@ -1,4 +1,5 @@
 """pico0 main code"""
+#Test Pico
 import gc # Garbage Collector
 import time # type: ignore # pylint: disable=import-error # MicroPython time function (time is an alias to utime)
 import machine # pylint: disable=import-error

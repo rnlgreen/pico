@@ -1,5 +1,5 @@
 """Main routine for study lights"""
-#Initialise the traps
+#Study shelf lights
 import time
 import gc
 from utils import mqtt

@@ -1,4 +1,5 @@
 """Main routine for Pico1"""
+#Mouse Trap #1
 #Initialise the traps
 import time
 from machine import Pin # type: ignore # pylint: disable=import-error

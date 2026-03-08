@@ -1,5 +1,5 @@
 """Main routine for Pico10"""
-#Initialise the traps
+#Test Pico
 import time
 from utils import mqtt
 from utils import wifi

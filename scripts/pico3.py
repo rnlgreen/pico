@@ -1,4 +1,5 @@
-#pico0 main code
+#pico3 main code
+#kitchen lights secondary
 import time
 import gc
 from utils import mqtt

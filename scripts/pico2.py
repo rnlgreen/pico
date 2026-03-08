@@ -1,4 +1,5 @@
 #Code for Pico2 - measure and report temperature and pressure
+#Mouse trap #2
 import gc # Garbage Collector
 import utime # type: ignore # pylint: disable=import-error # MicroPython time function (time is an alias to utime)
 from machine import I2C, Pin # type: ignore # pylint: disable=import-error
