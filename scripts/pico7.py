@@ -1,4 +1,5 @@
-#Code for Pico7 - measure and report temperature and pressure, and play desk lighting
+#Code for Pico7
+#Playroom console under lighting (2 strips)
 import gc # Garbage Collector
 import utime # type: ignore # pylint: disable=import-error # MicroPython time function (time is an alias to utime)
 from utils import myid
@@ -25,6 +26,8 @@ def get_status():
     status(f"xbox: {check_xbox()}")
     status(f"lightsoff: {settings.lightsoff}")
     status(f"brightness: {settings.brightness}")
+    status(f"colour: {settings.colour}")
+    status(f"hue: {settings.hue}")
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     ruuvi.get_status()
 
@@ -47,7 +50,7 @@ def heartbeat_check():
 def check_xbox():
     try:
         sent, recv = ping('xantus')
-        status(f"Ping sent: {sent}, received: {recv}")
+        #status(f"Ping sent: {sent}, received: {recv}")
         if recv > 0:
             return True
         else:
@@ -77,6 +80,7 @@ def debug_logging():
     debug(f"time since on: {utime.time() - settings.time_on}")
 
 def main():
+    standalone = True
     strip_type = "GRB"
     pixels = 60 #need strips to be the same length, for now...
     GPIO1 = 28
@@ -88,32 +92,38 @@ def main():
         mqtt.client.subscribe("pico/plights") # control commands for the playdesk lights
         mqtt.client.subscribe("pico/pico2w0/heartbeat") # monitor heartbeat to see if power is on or not
 
+    if standalone:
+        leds.set_colour([189, 125, 66])
+        new_brightness(100)
+        led_control("plights","shimmer")
+
     while True:
         #Get RuuviTag readings, returns false if we haven't had any for a while
         #if not ruuvi.get_readings():
         #    status("RuuviTag data missing")
         #    return "RuuviTag data missing"
 
-        debug_logging()
+        #debug_logging()
 
-        #Check we've seen a heartbeat from pico2w0 recently, otherwise turn the lights off
-        if not settings.lightsoff and not heartbeat_check():
-            status("Turning lights off")
-            off()
+        if not standalone:
+            #Check we've seen a heartbeat from pico2w0 recently, otherwise turn the lights off
+            if not settings.lightsoff and not heartbeat_check():
+                status("Turning lights off")
+                off()
 
-        #Check for Xbox Off
-        if not settings.lightsoff and (utime.time() - settings.time_on) > 90 and not check_xbox():
-            status("Xbox is off!")
-            led_control("plights","off")
-            xlights("off")
+            #Check for Xbox Off
+            if not settings.lightsoff and (utime.time() - settings.time_on) > 90 and not check_xbox():
+                status("Xbox is off!")
+                led_control("plights","off")
+                xlights("off")
 
-        #Check for Xbox On
-        if check_xbox():
-            if settings.lightsoff: #If the lights were off then set the brightness and make sure the rear lights are on
-                status("Xbox is on!")
-                new_brightness(30)
-                xlights("on")
-            led_control("plights","playdesk")
+            #Check for Xbox On
+            if check_xbox():
+                if settings.lightsoff: #If the lights were off then set the brightness and make sure the rear lights are on
+                    status("Xbox is on!")
+                    new_brightness(30)
+                    xlights("on")
+                led_control("plights","playdesk")
 
         #Check for messages
         if mqtt.client is not False:
@@ -123,7 +133,7 @@ def main():
         if not wifi.check_wifi():
             return "Wi-Fi Lost"
 
-        utime.sleep(5)
+        utime.sleep(1)
 
 pico = myid.get_id()
 where = myid.where[pico]

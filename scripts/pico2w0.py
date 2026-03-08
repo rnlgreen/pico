@@ -1,5 +1,4 @@
-"""Main routine for xbox lights"""
-#Initialise the traps
+"""Main routine for playroom console rear strip"""
 import time
 import gc
 from machine import Pin # pylint: disable=import-error
@@ -102,16 +101,16 @@ def main(standalone = False):
             #mqtt.client.subscribe("pico/lights") # type: ignore
 
         topic = 'pico/xlights'
-        messages = ["speed:10","brightness:50","rainbow"]
-        for message in messages:
-            try:
-                mqtt.send_mqtt(topic,message)
-            except: # pylint: disable=bare-except
-                debug("Failed to send message")
+        ##commented out for temporary standalone mode
+        #messages = ["speed:10","brightness:50","rainbow"]
+        #for message in messages:
+        #    try:
+        #        mqtt.send_mqtt(topic,message)
+        #    except: # pylint: disable=bare-except
+        #        debug("Failed to send message")
 
-        #set_all(255,0,0)
-        #new_brightness(50)
-        #led_control("standalone xlights","rainbow")
+        leds.set_colour([199, 251, 106])
+        new_brightness(100)
 
         while True:
             if mqtt.client is not False:
@@ -121,8 +120,7 @@ def main(standalone = False):
             if not wifi.check_wifi():
                 return "Wi-Fi Lost"
 
-            debug("here... ")
-            time.sleep(5)
+            time.sleep(1)
 
 if __name__ == "__main__":
     main()

@@ -23,8 +23,8 @@ INITIAL_COLOUR = [128, 255, 255]
 INITIAL_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,INITIAL_COLOUR)) + ")"
 
 #Light thresholds
-DIM = 45
-BRIGHT = 55 #(was 55)
+DIM = 70 #(was 45)
+BRIGHT = 80 #(was 55)
 
 #Light On/Off Schedule
 LIGHTS_OFF = 0
@@ -274,9 +274,12 @@ def daytime():
     else:
         return False
 
+last_control = time.time()
+
 #Routine to manage LED brightness
 def manage_lights():
     """Update lights based on light levels"""
+    global last_control # pylint: disable=global-statement
     lightlevel = light.rolling_average()
     updated = False
 
@@ -287,6 +290,7 @@ def manage_lights():
             light.send_measurement(where,"light",lightlevel)
             light.last_reading = time.time()
         if daytime(): #e.g. from > 7 or < 0
+            now = time.time()
             #Turn off for high light levels
             if lightlevel > BRIGHT and not settings.lightsoff:
                 log.status("Turning lights off (auto)")
@@ -295,16 +299,16 @@ def manage_lights():
                     settings.previously_running = settings.effect
                 else:
                     settings.previously_running = ""
-                send_control("auto_off")
+                send_control("auto_off") #Special 'off' command for auto mode, not turning auto off :)
                 updated = True
             #Turn on or adjust for low light levels
             elif lightlevel < DIM:
                 new_brightness_level = light.get_brightness(lightlevel,settings.boost)
                 #If the brightness level has changed check for hysteresis
                 h = light.check_hysteresis(lightlevel)
-                if settings.brightness != new_brightness_level:
+                if settings.brightness != new_brightness_level or (now - last_control > 60):
                     #Only change for large steps or significant hysteresis
-                    if abs(new_brightness_level - settings.brightness) > 5 or  h > 0.1:
+                    if abs(new_brightness_level - settings.brightness) > 5 or  h > 0.1 or (now - last_control > 60):
                         #If the lights are off then we need to turn them on
                         if settings.lightsoff:
                             log.status("Turning lights on")
@@ -315,6 +319,7 @@ def manage_lights():
                                 if settings.colour == [0, 0, 0]:
                                     send_control(INITIAL_COLOUR_COMMAND)
                         send_control(f"brightness:{new_brightness_level}")
+                        last_control = now
                         updated = True
                     else:
                         msg = f"Skipping brightness change {settings.brightness} -> {new_brightness_level}"
