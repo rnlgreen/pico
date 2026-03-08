@@ -1,4 +1,5 @@
 #pico5 main code
+#Kitchen lights main pico
 import time
 import gc
 from utils import mqtt
@@ -37,7 +38,7 @@ def led_control(topic,payload):
 #Called my main.py
 def main():
     strip_type = "GRB"
-    pixels = 72
+    pixels = 68 #(was 72)
     GPIO = 28
     settings.master = True
     leds.init_strip(strip_type,pixels,GPIO)
@@ -52,11 +53,11 @@ def main():
     while True:
         if mqtt.client is not False:
             mqtt.client.check_msg()
-        #Publish light level every 5 seconds
-        if time.time() - light.last_reading >= 5:
-            lightlevel = light.readLight()
-            light.send_measurement(where,"light",lightlevel)
-            light.last_reading = time.time()
+        #Publish light level every 5 seconds (now done in leds.manage_lights)
+        #if time.time() - light.last_reading >= 5:
+        #    lightlevel = light.readLight()
+        #    light.send_measurement(where,"light",lightlevel)
+        #    light.last_reading = time.time()
         #Manage light level every second
         if time.time() - settings.last_lights >= 1:
             settings.last_lights = time.time()

@@ -1,4 +1,5 @@
-#pico0 main code
+#pico4 main code
+#kitchen lights secondary
 import time
 import gc
 from utils import mqtt
@@ -28,7 +29,7 @@ def led_control(topic,payload):
 #Called my main.py
 def main():
     strip_type = "GRB"
-    pixels = 72
+    pixels = 68 #(was 72)
     GPIO = 28
     leds.init_strip(strip_type,pixels,GPIO)
 
