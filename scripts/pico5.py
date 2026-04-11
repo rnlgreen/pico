@@ -38,7 +38,7 @@ def led_control(topic,payload):
 #Called my main.py
 def main():
     strip_type = "GRB"
-    pixels = 68 #(was 72)
+    pixels = 73
     GPIO = 28
     settings.master = True
     leds.init_strip(strip_type,pixels,GPIO)
