@@ -161,7 +161,7 @@ def rainbow():
         settings.hue += 50
         if settings.hue > 65535:
             settings.hue -= 65535
-            if settings.master and settings.auto:
+            if settings.master and settings.auto: #resync the colour across the three strips
                 send_control(f"hue:{settings.hue}")
         if settings.master and settings.auto:
             if ticks_diff(t, millis()) > 1000:
