@@ -49,11 +49,14 @@ def heartbeat_check():
 
 def check_xbox():
     try:
-        sent, recv = ping('xantus')
+        sent, recv = ping('10.0.2.195')
         #status(f"Ping sent: {sent}, received: {recv}")
         if recv > 0:
             return True
         else:
+            sent, recv = ping('xantus2')
+            if recv > 0:
+                return True
             return False
     except Exception as e: # pylint: disable=broad-except
         status(f"Ping exception in check_xbox: {e}", logit=True)
@@ -80,7 +83,7 @@ def debug_logging():
     debug(f"time since on: {utime.time() - settings.time_on}")
 
 def main():
-    standalone = True
+    standalone = False
     strip_type = "GRB"
     pixels = 60 #need strips to be the same length, for now...
     GPIO1 = 28
@@ -92,10 +95,9 @@ def main():
         mqtt.client.subscribe("pico/plights") # control commands for the playdesk lights
         mqtt.client.subscribe("pico/pico2w0/heartbeat") # monitor heartbeat to see if power is on or not
 
-    if standalone:
-        leds.set_colour([189, 125, 66])
-        new_brightness(100)
-        led_control("plights","shimmer")
+    leds.set_colour([189, 125, 66])
+    new_brightness(100)
+    led_control("plights","shimmer")
 
     while True:
         #Get RuuviTag readings, returns false if we haven't had any for a while

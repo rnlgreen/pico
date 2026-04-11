@@ -101,16 +101,16 @@ def main(standalone = False):
             #mqtt.client.subscribe("pico/lights") # type: ignore
 
         topic = 'pico/xlights'
-        ##commented out for temporary standalone mode
-        #messages = ["speed:10","brightness:50","rainbow"]
-        #for message in messages:
-        #    try:
-        #        mqtt.send_mqtt(topic,message)
-        #    except: # pylint: disable=bare-except
-        #        debug("Failed to send message")
 
-        leds.set_colour([199, 251, 106])
-        new_brightness(100)
+        messages = ["speed:10","brightness:50","rainbow"]
+        for message in messages:
+            try:
+                mqtt.send_mqtt(topic,message)
+            except: # pylint: disable=bare-except
+                debug("Failed to send message")
+
+        #leds.set_colour([199, 251, 106])
+        #new_brightness(100)
 
         while True:
             if mqtt.client is not False:
