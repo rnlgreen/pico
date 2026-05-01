@@ -74,6 +74,10 @@ def main(standalone = False):
                 #set_all(255, 200, 0)
                 #led_control("standalone xlights",f"shimmer:{effect_duration}")
             #No need to sleep as we are stuck in the led_control for effect_duration seconds
+
+            #Check WiFi status
+            if not wifi.check_wifi():
+                return "Wi-Fi Lost"
     else:
         if mqtt.client is not False:
             mqtt.client.subscribe("pico/klights") # type: ignore
