@@ -1,11 +1,12 @@
 """Main routine for PicoX"""
-#Extractor fan lights
+#Shelf lights
 import time
 import gc
 from utils import mqtt
 from utils import settings
 from utils import leds
 from utils import wifi
+from utils import ruuvi
 from utils.log import status,log
 from utils.common import set_brightness, off
 
@@ -22,6 +23,7 @@ def get_status():
     status(f"Auto control: {settings.auto}")
     gc.collect()
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
+    ruuvi.get_status()
 
 #LED control function to accept commands and launch effects
 def led_control(topic,payload):
@@ -44,12 +46,18 @@ def main(standalone = False):
         brightness = 20
         set_brightness(brightness)
         settings.speed = 90
-        effect_duration = 600 # Was -1, but if we want to check the time of day to turn off we need to come back
+        effect_duration = 300 # Was -1, but if we want to check the time of day to turn off we need to come back
         led_control("standalone klights","speed:90")
         mqtt.client.subscribe("pico/klights") # type: ignore
         while True:
             if mqtt.client is not False:
                 mqtt.client.check_msg()
+
+            #Get RuuviTag readings, returns false if we haven't had any for a while
+            if not ruuvi.get_readings(1000*(effect_duration+10)): #Wait for a reading, with a timeout slightly longer than the effect duration
+                status("RuuviTag data missing")
+                return "RuuviTag data missing"
+
             if not (leds.daytime() or settings.lightsoff):
                 status("Turning lights off")
                 off()
@@ -65,6 +73,7 @@ def main(standalone = False):
                 #led_control("standalone xlights",f"twinkling:{-1}")
                 #set_all(255, 200, 0)
                 #led_control("standalone xlights",f"shimmer:{effect_duration}")
+            #No need to sleep as we are stuck in the led_control for effect_duration seconds
     else:
         if mqtt.client is not False:
             mqtt.client.subscribe("pico/klights") # type: ignore
