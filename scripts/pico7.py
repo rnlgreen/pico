@@ -37,6 +37,7 @@ def led_control(topic,payload):
     latest_heartbeat = utime.time()
     leds.led_control(topic,payload)
 
+#Called by main.py when it receives heartbeat topic from pico2w0
 def heartbeat():
     global latest_heartbeat # pylint: disable=global-statement
     latest_heartbeat = utime.time()
@@ -54,9 +55,9 @@ def check_xbox():
         if recv > 0:
             return True
         else:
-            sent, recv = ping('xantus2')
-            if recv > 0:
-                return True
+#            sent, recv = ping('xantus2')
+#            if recv > 0:
+#                return True
             return False
     except Exception as e: # pylint: disable=broad-except
         status(f"Ping exception in check_xbox: {e}", logit=True)
@@ -84,6 +85,7 @@ def debug_logging():
 
 def main():
     standalone = False
+    #debug_logging()
     strip_type = "GRB"
     pixels = 60 #need strips to be the same length, for now...
     GPIO1 = 28
@@ -95,17 +97,24 @@ def main():
         mqtt.client.subscribe("pico/plights") # control commands for the playdesk lights
         mqtt.client.subscribe("pico/pico2w0/heartbeat") # monitor heartbeat to see if power is on or not
 
-    leds.set_colour([189, 125, 66])
-    new_brightness(100)
-    led_control("plights","shimmer")
+    #leds.set_colour([189, 125, 66])
+    #new_brightness(100)
+    #led_control("plights","shimmer") #!!! can't do this as it doesn't return control
+    #Need to use mqtt to send messages tp plights so we can still monitor the heartbeat and xbox status in the main loop
+    #topic = 'pico/plights'
+    #message = "shimmer"
+    #try:
+    #    mqtt.send_mqtt(topic,message)
+    #except Exception: # pylint: disable=broad-except
+    #    mqtt.client = False # just adding this in here to try and avoid a failure loop
 
     while True:
-        #Get RuuviTag readings, returns false if we haven't had any for a while
-        #if not ruuvi.get_readings():
-        #    status("RuuviTag data missing")
-        #    return "RuuviTag data missing"
-
         #debug_logging()
+
+        #Get RuuviTag readings, returns false if we haven't had any for a while
+        if not ruuvi.get_readings():
+            status("RuuviTag data missing")
+            return "RuuviTag data missing"
 
         if not standalone:
             #Check we've seen a heartbeat from pico2w0 recently, otherwise turn the lights off
@@ -113,19 +122,19 @@ def main():
                 status("Turning lights off")
                 off()
 
-            #Check for Xbox Off
+            #Check for Xbox Off if the lights are on and we've been up for 90 seconds
             if not settings.lightsoff and (utime.time() - settings.time_on) > 90 and not check_xbox():
-                status("Xbox is off!")
+                status("Xbox is off, turning lights off!")
                 led_control("plights","off")
                 xlights("off")
 
             #Check for Xbox On
             if check_xbox():
                 if settings.lightsoff: #If the lights were off then set the brightness and make sure the rear lights are on
-                    status("Xbox is on!")
+                    status("Xbox is on, turning lights on!")
                     new_brightness(30)
                     xlights("on")
-                led_control("plights","playdesk")
+                    led_control("plights","playdesk")
 
         #Check for messages
         if mqtt.client is not False:
