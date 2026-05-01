@@ -19,7 +19,7 @@ def checksum(data):
     cs = ~cs & 0xffff
     return cs
 
-def ping(host, count=4, timeout=5000, interval=10, quiet=False, size=64):
+def ping(host, count=2, timeout=5000, interval=10, quiet=False, size=64):
     import utime   # pylint: disable=import-error, import-outside-toplevel
     import uselect # pylint: disable=import-error, import-outside-toplevel
     import uctypes # pylint: disable=import-error, import-outside-toplevel
