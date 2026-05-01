@@ -19,15 +19,18 @@ from lib.neopixel import Neopixel # pylint: disable=import-error
 
 log.DEBUGGING = False
 
-INITIAL_COLOUR = [128, 255, 255]
+#INITIAL_COLOUR = [128, 255, 255]
+INITIAL_COLOUR = [0, 0, 0]
 INITIAL_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,INITIAL_COLOUR)) + ")"
+DEFAULT_COLOUR = [128, 255, 255]
+DEFAULT_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,DEFAULT_COLOUR)) + ")"
 
 #Light thresholds
 DIM = 70 #(was 45)
 BRIGHT = 80 #(was 55)
 
 #Light On/Off Schedule
-LIGHTS_OFF = 0
+LIGHTS_OFF = 1
 LIGHTS_ON = 7
 
 def init_strip(strip_type="GRBW",pixels=16,GPIO=0,twostrips=False):
@@ -39,11 +42,11 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0,twostrips=False):
     if not twostrips:
         log.status("Initialising strip 1")
         settings.strip = Neopixel(pixels, 0, GPIO, strip_type)
-        settings.pixel_colours = [[0, 0, 0, 0]] * pixels
+        settings.pixel_colours = [[0, 0, 0]] * pixels
     else:
         log.status("Initialising strip 2")
         settings.strip2 = Neopixel(pixels, 1, GPIO, strip_type)
-        settings.pixel_colours2 = [[0, 0, 0, 0]] * pixels
+        settings.pixel_colours2 = [[0, 0, 0]] * pixels
         if settings.strip2 is None:
             log.status("failed")
 
@@ -128,7 +131,8 @@ def led_control(topic="", payload=""):
             if command != "stopping":
                 try:
                     #log.status(f"Calling {effects[command]}")
-                    if arg != "":
+                    if arg != "": #Some effects take an argument for how long to run for, so we set the stop time based on that
+                                  #The function time_to_go then checks settings.stop_after
                         if arg == "-1":
                             settings.stop_after = -1
                         else:
@@ -280,15 +284,17 @@ last_control = time.time()
 def manage_lights():
     """Update lights based on light levels"""
     global last_control # pylint: disable=global-statement
+    publish_interval = 30
     lightlevel = light.rolling_average()
     updated = False
 
+    #Publish light level every x seconds
+    if time.time() - light.last_reading >= publish_interval:
+        lightlevel = light.readLight()
+        light.send_measurement(where,"light",lightlevel)
+        light.last_reading = time.time()
+
     if settings.auto:
-        #Publish light level every 5 seconds
-        if time.time() - light.last_reading >= 5:
-            lightlevel = light.readLight()
-            light.send_measurement(where,"light",lightlevel)
-            light.last_reading = time.time()
         if daytime(): #e.g. from > 7 or < 0
             now = time.time()
             #Turn off for high light levels
@@ -315,9 +321,8 @@ def manage_lights():
                             if settings.previously_running != "":
                                 log.status(f"Restarting {settings.previously_running}")
                                 send_control(settings.previously_running)
-                            else:
-                                if settings.colour == [0, 0, 0]:
-                                    send_control(INITIAL_COLOUR_COMMAND)
+                            if settings.colour == [0, 0, 0]:
+                                send_control(DEFAULT_COLOUR_COMMAND)
                         send_control(f"brightness:{new_brightness_level}")
                         last_control = now
                         updated = True
