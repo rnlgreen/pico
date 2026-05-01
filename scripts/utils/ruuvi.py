@@ -13,7 +13,7 @@ got_one = False
 scanning = False
 found = []
 
-mytags = { 'f34584d173cb': "woodstore", 'dc7eb48031b4': "garage", 'fab5c40c4095': "loft" }
+mytags = { 'f34584d173cb': "lounge", 'dc7eb48031b4': "kitchen", 'fab5c40c4095': "orangery",  'f9a8d010746c': "utility" }
 
 def get_status():
     log.status(f"no_ruuvi_since_start: {no_ruuvi_since_start}")
@@ -22,7 +22,7 @@ def get_status():
     log.status(f"last_ruuvi_time: {last_ruuvi_time}")
     #log.debug(f"blacklist unique values: {len(set(ruuvi._blacklist))}", subtopic="blacklist")
     #log.debug(f"blacklist: {ruuvi._blacklist}", subtopic="blacklist")
-    log.debug(f"addrs: {ruuvi._addrs}", subtopic="addrs") # pylint: disable=protected-access
+    log.debug(f"addrs: {ruuvi._addrs}", subtopic="ruuvi/addrs") # pylint: disable=protected-access
 
 #Callback handler that receives a tuple of data from the RuuviTag class object
 #RuuviTagRAWv2(mac=b'f34584d173cb', rssi=-100, format=5, humidity=91.435, temperature=9.01,
@@ -37,7 +37,7 @@ def ruuvicb(ruuvitag):
         got_one = True
         tagwhere = mytags[ruuvitag.mac.decode('ascii')]
         found.append(tagwhere)
-        log.debug(f"Processing data for {tagwhere} RuuviTag")
+        log.debug(f"Processing data for {tagwhere} RuuviTag","ruuvi")
         if mqtt.client is not False:
             for thing in ["temperature", "humidity", "pressure", "battery_voltage"]:
                 print(f"{thing}: {getattr(ruuvitag, thing)}")
@@ -52,32 +52,36 @@ def ruuvicb(ruuvitag):
         no_ruuvi_since_start = False
     else: #scanning finished
         scanning = False
-        log.debug("Scanning complete")
+        log.debug("Scanning complete","ruuvi")
         #if len(set(ruuvi._blacklist)) > bl:
         #    bl = len(set(ruuvi._blacklist))
         #    log.status(f"Blacklist now {bl}")
         if got_one:
-            log.debug(f"Found: {','.join(found)}")
+            log.debug(f"Found: {','.join(found)}","ruuvi")
             found = []
         else:
             log.status("No tags found")
 
-def get_readings():
+def get_readings(timeout=70000):
     global got_one, scanning # pylint: disable=global-statement
     ruuvi_elapsed = utime.ticks_diff(utime.ticks_ms(),last_ruuvi)
     #Check we've got an update from RuuviTag
-    if ruuvi_elapsed > 70000 and not no_ruuvi_since_start and not got_one:
+    #log.debug(f"Time since last RuuviTag reading: {ruuvi_elapsed}ms","ruuvi")
+    if ruuvi_elapsed > timeout and not no_ruuvi_since_start and not got_one: #over a minute since we got one, and we've had one since start, so something is wrong
+        log.debug("No RuuviTag data for more than timeout, returning false","ruuvi")
         get_status()
         return False
     elif ((ruuvi_elapsed >= 10000 and not got_one and not scanning) #keep trying every 10 seconds
        or (ruuvi_elapsed >= 60000 and got_one and not scanning)):  #wait 60 seconds after we got one
         #Get Ruuvi Data
         scanning = True #to avoid multiple scans kicking off
-        got_one = False
+        got_one = False #about to kick off a scan, so reset this to false until we get a callback
         if ruuvi_elapsed < 60000 and not no_ruuvi_since_start:
-            log.status("Retrying scan...")
-        log.debug("Scanning...")
+            log.debug("Retrying scan...","ruuvi")
+        log.debug("Scanning...","ruuvi")
         ruuvi.scan(ruuvicb) #scans for 5 seconds
+    #else:
+    #    log.debug("RuuviTag data is recent, no need to scan","ruuvi")
     return True
 
 #Inititialise Ruuvi
