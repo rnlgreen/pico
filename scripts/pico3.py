@@ -9,6 +9,7 @@ from utils import settings
 from utils.log import status
 
 def get_status():
+    wifi.wifi_status()
     status(f"running: {settings.running}")
     status(f"effect: {settings.effect}")
     status(f"stop: {settings.stop}")
@@ -35,6 +36,7 @@ def main():
 
     if mqtt.client is not False:
         mqtt.client.subscribe("pico/lights") # type: ignore
+
     while True:
         if mqtt.client is not False:
             mqtt.client.check_msg()

@@ -40,6 +40,7 @@ last_sent = 0
 
 #Report current status of lights and sensors etc.
 def get_status():
+    wifi.wifi_status()
     # trap.get_status()
     # status(f"running: {leds.running}")
     # status(f"effect: {leds.effect}")

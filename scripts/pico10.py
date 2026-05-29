@@ -5,6 +5,7 @@ from utils import mqtt
 from utils import wifi
 
 def get_status():
+    wifi.wifi_status()
     return
 
 def main():

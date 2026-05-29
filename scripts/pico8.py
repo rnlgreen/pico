@@ -33,6 +33,7 @@ def readLight(adc_pin):
     return light
 
 def get_status():
+    wifi.wifi_status()
     for which in ['heating','water']:
         status(f"{which} is currently {sensors[which]['state']}")
         status(f"{which} valve light level: {readLight(sensors[which]['pin'])}")

@@ -11,6 +11,7 @@ from utils.log import status,log
 from utils.common import set_brightness, off
 
 def get_status():
+    wifi.wifi_status()
     status(f"running: {settings.running}")
     status(f"effect: {settings.effect}")
     status(f"stop: {settings.stop}")
@@ -59,11 +60,13 @@ def main(standalone = False):
                 return "RuuviTag data missing"
 
             if not (leds.daytime() or settings.lightsoff):
-                status("Turning lights off")
+                if not status("Turning lights off"):
+                    return "Failed to send status message"
                 off()
             else:
                 if leds.daytime() and settings.lightsoff:
-                    status("Turning lights on")
+                    if not status("Turning lights on"):
+                        return "Failed to send status message"
                     set_brightness(brightness)
                 #led_control("standalone xlights",f"test:{effect_duration}")
                 #led_control("standalone xlights",f"rainbow2:{effect_duration}")

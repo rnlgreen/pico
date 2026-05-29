@@ -234,6 +234,7 @@ if ipaddr:
         mqtt.client.subscribe("pico/"+pico+"/control") # type: ignore
         mqtt.client.subscribe("pico/all/control") # type: ignore
         mqtt.client.subscribe("pico/poll") # type: ignore
+        log.status(f"IP {ipaddr}")
 elif pico in myid.standalone:
     standalone = True
     log.log("No WiFi so running standalone")

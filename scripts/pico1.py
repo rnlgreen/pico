@@ -11,6 +11,7 @@ from utils.log import status
 
 #Status reporting
 def get_status():
+    wifi.wifi_status()
     trap.get_status()
     ruuvi.get_status()
 

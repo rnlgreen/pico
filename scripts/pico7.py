@@ -18,8 +18,8 @@ def send_mqtt(topic,message):
     if mqtt.client is not False:
         mqtt.send_mqtt(topic,message)
 
-#Return i2cscan to status commands
 def get_status():
+    wifi.wifi_status()
     gc.collect()
     status(f"latest_heartbeat: {latest_heartbeat}")
     status(f"heartbeat_check: {heartbeat_check()}")

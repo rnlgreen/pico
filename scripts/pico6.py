@@ -7,6 +7,7 @@ from utils.log import status
 from utils import ruuvi
 
 def get_status():
+    wifi.wifi_status()
     """Get garage door status"""
     door.get_status()
     ruuvi.get_status()

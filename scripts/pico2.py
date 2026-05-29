@@ -43,6 +43,7 @@ def send_measurement(what,value):
 
 #Status reporting
 def get_status():
+    wifi.wifi_status()
     ruuvi.get_status()
     trap.get_status()
     if do_I2C:
