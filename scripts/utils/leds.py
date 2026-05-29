@@ -278,6 +278,19 @@ def daytime():
     else:
         return False
 
+#Function to return if it is daytime or not
+def late():
+    hour = utime.localtime()[3]
+    month = utime.localtime()[1]
+    if (month > 3 and month < 11):
+        hour += 1
+        if hour == 23:
+            hour = 0
+    if (hour >= 10 or hour < 7): #e.g. from > 7 or < 0
+        return True
+    else:
+        return False
+
 last_control = time.time()
 
 #Routine to manage LED brightness
@@ -310,6 +323,8 @@ def manage_lights():
             #Turn on or adjust for low light levels
             elif lightlevel < DIM:
                 new_brightness_level = light.get_brightness(lightlevel,settings.boost)
+                if late():
+                    new_brightness_level = int(new_brightness_level * 0.5) #Dim the lights a bit more late at night
                 #If the brightness level has changed check for hysteresis
                 h = light.check_hysteresis(lightlevel)
                 if settings.brightness != new_brightness_level or (now - last_control > 60):
@@ -329,7 +344,7 @@ def manage_lights():
                     else:
                         msg = f"Skipping brightness change {settings.brightness} -> {new_brightness_level}"
                         msg += f" to avoid flutter ({h}), brightness: {lightlevel}"
-                        log.debug(msg)
+                        #log.debug(msg)
         elif not settings.lightsoff: #If out of control hours then turn off
             log.status("Turning lights off (auto)")
             if settings.running: #Remember if we were running a lighting effect before we turn off
