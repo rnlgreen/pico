@@ -18,14 +18,16 @@ def status(message, logit=False, handling_exception=False):
         topic = 'pico/'+myid.pico+'/status'
         try:
             mqtt.send_mqtt(topic,message)
+            return True
         except Exception as e: # pylint: disable=broad-except
             mqtt.client = False # just adding this in here to try and avoid a failure loop
             if not handling_exception:
                 log_exception(e)
+            return False
 
 #Print and send status messages
 def debug(message, subtopic = None):
-    print(message)
+    #print(message)
     message = myid.pico + ": " + message
     topic = 'pico/'+myid.pico+'/debug'
     if not subtopic is None:

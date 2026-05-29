@@ -22,6 +22,8 @@ def mqtt_connect(client_id, mqtt_server=secrets.mqtt_server):
 #send a message
 def send_mqtt(topic, payload):
     """Publish message"""
-    #print("Sending message '{}' to '{}'".format(topic,payload))
+    print("Sending message '{}' to '{}'".format(topic,payload), "mqtt")
     if not client is False:
         client.publish(topic,payload)
+    print("Message sent")
+

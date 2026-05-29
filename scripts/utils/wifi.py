@@ -87,3 +87,9 @@ def check_wifi(force=False):
     _last_wifi_check = now
     _last_wifi_status = result
     return result
+
+#Report Wi-Fi status
+def wifi_status():
+    log.status(f"wlan.isconnected(): {wlan.isconnected()}", logit=True)
+    log.status(f"wlan.status(): {wlan.status()}", logit=True)
+    log.status(f"IP: {wlan.ifconfig()[0]}", logit=True)
