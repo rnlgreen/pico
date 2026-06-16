@@ -148,7 +148,7 @@ def on_message(topic, payload):
         elif command=="temperature":
             temperature = status.read_internal_temperature()
             temp_topic = f"temperature/{pico}"
-            mqtt.send_mqtt(temp_topic,temperature):
+            mqtt.send_mqtt(temp_topic,temperature)
         elif command == "clear":
             log.status("Clearing exception log")
             clear_log()
@@ -160,7 +160,7 @@ def on_message(topic, payload):
             log.status(f"Unknown command: {payload}")
     elif topic == "pico/poll":
         heartbeat_topic = f"pico/{pico}/heartbeat"
-        mqtt.send_mqtt(heartbeat_topic,"Yes, I'm here"):
+        mqtt.send_mqtt(heartbeat_topic,"Yes, I'm here")
     elif topic == "pico/lights" or topic == "pico/xlights" or topic == "pico/plights":
         main.led_control(topic,payload)
     elif topic == "pico/pico2w0/heartbeat": # Used by pico7 to check the lights should be on still
