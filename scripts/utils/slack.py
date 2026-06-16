@@ -2,12 +2,12 @@
 from secrets import webhook
 import urequests # type: ignore # pylint: disable=import-error
 from utils import log
-do_slack=False
+do_slack=True
 
 #Format and send the message to Slack
 def send_msg(pico,msg):
+    ''' Send a message to a predefined slack channel.'''
     if do_slack:
-        ''' Send a message to a predefined slack channel.'''
         URL=webhook
         headers = {'content-type': 'application/json'}
         if "exception" in msg:

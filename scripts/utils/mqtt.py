@@ -1,5 +1,7 @@
-"""MQTT specific functions"""
+"""MQTT utility functions"""
 import secrets
+from utils import log
+from utils.control import restart
 from umqtt.simple import MQTTClient # type: ignore # pylint: disable=import-error
 
 client = False # pylint: disable=invalid-name
@@ -22,8 +24,14 @@ def mqtt_connect(client_id, mqtt_server=secrets.mqtt_server):
 #send a message
 def send_mqtt(topic, payload):
     """Publish message"""
-    print("Sending message '{}' to '{}'".format(topic,payload), "mqtt")
+    global client #pylint: disable=global-statement
     if not client is False:
-        client.publish(topic,payload)
-    print("Message sent")
-
+        try:
+            client.publish(topic,payload)
+            return True
+        except Exception as e: # pylint: disable=broad-except
+            client = False # Adding this here to avoid repeatedly trying to use MQTT
+            log.status("Error sending to mqtt", logit=True, handling_exception=True)
+            log.log_exception(e)
+            restart("MQTT Failure detected")
+            return False

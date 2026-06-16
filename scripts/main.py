@@ -20,19 +20,6 @@ from utils.control import restart
 TESTMODE = False
 EXCEPTION_FILE = "exception.txt"
 
-#Send message with specific topic
-def send_mqtt(topic,message):
-    """Function for sending MQTT message."""
-    if mqtt.client is not False:
-        try:
-            mqtt.send_mqtt(topic,message)
-            return True
-        except Exception as e: # pylint: disable=broad-except
-            mqtt.client = False # Adding this here to avoid repeatedly trying to use MQTT
-            log.status("Error sending to mqtt", logit=True, handling_exception=True)
-            log.log_exception(e)
-            return False
-
 #Check if a local file exists
 def file_exists(filename):
     """Function to test if a file exists"""
@@ -158,26 +145,24 @@ def on_message(topic, payload):
             log.status(f"Time is: {thetime}")
         elif command == "uptime":
             log.status(f"Uptime: {uptime(timeInit)}")
+        elif command=="temperature":
+            temperature = status.read_internal_temperature()
+            temp_topic = f"temperature/{pico}"
+            mqtt.send_mqtt(temp_topic,temperature):
+        elif command == "clear":
+            log.status("Clearing exception log")
+            clear_log()
         elif command == "status":
             log.status(f"Uptime: {uptime(timeInit)}")
             log.status(f"My temperature: {status.read_internal_temperature()}C")
             main.get_status() # pylint: disable=used-before-assignment
-        elif command=="temperature":
-            temperature = status.read_internal_temperature()
-            temp_topic = f"temperature/{pico}"
-            if not send_mqtt(temp_topic,temperature):
-                restart("MQTT Failure detected")
-        elif command == "clear":
-            log.status("Clearing exception log")
-            clear_log()
         else:
             log.status(f"Unknown command: {payload}")
-    elif topic == "pico/lights" or topic == "pico/xlights" or topic == "pico/plights":
-        main.led_control(topic,payload)
     elif topic == "pico/poll":
         heartbeat_topic = f"pico/{pico}/heartbeat"
-        if not send_mqtt(heartbeat_topic,"Yes, I'm here"):
-            restart("MQTT Failure detected")
+        mqtt.send_mqtt(heartbeat_topic,"Yes, I'm here"):
+    elif topic == "pico/lights" or topic == "pico/xlights" or topic == "pico/plights":
+        main.led_control(topic,payload)
     elif topic == "pico/pico2w0/heartbeat": # Used by pico7 to check the lights should be on still
         main.heartbeat()
 
@@ -289,10 +274,10 @@ if not TESTMODE:
             restart(f"Dropped through: {main_result}")
         #Catch any exceptions detected by the pico specific code
         except Exception as oops: # pylint: disable=broad-except
-            log.status("Handling main exception", logit=True, handling_exception=True)
-            exception = log.log_exception(oops)
             #Assume MQTT might be broken so don't try and send the restarting message
             mqtt.client = False
+            log.status("Handling main exception", logit=True, handling_exception=True)
+            exception = log.log_exception(oops)
             slack.send_msg(pico,f":fire: Restarting after exception:\n{exception}")
             #Now pause a while then restart
             time.sleep(10)

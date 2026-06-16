@@ -11,6 +11,7 @@ from utils import leds
 from utils.common import off, new_brightness
 from utils import settings
 from utils.uping import ping
+from utils.control import restart
 
 #Send alert
 def send_mqtt(topic,message):
@@ -61,6 +62,7 @@ def check_xbox():
             return False
     except Exception as e: # pylint: disable=broad-except
         status(f"Ping exception in check_xbox: {e}", logit=True)
+        restart("Ping exception in check_xbox")
         return False
 
 def xlights(on_or_off):
@@ -72,10 +74,7 @@ def xlights(on_or_off):
         else:
             message = "off"
             status("Turning xbox lights off")
-        try:
-            mqtt.send_mqtt(topic,message)
-        except Exception: # pylint: disable=broad-except
-            mqtt.client = False # just adding this in here to try and avoid a failure loop
+        mqtt.send_mqtt(topic,message)
 
 def debug_logging():
     debug(f"lightsoff: {settings.lightsoff}")

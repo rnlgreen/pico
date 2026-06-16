@@ -106,7 +106,7 @@ def log_exception(e):
     return exception1
 
 def restart_reason():
-    """Function to report the last restart reason"""
+    """Function to report the last restart reason, called by main after a restart"""
     reason = "unknown"
     try:
         with open(EXCEPTION_FILE,"r",encoding="utf-8") as file:
