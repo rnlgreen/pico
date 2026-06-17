@@ -9,13 +9,14 @@ from utils import myid
 from utils import wifi
 from utils import mqtt
 from utils import ntp
-from utils import ftp
 from utils import slack
 from utils import status
 from utils.blink import blink
 from utils.timeutils import strftime, uptime
 from utils import log
 from utils.control import restart
+from utils import ftp
+from utils import update
 
 TESTMODE = False
 EXCEPTION_FILE = "exception.txt"
@@ -35,50 +36,6 @@ def dir_exists(foldername):
         return (uos.stat(foldername)[0] & 0x8000) == 0
     except OSError:
         return False
-
-#Function to check for new code and download it from FTP site
-def reload(cleanup=False):
-    """Function to reload new code if there is any"""
-    log.status("Checking for new code")
-    totalfiles = 0
-    try:
-        session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
-        if session:
-            #Check all the folders for new files
-            folders = ["."]
-            # Get parent folders
-            ftp.cwd(session,'/pico/scripts')
-            folders += ftp.list_folders(session)
-            # Get sub folders
-            subfolders = []
-            for source in (folders):
-                if source != '.':
-                    ftp.cwd(session,f'/pico/scripts/{source}')
-                    subfolderlist = []
-                    subfolderlist += ftp.list_folders(session)
-                    for f in subfolderlist:
-                        subfolders.append(f"{source}/{f}")
-            folders += subfolders
-            #log.status(f"Checking folders: {folders}",logit=True)
-            for source in (folders):
-                ftp.cwd(session,'/pico/scripts')
-                if not dir_exists(source):
-                    log.status(f"Creating new folder {source}", logit=True)
-                    uos.mkdir(source)
-                numfiles = ftp.get_changedfiles(session,source,cleanup)
-                totalfiles += numfiles
-            ftp.ftpquit(session)
-            if totalfiles > 0:
-                log.status(f"Updated {totalfiles} files", logit=True)
-            else:
-                #pass
-                log.status("No new files found")
-        else:
-            log.status("FTP error occurred", logit=True)
-    except Exception as e: # pylint: disable=broad-except
-        log.status("Failed during reload", logit=True, handling_exception=True)
-        log.log_exception(e)
-    return totalfiles
 
 #Check if there is a local exception file from before and copy to FTP site
 def upload_exceptions():
@@ -114,17 +71,6 @@ def log_versions():
     log.log(machine)
     log.log(version)
     return release
-
-#Attempt NTP sync
-def do_ntp_sync():
-    """Function to do NTP Time Sync"""
-    #Sync the time up
-    if not ntp.set_time():
-        log.status("Failed to set time", logit=True)
-        return False
-    else:
-        log.status(f"{strftime()}")
-        return True
 
 #process incoming control commands
 def on_message(topic, payload):
@@ -198,7 +144,7 @@ if ipaddr:
     restart_reason = log.restart_reason()
     slack.send_msg(pico,f":repeat: Restart reason: {restart_reason}")
 
-    ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
+    ntp_sync = ntp.do_ntp_sync() # pylint: disable=invalid-name
 
     #Try MQTT connect here so we get reload log events
     if not mqtt.mqtt_connect(client_id=pico):
@@ -206,8 +152,8 @@ if ipaddr:
         time.sleep(30)
         restart("No MQTT connection")
 
-    #Get latest code by calling reload(); it returns the number of files updated
-    if reload(cleanup=False) > 0:
+    #Get latest code by calling update.update(); it returns the number of files updated
+    if update.update(cleanup=False) > 0:
         log.status("Restarting...")
         slack.send_msg(pico,":repeat: Restarting to load new code")
         restart("New code loaded")
@@ -238,7 +184,7 @@ if not TESTMODE:
     if ipaddr and not ntp_sync:
         #Retry NTP sync
         log.log("Attempting time sync #2")
-        ntp_sync = do_ntp_sync() # pylint: disable=invalid-name
+        ntp_sync = ntp.do_ntp_sync() # pylint: disable=invalid-name
 
     #Assuming we have the time now get the init time
     timeInit = time.time()

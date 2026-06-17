@@ -3,6 +3,7 @@ import socket
 import time
 import struct
 import machine # type: ignore # pylint: disable=import-error
+from utils.timeutils import strftime
 from utils import log
 
 NTP_DELTA = 2208988800
@@ -29,3 +30,14 @@ def set_time(ntphost=host):
     tm = time.gmtime(t)
     machine.RTC().datetime((tm[0], tm[1], tm[2], tm[6] + 1, tm[3], tm[4], tm[5], 0))
     return True
+
+#Attempt NTP sync
+def do_ntp_sync():
+    """Function to do NTP Time Sync"""
+    #Sync the time up
+    if not set_time():
+        log.status("Failed to set time", logit=True)
+        return False
+    else:
+        log.status(f"{strftime()}")
+        return True
