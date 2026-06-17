@@ -1,6 +1,7 @@
-#Utili functions to report the status of the pico
+#Utility functions to report the status of the pico
 import uos # type: ignore # pylint: disable=import-error
 from machine import ADC # type: ignore # pylint: disable=import-error
+from utils import log as log_module
 
 # Internal temperature sensor is connected to ADC channel 4
 temp_sensor = ADC(4)
@@ -23,3 +24,10 @@ def fs_stats():
     t = fs_stat[0] * fs_stat[2] / 1024
     f = fs_stat[0] * fs_stat[3] / 1024
     return str(round(100*f/t, 1))
+
+def log_versions():
+    """Log MicroPython version information"""
+    _, _, release, version, machine = uos.uname()
+    log_module.log(machine)
+    log_module.log(version)
+    return release

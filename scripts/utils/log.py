@@ -2,9 +2,9 @@
 from utils import myid
 from utils import mqtt
 from utils.timeutils import strftime
+from utils.config import EXCEPTION_FILE
 import uos as os # pylint: disable=import-error
 
-EXCEPTION_FILE = "exception.txt"
 DEBUGGING = False
 
 #Print and send status messages
@@ -121,3 +121,32 @@ def restart_reason():
         status("Unable to read exception log", logit=True)
         log_exception(e)
     return reason
+
+def upload_exceptions():
+    """Function to upload exception files via FTP"""
+    from utils import ftp  #pylint: disable=import-outside-toplevel
+    from utils.filesystem import file_exists  #pylint: disable=import-outside-toplevel
+    import secrets  #pylint: disable=import-outside-toplevel
+
+    print("Uploading latest exception file")
+    if file_exists(EXCEPTION_FILE):
+        try:
+            session = ftp.login(secrets.ftphost, secrets.ftpuser, secrets.ftppw)
+            if session:
+                ftp.cwd(session, '/pico/logs')
+                ftp.put_binaryfile(session, ".", EXCEPTION_FILE)
+                ftp.ftpquit(session)
+        except Exception as e: # pylint: disable=broad-except
+            status("Error uploading exception log", logit=True, handling_exception=True)
+            log_exception(e)
+
+def clear_log(pico):
+    """Function to clear the local exception log"""
+    try:
+        with open(EXCEPTION_FILE, "wt", encoding="utf-8") as file:
+            file.write(f"{strftime()}: {pico} Cleared exception log\n")
+            file.close()
+        # Load the cleared file up to FTP site
+        upload_exceptions()
+    except Exception: # pylint: disable=broad-except
+        log(f"Failed to create new exception file {EXCEPTION_FILE}")
