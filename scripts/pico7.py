@@ -13,12 +13,6 @@ from utils import settings
 from utils.uping import ping
 from utils.control import restart
 
-#Send alert
-def send_mqtt(topic,message):
-    print(f"{topic}: {message}")
-    if mqtt.client is not False:
-        mqtt.send_mqtt(topic,message)
-
 def get_status():
     wifi.wifi_status()
     gc.collect()
@@ -70,11 +64,13 @@ def xlights(on_or_off):
         topic = 'pico/xlights' # xlights are the backlights on the playdesk managed by pico2w0
         if on_or_off == "on":
             message = "brightness:50"
-            status("Turning xbox lights on")
+            status("Turning xbox lights on", logit=True)
         else:
             message = "off"
-            status("Turning xbox lights off")
+            status("Turning xbox lights off", logit=True)
         mqtt.send_mqtt(topic,message)
+    else:
+        status("MQTT client not connected, can't send xlights command", logit=True)
 
 def debug_logging():
     debug(f"lightsoff: {settings.lightsoff}")
@@ -96,17 +92,6 @@ def main():
         mqtt.client.subscribe("pico/plights") # control commands for the playdesk lights
         mqtt.client.subscribe("pico/pico2w0/heartbeat") # monitor heartbeat to see if power is on or not
 
-    #leds.set_colour([189, 125, 66])
-    #new_brightness(100)
-    #led_control("plights","shimmer") #!!! can't do this as it doesn't return control
-    #Need to use mqtt to send messages tp plights so we can still monitor the heartbeat and xbox status in the main loop
-    #topic = 'pico/plights'
-    #message = "shimmer"
-    #try:
-    #    mqtt.send_mqtt(topic,message)
-    #except Exception: # pylint: disable=broad-except
-    #    mqtt.client = False # just adding this in here to try and avoid a failure loop
-
     while True:
         #debug_logging()
 
@@ -118,19 +103,19 @@ def main():
         if not standalone:
             #Check we've seen a heartbeat from pico2w0 recently, otherwise turn the lights off
             if not settings.lightsoff and not heartbeat_check():
-                status("Turning lights off")
+                status("Turning lights off, pico2w0 heartbeat not seen in 300 seconds", logit=True)
                 off()
 
             #Check for Xbox Off if the lights are on and we've been up for 90 seconds
             if not settings.lightsoff and (utime.time() - settings.time_on) > 90 and not check_xbox():
-                status("Xbox is off, turning lights off!")
+                status("Xbox is off, turning lights off!", logit=True)
                 led_control("plights","off")
                 xlights("off")
 
             #Check for Xbox On
             if check_xbox():
                 if settings.lightsoff: #If the lights were off then set the brightness and make sure the rear lights are on
-                    status("Xbox is on, turning lights on!")
+                    status("Xbox is on, turning lights on!", logit=True)
                     new_brightness(30)
                     xlights("on")
                     led_control("plights","playdesk")

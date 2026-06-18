@@ -60,6 +60,11 @@ def handle_heartbeat(pico, timeInit): # pylint: disable=unused-argument
     heartbeat_topic = f"pico/{pico}/heartbeat"
     mqtt.send_mqtt(heartbeat_topic, "Yes, I'm here")
 
+def handle_upload_log(pico, timeInit): # pylint: disable=unused-argument
+    """Handle upload_log command to upload the exception log to the server"""
+    log.status("Uploading exception log")
+    log.upload_exceptions()
+
 # Register default commands
 def _init_default_commands():
     """Initialize default command handlers"""
@@ -70,7 +75,7 @@ def _init_default_commands():
     register_command("temperature", handle_temperature)
     register_command("clear", handle_clear)
     register_command("status", handle_status)
-
+    register_command("upload_log", handle_upload_log)
 # Initialize on module load
 _init_default_commands()
 
