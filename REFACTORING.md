@@ -115,7 +115,10 @@ class InitializationResult:
     standalone: bool           # Standalone mode flag
     mp_release: str            # MicroPython release version
     success: bool              # Overall initialization success
+    init_duration_ms: int      # Time taken for initialization (milliseconds)
 ```
+
+**Note:** The `init_duration_ms` field uses `time.ticks_ms()` and `time.ticks_diff()` to accurately measure initialization time, even though the system clock starts at 2021-01-01 00:00:00 before NTP sync. This ensures accurate timing regardless of when NTP synchronization occurs during the initialization process.
 
 **Usage:**
 ```python

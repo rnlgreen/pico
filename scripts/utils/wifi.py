@@ -82,6 +82,9 @@ def check_wifi(force=False):
             wifi_reason = "DNS lookup failed"
             result = False
         else:
+            if tries > 1:
+                log.status("DNS lookup succeeded after retry",logit=True)
+            wifi_reason = "Wi-Fi OK"
             result = True
 
     _last_wifi_check = now

@@ -17,7 +17,8 @@ class InitializationResult:
         self.timeInit = 0
         self.standalone = False
         self.mp_release = None
-        self.success = True
+        self.success = False  # Only set to True if initialization completes successfully
+        self.init_duration_ms = 0  # Duration of initialization in milliseconds
 
 def connect_wifi(pico):
     """Connect to WiFi with error handling
@@ -65,6 +66,7 @@ def check_for_updates(pico):
         log.status("Restarting...")
         slack.send_msg(pico, ":repeat: Restarting to load new code")
         restart("New code loaded")
+        # !!! restart will reset the device, so we shouldn't reach here
         return True
     return False
 
@@ -93,6 +95,9 @@ def initialize(pico, mp_release, callback, testmode=False):
     Returns:
         InitializationResult object with status
     """
+    # Start timing (using ticks_ms which is independent of system clock)
+    start_ticks = time.ticks_ms() # pylint: disable=no-member
+
     result = InitializationResult()
     result.mp_release = mp_release
 
@@ -100,37 +105,48 @@ def initialize(pico, mp_release, callback, testmode=False):
     result.ipaddr = connect_wifi(pico)
 
     if result.ipaddr:
-        # Report restart reason
-        restart_reason = log.restart_reason()
-        slack.send_msg(pico, f":repeat: Restart reason: {restart_reason}")
-
         # Sync time
         result.ntp_sync = sync_ntp()
 
+        # Report restart reason
+        restart_reason = log.restart_reason()
+
+        # Send previous restart reason to Slack
+        if restart_reason not in ["New code loaded", "mqtt command"]: #No need to log these, it'll be obvious from previous messages
+            slack.send_msg(pico, f":repeat: Restart reason: {restart_reason}")
+
         # Connect to MQTT
         if not connect_mqtt(pico):
-            result.success = False
+            result.init_duration_ms = time.ticks_diff(time.ticks_ms(), start_ticks) # pylint: disable=no-member
             return result
+
+        # Report IP address to MQTT (it is logged to file at connection time)
+        log.status(f"IP {result.ipaddr}", logit=False)
+
+        # Send previous restart reason to MQTT, now that we've connected to that
+        if restart_reason not in ["New code loaded", "mqtt command"]: #No need to log these, it'll be obvious from previous messages
+            log.status(f"Restart reason: {restart_reason}", logit=False)
 
         # Check for updates
         if check_for_updates(pico):
-            # Will restart, so we shouldn't reach here
-            result.success = False
+            # !!! restart will reset the device, so we shouldn't reach here
+            result.init_duration_ms = time.ticks_diff(time.ticks_ms(), start_ticks) # pylint: disable=no-member
             return result
 
         # Setup MQTT subscriptions
         setup_subscriptions(pico, callback)
-        log.status(f"IP {result.ipaddr}")
 
-    # Check for standalone mode
+    # Check for standalone mode is an option
     elif pico in myid.standalone:
         result.standalone = True
         log.log("No WiFi so running standalone")
+
     else:
         # No WiFi connection so need to restart
-        time.sleep(10)
+        time.sleep(60)
         restart(f"No Wi-Fi: {wifi.wifi_reason}")
-        result.success = False
+        # !!! restart will reset the device, so we shouldn't reach here
+        result.init_duration_ms = time.ticks_diff(time.ticks_ms(), start_ticks) # pylint: disable=no-member
         return result
 
     # Send startup message to Slack
@@ -143,7 +159,13 @@ def initialize(pico, mp_release, callback, testmode=False):
             log.log("Attempting time sync #2")
             result.ntp_sync = sync_ntp()
 
-        # Set initial time
-        result.timeInit = time.time()
+    # Set initial time
+    result.timeInit = time.time()
+
+    # Calculate initialization duration
+    result.init_duration_ms = time.ticks_diff(time.ticks_ms(), start_ticks) # pylint: disable=no-member
+
+    # Mark initialization as successful
+    result.success = True
 
     return result

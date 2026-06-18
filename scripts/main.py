@@ -32,7 +32,7 @@ else:
 # Log MicroPython version information
 mp_release = status.log_versions()
 
-# Create message handler callback - captures pico and timeInit in closure
+# main_module is the module that will be loaded for this specific pico (e.g. pico0.py, pico1.py, etc.)
 main_module = None  # Will be set after module is loaded
 
 def on_message(topic, payload):
@@ -43,7 +43,22 @@ def on_message(topic, payload):
     commands.process_message(topic, payload, pico, timeInit, main_module)
 
 # Run initialization sequence
-init_result = initialize(pico, mp_release, on_message, TESTMODE)
+try:
+    init_result = initialize(pico, mp_release, on_message, TESTMODE)
+except Exception as oops: # pylint: disable=broad-except
+    # If we fail to initialize, log the exception and restart
+    log.status("Initialization exception", logit=True, handling_exception=True)
+    exception = log.log_exception(oops)
+    slack.send_msg(pico, f":fire: Restarting after initialization exception:\n{exception}")
+    time.sleep(10)
+    restart("Initialization Exception")
+
+# Check if initialization was successful
+if not init_result.success:
+    log.status("Initialization failed, restarting...", logit=True)
+    slack.send_msg(pico, ":fire: Restarting after failed initialization")
+    time.sleep(10)
+    restart("Initialization Failed")
 
 ### MAIN EXECUTION ###
 
@@ -63,6 +78,7 @@ if not TESTMODE:
             log.status(f"MicroPython {mp_release}")
             log.status(f"Free memory: {gc.mem_free()}", logit=True) # pylint: disable=no-member
             log.status(f"Free storage: {status.fs_stats()}%", logit=True)
+            log.status(f"Initialization took {init_result.init_duration_ms}ms", logit=True)
 
             # Warn if storage is low
             if float(status.fs_stats()) < 10:
@@ -79,11 +95,11 @@ if not TESTMODE:
                 main_result = main_module.main()
 
             # Handle result from main function
-            if main_result != "Wi-Fi Lost":
-                slack.send_msg(pico, f":warning: Restarting after dropping through: {main_result}")
-            else:
+            if main_result == "Wi-Fi Lost":
                 from utils import wifi
                 main_result = f"Wi-Fi Lost: {wifi.wifi_reason}"
+
+            slack.send_msg(pico, f":warning: Restarting after dropping through: {main_result}")
 
             restart(f"Dropped through: {main_result}")
 
@@ -104,7 +120,7 @@ if not TESTMODE:
         log.status(f"Unknown pico {pico}")
         log.upload_exceptions()
         slack.send_msg(pico, f":interrobang: Restarting - unknown {pico} or no script to run")
-        time.sleep(60)
+        time.sleep(300)
         restart("Unknown pico")
 
 # We should never get here... but just in case

@@ -3,6 +3,7 @@ from utils import myid
 from utils import mqtt
 from utils.timeutils import strftime
 from utils.config import EXCEPTION_FILE
+from utils.status import fs_stats
 import uos as os # pylint: disable=import-error
 
 DEBUGGING = False
@@ -37,35 +38,35 @@ def debug(message, subtopic = None):
 _in_prune_log = False
 
 #Function to prune the exception log file to a manageable size
+#Now only called when available storage is less than 20% to avoid unnecessary writes
 def prune_log():
     """Function to prune the exception log file to a manageable size (memory-safe)."""
     global _in_prune_log # pylint: disable=global-statement
     _in_prune_log = True
-    log_limit = 2500
     try:
         # Stream: count lines, then rewrite skipping first 10% without loading all lines
         total_lines = 0
         with open(EXCEPTION_FILE, "r", encoding="utf-8") as src:
             for _ in src:
                 total_lines += 1
-        if total_lines > log_limit:
-            remove_count = int(total_lines * 0.2) #Remove 20% of lines
-            status(f"Pruning exception log, too many lines ({total_lines})")
-            tmp_name = EXCEPTION_FILE + ".tmp"
-            with open(EXCEPTION_FILE, "r", encoding="utf-8") as src, open(tmp_name, "w", encoding="utf-8") as dst:
-                for i, line in enumerate(src):
-                    if i >= remove_count:
-                        dst.write(line)
-            # Replace original file with tmp (ignore errors)
-            try:
-                os.remove(EXCEPTION_FILE)
-            except Exception: # pylint: disable=broad-except
-                status("Failed to remove old exception log")
-            try:
-                os.rename(tmp_name, EXCEPTION_FILE)
-            except Exception:# pylint: disable=broad-except
-                status("Failed to rename new exception log")
-            status("Pruned exception log", logit=True)
+        remove_count = int(total_lines * 0.2) #Remove 20% of lines
+        status(f"Pruning exception log as free storage is at {fs_stats()}%", logit=True)
+        tmp_name = EXCEPTION_FILE + ".tmp"
+        with open(EXCEPTION_FILE, "r", encoding="utf-8") as src, open(tmp_name, "w", encoding="utf-8") as dst:
+            for i, line in enumerate(src):
+                if i >= remove_count:
+                    dst.write(line)
+        # Replace original file with tmp (ignore errors)
+        try:
+            os.remove(EXCEPTION_FILE)
+        except Exception: # pylint: disable=broad-except
+            status("Failed to remove old exception log")
+        try:
+            os.rename(tmp_name, EXCEPTION_FILE)
+        except Exception:# pylint: disable=broad-except
+            status("Failed to rename new exception log")
+        status(f"Pruned exception log by {remove_count} lines", logit=True)
+        status(f"Free storage now: {fs_stats()}%", logit=True)
     except Exception as e:  # pylint: disable=broad-except
         status(f"Unable to prune exception log {e}", logit=True)
     _in_prune_log = False
@@ -75,7 +76,7 @@ def log(message):
     try:
         with open(EXCEPTION_FILE,"at",encoding="utf-8") as file:
             file.write(f"{strftime()}: {myid.pico} {message}\n")
-        if not _in_prune_log: # avoid recursion
+        if fs_stats() < 20 and not _in_prune_log: # avoid recursion
             prune_log()
     except Exception as e: # pylint: disable=broad-except
         status(f"Unable to log message to file: {e}")
@@ -115,8 +116,6 @@ def restart_reason():
                     reason = " ".join(line.split()[5:])
                 if "is up" in line:
                     reason = "crash or power loss?"
-        if reason not in ["New code loaded", "mqtt command"]: #No need to log this, it'll be obvious from previous messages
-            status(f"Restart reason: {reason}")
     except Exception as e: # pylint: disable=broad-except
         status("Unable to read exception log", logit=True)
         log_exception(e)
