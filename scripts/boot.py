@@ -46,6 +46,7 @@ def refresh_code_from_ftp():
 
         print("All FTP refresh attempts failed")
         return False
+
     except Exception as e: # pylint: disable=broad-except
         print(f"Failed to import update module: {e}")
         return False

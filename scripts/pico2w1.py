@@ -7,7 +7,7 @@ from utils import settings
 from utils import leds
 from utils import wifi
 from utils.log import status
-from utils.common import new_brightness, set_speed, set_all, show
+from utils.common import new_brightness, set_all, show
 
 BUTTON = 15
 SWITCH = 17

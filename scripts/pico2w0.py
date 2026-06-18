@@ -7,8 +7,8 @@ from utils import settings
 from utils import leds
 from utils import wifi
 from utils.blink import blink
-from utils.log import status, debug
-from utils.common import new_brightness, set_brightness, set_all, set_speed
+from utils.log import status
+from utils.common import set_brightness
 
 BUTTON = 15
 SWITCH = 17
@@ -92,29 +92,12 @@ def main(standalone = False):
         while True:
             if mqtt.client is not False:
                 mqtt.client.check_msg()
-            #This next block makes no sense inside a while True loop!
-            #set_speed(10)
-            #set_all(255,0,0)
-            #new_brightness(50)
-            #led_control("standalone xlights",f"rainbow:{effect_duration}")
             time.sleep(1)
 
     else: # if we are not running standalone, we just set up the MQTT subscription and wait for messages
         if mqtt.client is not False:
             mqtt.client.subscribe("pico/xlights") # type: ignore
             #mqtt.client.subscribe("pico/lights") # type: ignore
-
-        #We used to turn on when the power came on, but these are always on and pico7 controls us
-        #topic = 'pico/xlights'
-        #messages = ["speed:10","brightness:50","rainbow"]
-        #for message in messages:
-        #    try:
-        #        mqtt.send_mqtt(topic,message)
-        #    except: # pylint: disable=bare-except
-        #         debug("Failed to send message")
-
-        #leds.set_colour([199, 251, 106])
-        #new_brightness(100)
 
         while True:
             if mqtt.client is not False:

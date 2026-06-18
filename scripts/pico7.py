@@ -51,7 +51,7 @@ def heartbeat_check():
 
 def check_xbox():
     try:
-        sent, recv = ping('10.0.2.195')
+        _, recv = ping('10.0.2.195')
         #status(f"Ping sent: {sent}, received: {recv}")
         if recv > 0:
             return True

@@ -99,7 +99,7 @@ def main():
     # if mqtt.client is not False:
     #     mqtt.client.subscribe("pico/lights") # type: ignore
 
-    last_light = time.time()
+#    last_light = time.time()
 
     #Main loop
     while True:
