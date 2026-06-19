@@ -8,6 +8,9 @@ from utils import log
 test = False
 
 def login(ftphost,ftpuser,ftppw):
+    # Free up memory before FTP connection to avoid allocation errors
+    import gc  #pylint: disable=import-outside-toplevel
+    gc.collect()
     try:
         ftp = FTP(ftphost)
         ftp.login(ftpuser,ftppw)
@@ -24,14 +27,23 @@ def get_textfile(ftp,folder,filename):
 
 #Fetch binary files
 def get_binaryfile(ftp,folder,filename):
+    # Use smaller buffer size to avoid memory errors on Pico devices
+    import gc  #pylint: disable=import-outside-toplevel
+    gc.collect()  # Free up memory before download
     with open(folder+"/"+filename, 'wb') as fp:
-        ftp.retrbinary('RETR ' + filename, fp.write)
+        # Use 1024 byte buffer instead of default 8192 to reduce memory usage
+        ftp.retrbinary('RETR ' + filename, fp.write, blocksize=1024)
 
 #Send binary files
 def put_binaryfile(ftp,folder,filename):
+    # Use smaller buffer size to avoid memory errors on Pico devices
+    # Default is 8192 bytes which can cause MemoryError on constrained devices
+    import gc  #pylint: disable=import-outside-toplevel
+    gc.collect()  # Free up memory before upload
     with open(folder+"/"+filename, 'rb') as fp:
         target_file = filename + "_" + myid.pico
-        ftp.storbinary('STOR ' + target_file, fp)
+        # Use 1024 byte buffer instead of default 8192 to reduce memory usage
+        ftp.storbinary('STOR ' + target_file, fp, blocksize=1024)
 
 #Get the server side list of sha256 values for available code
 def get_fileinfo(ftp):

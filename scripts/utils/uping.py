@@ -6,6 +6,9 @@
 # Author: Olav Morken
 # https://github.com/olavmrk/python-ping/blob/master/ping.py
 # @data: bytes
+
+from utils.log import debug
+
 def checksum(data):
     if len(data) & 0x1: # Odd number of bytes
         data += b'\0'
@@ -26,6 +29,11 @@ def ping(host, count=2, timeout=5000, interval=10, quiet=False, size=64):
     import usocket # pylint: disable=import-error, import-outside-toplevel
     import ustruct # pylint: disable=import-error, import-outside-toplevel
     import urandom # pylint: disable=import-error, import-outside-toplevel
+
+    #free memory check
+    import gc # pylint: disable=import-error, import-outside-toplevel
+    gc.collect()
+    debug(f"Free memory before ping: {gc.mem_free()}") # pylint: disable=no-member
 
     # prepare packet
     assert size >= 16, "pkt size too small"

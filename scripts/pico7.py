@@ -117,8 +117,10 @@ def main():
                 if settings.lightsoff: #If the lights were off then set the brightness and make sure the rear lights are on
                     status("Xbox is on, turning lights on!", logit=True)
                     new_brightness(30)
-                    xlights("on")
-                    led_control("plights","playdesk")
+                    xlights("on") # turns on the background lights on the playdesk via pico2w0
+                    xlights("brightness:50") # sets the brightness of the background lights on the playdesk via pico2w0
+                    xlights("rainbow") # run the rainbow effect on the background lights
+                    led_control("plights","playdesk") # turns on the playdesk lights via pico7 (me)
 
         #Check for messages
         if mqtt.client is not False:

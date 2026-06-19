@@ -94,11 +94,14 @@ def verify_and_rollback_if_needed(filepath):
     Returns: (is_valid, error_message)
     """
     is_valid, error_msg = syntax_check(filepath)
-    
+
     if not is_valid:
         log.status(f"SYNTAX ERROR in {filepath}!", logit=True)
         log.status(f"Error: {error_msg}", logit=True)
-        
+        #Send alert to Slack that a rollback is happening
+        from utils import slack  # pylint: disable=import-outside-toplevel
+        slack.send_msg("pico", f":warning: Syntax error detected in {filepath}. Rolling back to previous version.")
+
         # Attempt to restore from backup
         if restore_backup(filepath):
             log.status(f"Successfully rolled back {filepath} to previous version", logit=True)
@@ -106,7 +109,7 @@ def verify_and_rollback_if_needed(filepath):
         else:
             log.status(f"CRITICAL: Could not restore {filepath} from backup!", logit=True)
             return False, f"Syntax error AND rollback failed: {error_msg}"
-    
+
     return True, None
 
 #Function to check for new code and download it from FTP site
@@ -125,7 +128,7 @@ def update(cleanup=False, skip_syntax_check=False):
     totalfiles = 0
     critical_files_updated = []
     syntax_errors = []
-    
+
     try:
         session = ftp.login(secrets.ftphost,secrets.ftpuser,secrets.ftppw)
         if session:
@@ -144,28 +147,26 @@ def update(cleanup=False, skip_syntax_check=False):
                     for f in subfolderlist:
                         subfolders.append(f"{source}/{f}")
             folders += subfolders
-            
+
             # Before updating, backup critical files
             for critical_file in CRITICAL_FILES:
                 if file_exists(critical_file):
                     backup_file(critical_file)
-            
+
             #log.status(f"Checking folders: {folders}",logit=True)
             for source in (folders):
                 ftp.cwd(session,'/pico/scripts')
                 if not dir_exists(source):
                     log.status(f"Creating new folder {source}", logit=True)
                     uos.mkdir(source)
-                
-                # Track which files were updated in this folder
-                files_before = set(uos.listdir(source)) if dir_exists(source) else set()
+
                 numfiles = ftp.get_changedfiles(session,source,cleanup)
                 totalfiles += numfiles
-                
+
                 # Check which files were actually updated
                 if numfiles > 0:
                     files_after = set(uos.listdir(source)) if dir_exists(source) else set()
-                    
+
                     # Identify newly updated files
                     for critical_file in CRITICAL_FILES:
                         file_in_folder = critical_file if source == "." else None
@@ -173,9 +174,9 @@ def update(cleanup=False, skip_syntax_check=False):
                             full_path = critical_file if source == "." else f"{source}/{critical_file}"
                             if file_exists(full_path):
                                 critical_files_updated.append(full_path)
-            
+
             ftp.ftpquit(session)
-            
+
             # Now verify all critical files that were updated
             if not skip_syntax_check and critical_files_updated:
                 log.status(f"Checking syntax of {len(critical_files_updated)} critical file(s)...")
@@ -183,7 +184,7 @@ def update(cleanup=False, skip_syntax_check=False):
                     is_valid, error_msg = verify_and_rollback_if_needed(filepath)
                     if not is_valid:
                         syntax_errors.append((filepath, error_msg))
-            
+
             # Report results
             if syntax_errors:
                 log.status(f"WARNING: {len(syntax_errors)} file(s) had syntax errors and were rolled back", logit=True)
@@ -200,7 +201,7 @@ def update(cleanup=False, skip_syntax_check=False):
     except Exception as e: # pylint: disable=broad-except
         log.status("Failed during reload", logit=True, handling_exception=True)
         log.log_exception(e)
-    
+
     return totalfiles
 
 def manual_backup(filepath):
