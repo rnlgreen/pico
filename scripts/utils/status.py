@@ -23,7 +23,7 @@ def fs_stats():
     fs_stat = uos.statvfs('/')
     t = fs_stat[0] * fs_stat[2] / 1024
     f = fs_stat[0] * fs_stat[3] / 1024
-    return str(round(100*f/t, 1))
+    return round(100*f/t, 1)
 
 def log_versions():
     """Log MicroPython version information"""
