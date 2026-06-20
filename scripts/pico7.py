@@ -50,24 +50,40 @@ def check_xbox():
         if recv > 0:
             return True
         else:
-#            sent, recv = ping('xantus2')
-#            if recv > 0:
-#                return True
             return False
     except Exception as e: # pylint: disable=broad-except
         status(f"Ping exception in check_xbox: {e}", logit=True)
         restart("Ping exception in check_xbox")
         return False
 
-def xlights(on_or_off):
+#Receives "on" or "off" of "unavailable" via mqtt from Home Assistant
+def xbox_status(payload):
+    if payload == "on" and settings.lightsoff:
+        status("Xbox is on", logit=True)
+        xbox_control("on")
+    elif (payload == "off" or payload == "unavailable") and not settings.lightsoff:
+        status("Xbox is off", logit=True)
+        xbox_control("off")
+    else:
+        status(f"xbox_status payload: {payload}", logit=True)
+
+def xbox_control(command):
+    if command == "on":
+        settings.lightsoff = False
+        settings.time_on = utime.time()
+        new_brightness(settings.brightness)
+        led_control("plights","playdesk")
+        xlights("brightness:100")
+        xlights("rainbow")
+    elif command == "off":
+        settings.lightsoff = True
+        led_control("plights","off")
+        xlights("brightness:0")
+        xlights("off")
+
+def xlights(message):
     if mqtt.client is not False:
         topic = 'pico/xlights' # xlights are the backlights on the playdesk managed by pico2w0
-        if on_or_off == "on":
-            message = "brightness:50"
-            status("Turning xbox lights on", logit=True)
-        else:
-            message = "off"
-            status("Turning xbox lights off", logit=True)
         mqtt.send_mqtt(topic,message)
     else:
         status("MQTT client not connected, can't send xlights command", logit=True)
@@ -91,6 +107,17 @@ def main():
     if mqtt.client is not False:
         mqtt.client.subscribe("pico/plights") # control commands for the playdesk lights
         mqtt.client.subscribe("pico/pico2w0/heartbeat") # monitor heartbeat to see if power is on or not
+        mqtt.client.subscribe("pico/xbox") # monitor if the Xbox is on or off
+
+    #First time in check the Xbox status and set the lights accordingly
+    if check_xbox():
+        status("Xbox is on, turning lights on.", logit=True)
+        xbox_control("on")
+
+    #Check for Xbox Off if the lights are on and we've been up for 90 seconds
+    else:
+        status("Xbox is off, turning lights off.", logit=True)
+        xbox_control("off")
 
     while True:
         #debug_logging()
@@ -104,23 +131,18 @@ def main():
             #Check we've seen a heartbeat from pico2w0 recently, otherwise turn the lights off
             if not settings.lightsoff and not heartbeat_check():
                 status("Turning lights off, pico2w0 heartbeat not seen in 300 seconds", logit=True)
-                off()
+                xbox_control("off")
 
-            #Check for Xbox Off if the lights are on and we've been up for 90 seconds
-            if not settings.lightsoff and (utime.time() - settings.time_on) > 90 and not check_xbox():
-                status("Xbox is off, turning lights off!", logit=True)
-                led_control("plights","off")
-                xlights("off")
-
-            #Check for Xbox On
-            if check_xbox():
-                if settings.lightsoff: #If the lights were off then set the brightness and make sure the rear lights are on
-                    status("Xbox is on, turning lights on!", logit=True)
-                    new_brightness(30)
-                    xlights("on") # turns on the background lights on the playdesk via pico2w0
-                    xlights("brightness:50") # sets the brightness of the background lights on the playdesk via pico2w0
-                    xlights("rainbow") # run the rainbow effect on the background lights
-                    led_control("plights","playdesk") # turns on the playdesk lights via pico7 (me)
+#            #Check for Xbox On
+#            if check_xbox():
+#                if settings.lightsoff: #If the lights were off then set the brightness and make sure the rear lights are on
+#                    status("Xbox is on, turning lights on!", logit=True)
+#                    xbox_control("on")
+#
+#            #Check for Xbox Off if the lights are on and we've been up for 90 seconds
+#            elif not settings.lightsoff and (utime.time() - settings.time_on) > 90:
+#                status("Xbox is off, turning lights off!", logit=True)
+#                xbox_control("off")
 
         #Check for messages
         if mqtt.client is not False:
