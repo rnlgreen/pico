@@ -1,7 +1,7 @@
 #Wi-Fi specific functions
 import time
 import secrets
-import socket
+import urequests # pylint: disable=import-error
 import network # type: ignore # pylint: disable=import-error
 from utils import log
 from utils.blink import blink
@@ -63,29 +63,28 @@ def check_wifi(force=False):
         wifi_reason = "Wi-Fi not connected"
         result = False
     else:
-        dns_working = False
+        # Test network connectivity using HTTP GET to known IP address
+        # This is faster and more reliable than DNS lookups
+        network_working = False
         tries = 0
-        while not dns_working and tries < 2:
+        while tries < 3 and not network_working:
             tries += 1
-            #Now check the network is working
-            #This depends on the ttl value of the hostname looked up
-            #Most times getadrinfo will get the cached result
             try:
-                socket.getaddrinfo("condor",21)
-                dns_working = True
+                # Use direct IP address to avoid DNS lookup issues
+                # Set short timeout to fail fast if network is down
+                response = urequests.get("http://10.0.0.50", timeout=1)
+                response.close()
+                network_working = True
+                wifi_reason = "Wi-Fi OK"
             except Exception as e: #pylint: disable=broad-exception-caught
-                log.status(f"DNS error {e}",logit=True)
-            if not dns_working and tries < 3:
-                time.sleep(5)
-                log.status("...retrying DNS lookup",logit=True)
-        if not dns_working:
-            wifi_reason = "DNS lookup failed"
-            result = False
-        else:
-            if tries > 1:
-                log.status("DNS lookup succeeded after retry",logit=True)
-            wifi_reason = "Wi-Fi OK"
-            result = True
+                log.status(f"Network connectivity test failed: {e}", logit=True)
+                if tries >= 3:
+                    log.status("Network connectivity test failed after 3 attempts", logit=True)
+                    wifi_reason = "Network connectivity test failed"
+                else:
+                    log.status(f"Retrying network connectivity test (attempt {tries})", logit=True)
+
+        result = network_working
 
     _last_wifi_check = now
     _last_wifi_status = result
