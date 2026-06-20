@@ -30,9 +30,10 @@ def get_binaryfile(ftp,folder,filename):
     # Use smaller buffer size to avoid memory errors on Pico devices
     import gc  #pylint: disable=import-outside-toplevel
     gc.collect()  # Free up memory before download
+    gc.collect()  # Free up memory before download
     with open(folder+"/"+filename, 'wb') as fp:
-        # Use 1024 byte buffer instead of default 8192 to reduce memory usage
-        ftp.retrbinary('RETR ' + filename, fp.write, blocksize=1024)
+        # Use 512 byte buffer instead of default 8192 to reduce memory usage
+        ftp.retrbinary('RETR ' + filename, fp.write, blocksize=512)
 
 #Send binary files
 def put_binaryfile(ftp,folder,filename):
@@ -40,10 +41,11 @@ def put_binaryfile(ftp,folder,filename):
     # Default is 8192 bytes which can cause MemoryError on constrained devices
     import gc  #pylint: disable=import-outside-toplevel
     gc.collect()  # Free up memory before upload
+    gc.collect()  # Free up memory before upload
     with open(folder+"/"+filename, 'rb') as fp:
         target_file = filename + "_" + myid.pico
-        # Use 1024 byte buffer instead of default 8192 to reduce memory usage
-        ftp.storbinary('STOR ' + target_file, fp, blocksize=1024)
+        # Use 512 byte buffer instead of default 8192 to reduce memory usage
+        ftp.storbinary('STOR ' + target_file, fp, blocksize=512)
 
 #Get the server side list of sha256 values for available code
 def get_fileinfo(ftp):

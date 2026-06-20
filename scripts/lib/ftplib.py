@@ -57,7 +57,9 @@ MSG_OOB = 0x1
 # The standard FTP server control port
 FTP_PORT = 21
 # The sizehint parameter passed to readline() calls
-MAXLINE = 8192
+# Reduced from 8192 to 512 for memory-constrained devices like Raspberry Pi Pico
+# FTP server responses are typically short, so 512 bytes is sufficient
+MAXLINE = 512
 # Line terminators (we always output CRLF, but accept any of CRLF, CR, LF)
 CRLF = '\r\n'
 B_CRLF = b'\r\n'
