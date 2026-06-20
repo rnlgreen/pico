@@ -1,11 +1,11 @@
 #Functions to collect and send data from RuuviTags
 #import gc # Garbage collector
+import json
 import utime # type: ignore # pylint: disable=import-error
 from ruuvitag import RuuviTag
 from utils import mqtt
 from utils import log
 from utils.timeutils import strftime
-import json
 
 log.DEBUGGING = True
 
@@ -15,7 +15,7 @@ scanning = False
 found = []
 
 mytags = { 'f34584d173cb': "lounge", 'dc7eb48031b4': "kitchen", 'fab5c40c4095': "orangery",  'f9a8d010746c': "utility" }
-discovered_macs = set() 
+discovered_macs = set()
 
 def get_status():
     log.status(f"no_ruuvi_since_start: {no_ruuvi_since_start}")
@@ -25,8 +25,6 @@ def get_status():
     #log.debug(f"blacklist unique values: {len(set(ruuvi._blacklist))}", subtopic="blacklist")
     #log.debug(f"blacklist: {ruuvi._blacklist}", subtopic="blacklist")
     log.debug(f"addrs: {ruuvi._addrs}", subtopic="ruuvi/addrs") # pylint: disable=protected-access
-
-import json
 
 def battery_voltage_to_percent(v):
     # Clamp to safe range
@@ -57,8 +55,8 @@ def battery_voltage_to_percent(v):
     return 0
 
 def publish_discovery(mac):
-    base = "homeassistant/sensor/ruuvi_{}".format(mac)
-    state_topic = "ruuvi/{}/data".format(mac)
+    base = f"homeassistant/sensor/ruuvi_{mac}"
+    state_topic = f"ruuvi/{mac}/data"
 
     sensors = {
         "temperature": {
@@ -105,17 +103,17 @@ def publish_discovery(mac):
     }
 
     for key, cfg in sensors.items():
-        topic = "{}/{}/config".format(base, key)
+        topic = f"{base}/{key}/config"
 
         payload = {
-            "name": "Ruuvi {} {}".format(mac, friendly[key]),
+            "name": f"Ruuvi {mac} {friendly[key]}",
             "state_topic": state_topic,
             "value_template": cfg["template"],
-            "unique_id": "ruuvi_{}_{}".format(mac, key),
+            "unique_id": f"ruuvi_{mac}_{key}",
             "state_class": cfg["state_class"],
             "device": {
-                "identifiers": ["ruuvi_{}".format(mac)],
-                "name": "RuuviTag {}".format(mac),
+                "identifiers": [f"ruuvi_{mac}"],
+                "name": f"RuuviTag {mac}",
                 "manufacturer": "Ruuvi"
             }
         }
@@ -131,13 +129,13 @@ def publish_discovery(mac):
 
         try:
             payload_json = json.dumps(payload)
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-exception-caught
             print("JSON ERROR for", key, ":", e)
             continue
 
         try:
             mqtt.send_mqtt(topic, payload_json)
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-exception-caught
             print("MQTT ERROR for", key, ":", e)
 
 def publish_ruuvi_to_ha(mac, data):
@@ -187,7 +185,7 @@ def ruuvicb(ruuvitag):
         no_ruuvi_since_start = False
     else: #scanning finished
         scanning = False
-        log.debug("Scanning complete","ruuvi")
+        #log.debug("Scanning complete","ruuvi")
         #if len(set(ruuvi._blacklist)) > bl:
         #    bl = len(set(ruuvi._blacklist))
         #    log.status(f"Blacklist now {bl}")
@@ -215,8 +213,8 @@ def get_readings(timeout=70000):
         got_one = False #about to kick off a scan, so reset this to false until we get a callback
         if ruuvi_elapsed < 60000 and not no_ruuvi_since_start:
             log.debug("Retrying scan...","ruuvi")
-        else:
-            log.debug("Scanning...","ruuvi")
+        #else:
+            #log.debug("Scanning...","ruuvi")
         ruuvi.scan(ruuvicb) #scans for 5 seconds
     #else:
     #    log.debug("RuuviTag data is recent, no need to scan","ruuvi")
