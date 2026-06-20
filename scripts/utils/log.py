@@ -92,7 +92,7 @@ def log_exception(e):
     print("Writing exception to storage")
     try:
         file = open(EXCEPTION_FILE,"at",encoding="utf-8")
-        file.write(f"{strftime()}: {myid.pico} detected exception:\n{e}:{exception1}")
+        file.write(f"{strftime()}: {myid.pico} Detected exception:\n{e}:{exception1}")
         file.close()
     except Exception as f: # pylint: disable=broad-except
         output2 = io.StringIO()

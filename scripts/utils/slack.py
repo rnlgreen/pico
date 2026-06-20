@@ -33,7 +33,7 @@ def send_msg(pico,msg):
             # Always close response to free memory
             response.close()
         except Exception as oops: # pylint: disable=broad-except
-            log.status("Failed to send message to Slack", logit=True, handling_exception=True)
+            log.status(f"Failed to send message to Slack:\n{msg}", logit=True, handling_exception=True)
             log.log_exception(oops)
             return False
     return True

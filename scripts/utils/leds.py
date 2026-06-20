@@ -42,11 +42,11 @@ def init_strip(strip_type="GRBW",pixels=16,GPIO=0,twostrips=False):
     if not twostrips:
         log.status("Initialising strip 1")
         settings.strip = Neopixel(pixels, 0, GPIO, strip_type)
-        settings.pixel_colours = [[0, 0, 0]] * pixels
+        settings.pixel_colours = [[0, 0, 0, 0]] * pixels
     else:
         log.status("Initialising strip 2")
         settings.strip2 = Neopixel(pixels, 1, GPIO, strip_type)
-        settings.pixel_colours2 = [[0, 0, 0]] * pixels
+        settings.pixel_colours2 = [[0, 0, 0, 0]] * pixels
         if settings.strip2 is None:
             log.status("failed")
 

@@ -152,7 +152,7 @@ def main():
         if not wifi.check_wifi():
             return "Wi-Fi Lost"
 
-        utime.sleep(1)
+        utime.sleep(5)
 
 pico = myid.get_id()
 where = myid.where[pico]
