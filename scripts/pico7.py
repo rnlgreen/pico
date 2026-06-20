@@ -73,8 +73,8 @@ def xbox_control(command):
         settings.time_on = utime.time()
         new_brightness(settings.brightness)
         led_control("plights","playdesk")
-        xlights("brightness:100")
         xlights("rainbow")
+        xlights("brightness:100")
     elif command == "off":
         settings.lightsoff = True
         led_control("plights","off")
