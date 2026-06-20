@@ -47,18 +47,18 @@ try:
     init_result = initialize(pico, mp_release, on_message, TESTMODE)
 except Exception as oops: # pylint: disable=broad-except
     # If we fail to initialize, log the exception and restart
-    log.status("Initialization exception", logit=True, handling_exception=True)
+    log.status("Initialisation exception", logit=True, handling_exception=True)
     exception = log.log_exception(oops)
-    slack.send_msg(pico, f":fire: Restarting after initialization exception:\n{exception}")
+    slack.send_msg(pico, f":fire: Restarting after initialisation exception:\n{exception}")
     time.sleep(10)
-    restart("Initialization Exception")
+    restart("Initialisation Exception")
 
 # Check if initialization was successful
 if not init_result.success:
-    log.status("Initialization failed, restarting...", logit=True)
-    slack.send_msg(pico, ":fire: Restarting after failed initialization")
+    log.status("Initialisation failed, restarting...", logit=True)
+    slack.send_msg(pico, ":fire: Restarting after failed initialisation")
     time.sleep(10)
-    restart("Initialization Failed")
+    restart("Initialisation failed")
 
 ### MAIN EXECUTION ###
 
@@ -78,7 +78,7 @@ if not TESTMODE:
             log.status(f"MicroPython {mp_release}")
             log.status(f"Free memory: {gc.mem_free()}", logit=True) # pylint: disable=no-member
             log.status(f"Free storage: {status.fs_stats()}%", logit=True)
-            log.status(f"Initialization took {init_result.init_duration_ms}ms", logit=True)
+            log.status(f"Initialisation: {init_result.init_duration_ms/1000:.1f}s", logit=True)
 
             # Warn if storage is low
             if float(status.fs_stats()) < 10:
@@ -86,6 +86,11 @@ if not TESTMODE:
                 slack.send_msg(pico, ":warning: Warning: Free storage is low")
 
             log.status(f"Temperature: {status.read_internal_temperature()}C", logit=True)
+
+            # Upload latest local exception log file again
+            if not init_result.standalone:
+                log.upload_exceptions()
+
             log.status(f"Calling {pico}.py main()", logit=True)
 
             # Call the pico-specific main function

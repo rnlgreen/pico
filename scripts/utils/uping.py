@@ -33,7 +33,7 @@ def ping(host, count=2, timeout=5000, interval=10, quiet=False, size=64):
     #free memory check
     import gc # pylint: disable=import-error, import-outside-toplevel
     gc.collect()
-    debug(f"Free memory before ping: {gc.mem_free()}") # pylint: disable=no-member
+    #debug(f"Free memory before ping: {gc.mem_free()}") # pylint: disable=no-member
 
     # prepare packet
     assert size >= 16, "pkt size too small"
