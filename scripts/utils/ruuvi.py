@@ -190,7 +190,7 @@ def ruuvicb(ruuvitag):
         #    bl = len(set(ruuvi._blacklist))
         #    log.status(f"Blacklist now {bl}")
         if got_one:
-            log.debug(f"Found: {','.join(found)}","ruuvi")
+            #log.debug(f"Found: {','.join(found)}","ruuvi")
             found = []
         else:
             log.status("No tags found")
