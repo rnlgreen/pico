@@ -132,3 +132,6 @@ def process_message(topic, payload, pico, timeInit, main_module=None):
             elif topic == "pico/pico2w0/heartbeat":
                 if hasattr(main_module, 'heartbeat'):
                     main_module.heartbeat()
+            elif topic == "pico/xbox":
+                if hasattr(main_module, 'xbox_status'):
+                    main_module.xbox_status(payload)
