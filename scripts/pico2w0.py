@@ -30,7 +30,7 @@ def get_status():
     gc.collect()
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
 
-#LED control function to accept commands and launch effects
+#LED control function to accept commands and launch effects, called from commands.py
 def led_control(topic,payload):
     leds.led_control(topic,payload)
 
@@ -69,15 +69,15 @@ def main(standalone = False):
     switch.irq(switch_callback, Pin.IRQ_FALLING | Pin.IRQ_RISING)
 
     #Send a message to the playroom lights to come on
-    if mqtt.client is not False:
-        topic = 'pico/plights'
-        message1 = "brightness:30"
-        message2 = "playdesk"
-        try:
-            mqtt.send_mqtt(topic,message1)
-            mqtt.send_mqtt(topic,message2)
-        except Exception: # pylint: disable=broad-except
-            mqtt.client = False # just adding this in here to try and avoid a failure loop
+#    if mqtt.client is not False:
+#        topic = 'pico/plights'
+#        message1 = "brightness:30"
+#        message2 = "playdesk"
+#        try:
+#            mqtt.send_mqtt(topic,message1)
+#            mqtt.send_mqtt(topic,message2)
+#        except Exception: # pylint: disable=broad-except
+#            mqtt.client = False # just adding this in here to try and avoid a failure loop
 
     if standalone:
         if switch.value() == 1:
@@ -97,7 +97,6 @@ def main(standalone = False):
     else: # if we are not running standalone, we just set up the MQTT subscription and wait for messages
         if mqtt.client is not False:
             mqtt.client.subscribe("pico/xlights") # type: ignore
-            #mqtt.client.subscribe("pico/lights") # type: ignore
 
         while True:
             if mqtt.client is not False:

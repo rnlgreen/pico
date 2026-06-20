@@ -8,7 +8,7 @@ from utils import wifi
 from utils.log import status, debug
 from utils import ruuvi
 from utils import leds
-from utils.common import off, new_brightness
+#from utils.common import off, new_brightness
 from utils import settings
 from utils.uping import ping
 from utils.control import restart
@@ -18,18 +18,18 @@ def get_status():
     gc.collect()
     status(f"latest_heartbeat: {latest_heartbeat}")
     status(f"heartbeat_check: {heartbeat_check()}")
-    status(f"xbox: {check_xbox()}")
+    #status(f"xbox: {check_xbox()}")
     status(f"lightsoff: {settings.lightsoff}")
+    status(f"running: {settings.running}")
+    status(f"effect: {settings.effect}")
     status(f"brightness: {settings.brightness}")
     status(f"colour: {settings.colour}")
     status(f"hue: {settings.hue}")
     status(f"freemem: {gc.mem_free()}") # pylint: disable=no-member
     ruuvi.get_status()
 
-#LED control function to accept commands and launch effects
+#LED control function to accept commands and launch effects, called from commands.py
 def led_control(topic,payload):
-    global latest_heartbeat # pylint: disable=global-statement
-    latest_heartbeat = utime.time()
     leds.led_control(topic,payload)
 
 #Called by main.py when it receives heartbeat topic from pico2w0
@@ -69,24 +69,23 @@ def xbox_status(payload):
 
 def xbox_control(command):
     if command == "on":
-        settings.lightsoff = False
         settings.time_on = utime.time()
-        new_brightness(settings.brightness)
-        led_control("plights","playdesk")
-        xlights("rainbow")
-        xlights("brightness:100")
+        lights("plights","playdesk")
+        lights("plights","brightness:60")
+        lights("xlights","rainbow")
+        lights("xlights","brightness:80")
     elif command == "off":
-        settings.lightsoff = True
-        led_control("plights","off")
-        xlights("brightness:0")
-        xlights("off")
+        #lights("plights","brightness:0")
+        lights("plights","off")
+        #lights("xlights","brightness:0")
+        lights("xlights","off")
 
-def xlights(message):
+def lights(strip, message):
     if mqtt.client is not False:
-        topic = 'pico/xlights' # xlights are the backlights on the playdesk managed by pico2w0
-        mqtt.send_mqtt(topic,message)
+        topic = f'pico/{strip}'
+        mqtt.send_mqtt(topic, message)
     else:
-        status("MQTT client not connected, can't send xlights command", logit=True)
+        status("MQTT client not connected, can't send lights command", logit=True)
 
 def debug_logging():
     debug(f"lightsoff: {settings.lightsoff}")
@@ -104,10 +103,17 @@ def main():
     leds.init_strip(strip_type,pixels,GPIO1)
     leds.init_strip(strip_type,pixels,GPIO2,True) # True says we are setting up strip2
 
+    #Sleep a couple of seconds before MQTT subscriptions
+    utime.sleep(2)
+
     if mqtt.client is not False:
+        status("Subscribing to MQTT topics")
         mqtt.client.subscribe("pico/plights") # control commands for the playdesk lights
         mqtt.client.subscribe("pico/pico2w0/heartbeat") # monitor heartbeat to see if power is on or not
         mqtt.client.subscribe("pico/xbox") # monitor if the Xbox is on or off
+
+    #Sleep a couple of seconds to let the MQTT subscriptions get set up before we check the Xbox status
+    utime.sleep(2)
 
     #First time in check the Xbox status and set the lights accordingly
     if check_xbox():

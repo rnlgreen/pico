@@ -100,7 +100,8 @@ def wheel(pos):
     r, g, b = hsv_to_rgb(pos/255,saturation,1)
     return ([r, g, b])
 
-# Funtion to fade colours given the foreground, background and a factor
+# Function to fade colours given the foreground, background and a factor
+# Fades from background to foreground as factor goes from 0 to 1
 def fade_rgb(fr, fg, fb, fw, br, bg, bb, bw, factor):
     """Return faded RGB values"""
     #Clip factor to a value between 0 and 1
@@ -110,6 +111,49 @@ def fade_rgb(fr, fg, fb, fw, br, bg, bb, bw, factor):
     b = int(bb + (fb - bb) * factor)
     w = int(bw + (fw - bw) * factor)
     return r, g, b, w
+
+# Function to fade each pixel to black from its current colour
+def fade_to_black(duration=5000):
+    """Fade each pixel to black from its current colour"""
+    steps = 50
+    delay = duration / steps / 1000
+    log.debug(f"Fading to black with a delay of {delay} seconds")
+
+    br0 = [0] * settings.numPixels
+    bg0 = [0] * settings.numPixels
+    bb0 = [0] * settings.numPixels
+    bw0 = [0] * settings.numPixels
+
+    br1 = [0] * settings.numPixels
+    bg1 = [0] * settings.numPixels
+    bb1 = [0] * settings.numPixels
+    bw1 = [0] * settings.numPixels
+
+    all_zero = True
+
+    #get the current pixel colours for each strip
+    for p in range(settings.numPixels):
+        br0[p], bg0[p], bb0[p], bw0[p] = get_pixel_rgb(p)
+        if br0[p] != 0 or bg0[p] != 0 or bb0[p] != 0 or bw0[p] != 0:
+            all_zero = False
+    if settings.strip2 is not None:
+        for p in range(settings.numPixels):
+            br1[p], bg1[p], bb1[p], bw1[p] = get_pixel_rgb(p, 1)
+            if br1[p] != 0 or bg1[p] != 0 or bb1[p] != 0 or bw1[p] != 0:
+                all_zero = False
+
+    if not all_zero:
+        for step in range(steps + 1):
+            for i in range(settings.numPixels):
+                r, g, b, w = fade_rgb(0, 0, 0, 0, br0[i], bg0[i], bb0[i], bw0[i], step / steps)
+                set_pixel(i, r, g, b, w)
+                if settings.strip2 is not None:
+                    r, g, b, w = fade_rgb(0, 0, 0, 0, br1[i], bg1[i], bb1[i], bw1[i], step / steps)
+                    set_pixel(i, r, g, b, w, 1)
+            show()
+            time.sleep(delay)
+    new_brightness(0)
+    log.debug("Fade complete")
 
 #Show the LED changes
 def show():
@@ -209,7 +253,6 @@ def new_brightness(new_level):
     """Fade to new brightness"""
     old_level = settings.brightness
     if new_level != old_level:
-        #status("Fading from {} to {}".format(old_level,new_level))
         sleeptime = 3 #number of seconds to make the transition
         sleepstep = sleeptime / abs(new_level - old_level)
         if old_level < new_level:
@@ -278,27 +321,27 @@ def send_control(payload):
 #Called from Node-Red
 def off(from_auto=False):
     """All off"""
-    #log.status(f"called with {from_auto}")
+    log.status(f"off called with {from_auto}")
     if not from_auto:
         settings.auto = False
         if settings.master:
             mqtt.send_mqtt("pico/"+myid.pico+"/status/auto","off")
     if settings.running:
         mqtt.send_mqtt("pico/"+myid.pico+"/status/running","stopping...")
+        log.debug("Stopping running effect")
         if not from_auto: #if it's an external "off" command then forget what was running
             settings.previously_running = ""
         settings.stop = True
-    else:
-        new_brightness(0)
-        #set_all(0,0,0)
-        #hexcolour = "#%02x%02x%02x" % (colour[0],colour[1],colour[2])
-        #mqtt.send_mqtt("pico/"+myid.pico+"/status/colour",str(hexcolour))
-        settings.strip.clear()
-        if settings.strip2 is not None:
-            settings.strip2.clear()
-        show()
-        settings.lightsoff = True
-        log.status("LEDs Off")
+        while settings.running:
+            sleep(0.1)
+    fade_to_black()
+    new_brightness(0)
+    settings.strip.clear()
+    if settings.strip2 is not None:
+        settings.strip2.clear()
+    show()
+    settings.lightsoff = True
+    log.status("LEDs Off")
 
 #Off command called via manage_lights through MQTT
 def auto_off():

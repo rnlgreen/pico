@@ -14,6 +14,7 @@ from utils.common import get_pixel_rgb, fade_rgb, euclidean_distance
 from utils.common import millis, set_all, show, hsv_to_colour, ticks_diff
 from utils.common import send_control, send_colour, set_speed, set_brightness
 from utils.common import off, auto_off, set_colour, new_brightness, mqtt
+from utils.common import fade_to_black
 
 from lib.neopixel import Neopixel # pylint: disable=import-error
 
@@ -178,8 +179,8 @@ def rainbow():
                     n = 0
                 t = millis()
         time.sleep(settings.dyndelay / 1000)
-    log.debug("Stopped rainbow, setting brightness to 0")
-    new_brightness(0)
+    log.debug("Stopped rainbow")
+    fade_to_black()
     now_running("None")
 
 # Rainbow2 function - cycle  every settings.colour of the rainbow across all the pixels
@@ -260,8 +261,7 @@ def now_running(new_effect): #new_effect is the name of the new effect that just
         #log.status(f"Starting {new_effect}")
     settings.effect = new_effect
     #log.status(f"Running: {settings.running}; previously_running: {settings.previously_running}; effect: {settings.effect}")
-    if myid.pico != "pico7":
-        mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
+    mqtt.send_mqtt("pico/"+myid.pico+"/status/running",str(new_effect))
 
 #Function to return if it is daytime or not
 def daytime():
@@ -884,49 +884,55 @@ def playdesk():
     fw1 = [0] * settings.numPixels
 
     colour_list = [None] * num_colours
-    #sleep_time = 10
+    sleep_time = 10
     transition_time = 3
 
-    base_wheel_pos = random.randint(0, 255)
+    while not (settings.stop or time_to_go()):
+        check_mqtt()
 
-    for c in range(num_colours):
-        wheel_pos = base_wheel_pos + c * (int(255 / num_colours))
-        if wheel_pos > 255:
-            wheel_pos -= 255
-        colour_list[c] = wheel(wheel_pos)
-    base_wheel_pos += 34
-    if base_wheel_pos > 255:
-        base_wheel_pos -= 256
+        base_wheel_pos = random.randint(0, 255)
 
-    #set the new pixwel colours for each strip
-    c = 0
-    for start, end in start_end:
-        for p in range(start, end + 1):
-            fr0[p], fg0[p], fb0[p], fw0[p] = list_to_rgb(colour_list[c])
-        c += 1
-    for start, end in start_end:
-        for p in range(start, end + 1):
-            fr1[p], fg1[p], fb1[p], fw1[p] = list_to_rgb(colour_list[c])
-        c += 1
+        for c in range(num_colours):
+            wheel_pos = base_wheel_pos + c * (int(255 / num_colours))
+            if wheel_pos > 255:
+                wheel_pos -= 255
+            colour_list[c] = wheel(wheel_pos)
+        base_wheel_pos += 34
+        if base_wheel_pos > 255:
+            base_wheel_pos -= 256
 
-    #get the current pixel colours for each strip
-    for p in range(settings.numPixels):
-        br0[p], bg0[p], bb0[p], bw0[p] = get_pixel_rgb(p)
-    for p in range(settings.numPixels):
-        br1[p], bg1[p], bb1[p], bw1[p] = get_pixel_rgb(p, 1)
+        #set the new pixwel colours for each strip
+        c = 0
+        for start, end in start_end:
+            for p in range(start, end + 1):
+                fr0[p], fg0[p], fb0[p], fw0[p] = list_to_rgb(colour_list[c])
+            c += 1
+        for start, end in start_end:
+            for p in range(start, end + 1):
+                fr1[p], fg1[p], fb1[p], fw1[p] = list_to_rgb(colour_list[c])
+            c += 1
 
-    #Now fade quickly from old to new
-    for intensity in range(51):
-        for i in range(settings.numPixels):
-            r, g, b, w = fade_rgb(fr0[i], fg0[i], fb0[i], fw0[i], br0[i], bg0[i], bb0[i], bw0[i], intensity / 10)
-            set_pixel(i, r, g, b, w)
-            r, g, b, w = fade_rgb(fr1[i], fg1[i], fb1[i], fw1[i], br1[i], bg1[i], bb1[i], bw1[i], intensity / 10)
-            set_pixel(i, r, g, b, w, 1)
-        show()
-        sleep(transition_time / 50)
+        #get the current pixel colours for each strip
+        for p in range(settings.numPixels):
+            br0[p], bg0[p], bb0[p], bw0[p] = get_pixel_rgb(p)
+        for p in range(settings.numPixels):
+            br1[p], bg1[p], bb1[p], bw1[p] = get_pixel_rgb(p, 1)
+
+        #Now fade quickly from old to new
+        for intensity in range(51):
+            for i in range(settings.numPixels):
+                r, g, b, w = fade_rgb(fr0[i], fg0[i], fb0[i], fw0[i], br0[i], bg0[i], bb0[i], bw0[i], intensity / 10)
+                set_pixel(i, r, g, b, w)
+                r, g, b, w = fade_rgb(fr1[i], fg1[i], fb1[i], fw1[i], br1[i], bg1[i], bb1[i], bw1[i], intensity / 10)
+                set_pixel(i, r, g, b, w, 1)
+            show()
+            sleep(transition_time / 50)
+
+        sleep_for(sleep_time)
 
     now_running("None")
-    #debuglog("Exiting")
+    fade_to_black()
+    debuglog("Exiting playdesk")
 
 effects = { "rainbow":   rainbow,
             "rainbow2":  rainbowCycle,

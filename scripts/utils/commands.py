@@ -91,7 +91,7 @@ def process_message(topic, payload, pico, timeInit, main_module=None):
     """
     topic = str(topic.decode())
     payload = str(payload.decode())
-    print(f"Received topic: {topic} message: {payload}")
+    #log.debug(f"Received topic: {topic} message: {payload}")
 
     # Check if it's a control message for this pico or all picos
     if topic == f"pico/{pico}/control" or topic == "pico/all/control":
