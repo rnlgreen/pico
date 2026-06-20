@@ -139,14 +139,12 @@ def led_control(topic="", payload=""):
                             settings.stop_after = time.time() + int(arg)
                     effects[command]()
                 except Exception as e: # pylint: disable=broad-exception-caught
-                    import io # pylint: disable=import-outside-toplevel
-                    import sys # pylint: disable=import-outside-toplevel
-                    output = io.StringIO()
-                    sys.print_exception(e, output) # pylint: disable=no-member
-                    exception = output.getvalue()
-                    log.status(f"Main caught exception:\n{exception}")
-                    import utils.slack as slack
+                    exception = log.log_exception(e)
+                    #Send the exception to Slack if we can
+                    import utils.slack as slack # pylint: disable=import-outside-toplevel
                     slack.send_msg(myid.pico,f"{myid.pico} caught exception:\n{exception}")
+                    #Use mqtt to send a restart command to this pico
+                    mqtt.send_mqtt("pico/"+myid.pico+"/control","restart")
 
 #Rotate the strip through a rainbow of colours
 def rainbow():
