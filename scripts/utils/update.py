@@ -58,7 +58,7 @@ def backup_file(filepath):
             # Write backup
             with open(backup_path, "wb") as f:
                 f.write(content)
-            log.status(f"Backed up {filepath} to {backup_path}")
+            log.status(f"Backed up {filepath}")
             return True
         return False
     except Exception as e: # pylint: disable=broad-except
