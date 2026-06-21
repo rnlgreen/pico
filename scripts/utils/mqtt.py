@@ -17,10 +17,9 @@ def mqtt_connect(client_id, mqtt_server=secrets.mqtt_server):
         print(f'Connected to MQTT Broker {mqtt_server}')
         return client
     except Exception: # pylint: disable=broad-except
-        print("Failed to connect to MQTT")
-        log.status("Failed to connect to MQTT", logit=True)
         client = False
-        return client
+        log.status("Failed to connect to MQTT", logit=True)
+        return False
 
 #send a message
 def send_mqtt(topic, payload):

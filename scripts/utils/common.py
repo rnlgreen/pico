@@ -321,7 +321,6 @@ def send_control(payload):
 #Called from Node-Red
 def off(from_auto=False):
     """All off"""
-    log.status(f"off called with {from_auto}")
     if not from_auto:
         settings.auto = False
         if settings.master:

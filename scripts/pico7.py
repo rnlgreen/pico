@@ -107,7 +107,6 @@ def main():
     utime.sleep(2)
 
     if mqtt.client is not False:
-        status("Subscribing to MQTT topics")
         mqtt.client.subscribe("pico/plights") # control commands for the playdesk lights
         mqtt.client.subscribe("pico/pico2w0/heartbeat") # monitor heartbeat to see if power is on or not
         mqtt.client.subscribe("pico/xbox") # monitor if the Xbox is on or off

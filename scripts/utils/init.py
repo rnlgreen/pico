@@ -52,6 +52,7 @@ def connect_mqtt(pico):
         log.log("Pausing before restart (MQTT)")
         time.sleep(30)
         restart("No MQTT connection")
+        # !!! restart will reset the device, so we shouldn't reach here
         return False
     return True
 
@@ -113,7 +114,7 @@ def initialize(pico, mp_release, callback, testmode=False):
 
         # Send previous restart reason to Slack
         if restart_reason not in ["New code loaded", "mqtt command"]: #No need to log these, it'll be obvious from previous messages
-            slack.send_msg(pico, f":repeat: Restart reason: {restart_reason}")
+            slack.send_msg(pico, f":repeat: Previous restart reason: {restart_reason}")
 
         # Connect to MQTT
         if not connect_mqtt(pico):
@@ -125,7 +126,7 @@ def initialize(pico, mp_release, callback, testmode=False):
 
         # Send previous restart reason to MQTT, now that we've connected to that
         if restart_reason not in ["New code loaded", "mqtt command"]: #No need to log these, it'll be obvious from previous messages
-            log.status(f"Restart reason: {restart_reason}", logit=False)
+            log.status(f"Previous restart reason: {restart_reason}", logit=False)
 
         # Check for updates
         if check_for_updates(pico):

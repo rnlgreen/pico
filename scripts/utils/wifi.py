@@ -77,12 +77,13 @@ def check_wifi(force=False):
                 network_working = True
                 wifi_reason = "Wi-Fi OK"
             except Exception as e: #pylint: disable=broad-exception-caught
-                log.status(f"Network connectivity test failed: {e}", logit=True)
+                log.debug(f"Network connectivity test failed: {e}")
                 if tries >= 3:
                     log.status("Network connectivity test failed after 3 attempts", logit=True)
                     wifi_reason = "Network connectivity test failed"
                 else:
-                    log.status(f"Retrying network connectivity test (attempt {tries})", logit=True)
+                    log.debug(f"Retrying network connectivity test (attempt {tries})")
+                    time.sleep(1)
 
         result = network_working
 
