@@ -59,10 +59,10 @@ def check_xbox():
 #Receives "on" or "off" of "unavailable" via mqtt from Home Assistant
 def xbox_status(payload):
     if payload == "on" and settings.lightsoff:
-        status("Xbox is on", logit=True)
+        status("Received xbox on", logit=True)
         xbox_control("on")
-    elif (payload == "off" or payload == "unavailable") and not settings.lightsoff:
-        status("Xbox is off", logit=True)
+    elif (payload == "off") and not settings.lightsoff:
+        status("Received xbox off", logit=True)
         xbox_control("off")
     else:
         status(f"xbox_status payload: {payload}", logit=True)
