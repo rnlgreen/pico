@@ -1,7 +1,7 @@
 #Wi-Fi specific functions
 import time
 import secrets
-import urequests # pylint: disable=import-error
+import usocket as socket # type: ignore # pylint: disable=import-error
 import network # type: ignore # pylint: disable=import-error
 from utils import log
 from utils.blink import blink
@@ -63,21 +63,26 @@ def check_wifi(force=False):
         wifi_reason = "Wi-Fi not connected"
         result = False
     else:
-        # Test network connectivity using HTTP GET to known IP address
-        # This is faster and more reliable than DNS lookups
+        # Test network connectivity using a simple socket connection to a know port / IP address
+        # This is more reliable than using DNS and a lighter touch than actually doing HTTP requests
+        # Additionally socket library is considerably smaller than the urequests library
         network_working = False
         tries = 0
         while tries < 3 and not network_working:
             tries += 1
             try:
-                # Use direct IP address to avoid DNS lookup issues
-                # Set short timeout to fail fast if network is down
-                response = urequests.get("http://10.0.0.50", timeout=1)
-                response.close()
+                sock = socket.socket()
+                sock.settimeout(1)
+                sock.connect(('192.168.2.1', 22)) # attempt a connect to port 22 on the UXG
+                sock.close()
                 network_working = True
                 wifi_reason = "Wi-Fi OK"
             except Exception as e: #pylint: disable=broad-exception-caught
                 log.debug(f"Network connectivity test failed: {e}")
+                try:
+                    sock.close()
+                except Exception: # pylint: disable=broad-exception-caught
+                    pass
                 if tries >= 3:
                     log.status("Network connectivity test failed after 3 attempts", logit=True)
                     wifi_reason = "Network connectivity test failed"
