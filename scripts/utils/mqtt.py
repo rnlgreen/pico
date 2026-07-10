@@ -27,6 +27,7 @@ def send_mqtt(topic, payload):
     global client #pylint: disable=global-statement
     if not client is False:
         try:
+            ## DO NOT TRY AND LOG.DEBUG HERE, IT WILL CAUSE A RECURSION ERROR
             client.publish(topic,payload)
             return True
         except Exception as e: # pylint: disable=broad-except
