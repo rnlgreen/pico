@@ -192,7 +192,7 @@ def update(cleanup=False, skip_syntax_check=False):
                     log.status(f"  - {filepath}: {error_msg[:100]}...", logit=True)
                 return -len(syntax_errors)  # Return negative number to indicate errors
             elif totalfiles > 0:
-                log.status(f"Updated {totalfiles} files successfully", logit=True)
+                log.status(f"Updated {totalfiles} files", logit=True)
             else:
                 #pass
                 log.status("No new files found")

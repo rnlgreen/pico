@@ -65,9 +65,10 @@ def xbox_status(payload):
         status("Received xbox off", logit=True)
         xbox_control("off")
     else:
-        status(f"xbox_status payload: {payload}", logit=True)
+        debug(f"xbox_status payload: {payload}")
 
 def xbox_control(command):
+    #pico7 is 'plights' for playdesk lights, pico2w0 is 'xlights' for xbox lights (behind the TV)
     if command == "on":
         settings.time_on = utime.time()
         lights("plights","playdesk")
@@ -94,8 +95,6 @@ def debug_logging():
     debug(f"time since on: {utime.time() - settings.time_on}")
 
 def main():
-    standalone = False
-    #debug_logging()
     strip_type = "GRB"
     pixels = 60 #need strips to be the same length, for now...
     GPIO1 = 28
@@ -132,22 +131,8 @@ def main():
             status("RuuviTag data missing")
             return "RuuviTag data missing"
 
-        if not standalone:
-            #Check we've seen a heartbeat from pico2w0 recently, otherwise turn the lights off
-            if not settings.lightsoff and not heartbeat_check():
-                status("Turning lights off, pico2w0 heartbeat not seen in 300 seconds", logit=True)
-                xbox_control("off")
-
-#            #Check for Xbox On
-#            if check_xbox():
-#                if settings.lightsoff: #If the lights were off then set the brightness and make sure the rear lights are on
-#                    status("Xbox is on, turning lights on!", logit=True)
-#                    xbox_control("on")
-#
-#            #Check for Xbox Off if the lights are on and we've been up for 90 seconds
-#            elif not settings.lightsoff and (utime.time() - settings.time_on) > 90:
-#                status("Xbox is off, turning lights off!", logit=True)
-#                xbox_control("off")
+        # Xbox control is now handled by the xbox_status function which is called from commands.py
+        # when it receives the mqtt message from Home Assistant.
 
         #Check for messages
         if mqtt.client is not False:

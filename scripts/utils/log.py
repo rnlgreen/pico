@@ -27,8 +27,9 @@ def status(message, logit=False, handling_exception=False):
             return False
 
 #Print and send status messages
-def debug(message, subtopic = None):
-    #print(message)
+def debug(message, subtopic = None, logit=False):
+    if logit:
+        log(message)
     message = myid.pico + ": " + message
     topic = 'pico/'+myid.pico+'/debug'
     if not subtopic is None:

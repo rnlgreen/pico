@@ -327,7 +327,7 @@ def manage_lights():
                 h = light.check_hysteresis(lightlevel)
                 if settings.brightness != new_brightness_level or (now - last_control > 60):
                     #Only change for large steps or significant hysteresis
-                    if abs(new_brightness_level - settings.brightness) > 5 or  h > 0.1 or (now - last_control > 60):
+                    if abs(new_brightness_level - settings.brightness) > 5 or h > 0.1 or (now - last_control > 60):
                         #If the lights are off then we need to turn them on
                         if settings.lightsoff:
                             log.status("Turning lights on")

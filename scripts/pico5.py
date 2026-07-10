@@ -63,13 +63,13 @@ def main():
         if time.time() - settings.last_lights >= 1:
             settings.last_lights = time.time()
             if settings.auto:
-                if not updated: #If we updated last time the lights won't have finished fading yet
-                    #Manage LEDs based on light level and time of day
-                    updated = leds.manage_lights()
-                else:
+                if updated: #If we updated last time the lights won't have finished fading yet
                     debug("Waiting for lights to fade")
                     updated = False
                     light.rolling_average()
+                else:
+                    #Manage LEDs based on light level and time of day
+                    updated = leds.manage_lights()
             else:
                 light.rolling_average()
 

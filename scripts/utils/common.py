@@ -315,6 +315,7 @@ def check_mqtt():
 def send_control(payload):
     """Send message to MQTT"""
     topic = 'pico/lights'
+    log.debug(f"Sending control message to MQTT: {topic} with payload: {payload}", logit=True)
     mqtt.send_mqtt(topic,payload)
 
 #Stop running functions and if not running turn off

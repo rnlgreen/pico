@@ -5,6 +5,7 @@ from utils import status as status_module
 from utils.blink import blink
 from utils.control import restart
 from utils.timeutils import strftime, uptime
+from utils import myid
 
 # Command registry - maps command names to handler functions
 _command_handlers = {}
@@ -91,7 +92,7 @@ def process_message(topic, payload, pico, timeInit, main_module=None):
     """
     topic = str(topic.decode())
     payload = str(payload.decode())
-    #log.debug(f"Received topic: {topic} message: {payload}")
+    log.debug(f"Received topic: {topic} message: {payload}", logit=True)
 
     # Check if it's a control message for this pico or all picos
     if topic == f"pico/{pico}/control" or topic == "pico/all/control":
@@ -127,6 +128,10 @@ def process_message(topic, payload, pico, timeInit, main_module=None):
             # Check for LED control topics
             if topic in ["pico/lights", "pico/xlights", "pico/plights"]:
                 if hasattr(main_module, 'led_control'):
+                    if myid.pico not in ["pico3","pico4","pico5"]:
+                        log.debug(f"Calling led_control from main_module with topic: {topic}, payload: {payload}", logit=True)
+                    else:
+                        log.debug(f"Calling led_control from main_module with topic: {topic}, payload: {payload}", logit=False)
                     main_module.led_control(topic, payload)
             # Check for heartbeat (used by some picos)
             elif topic == "pico/pico2w0/heartbeat":
