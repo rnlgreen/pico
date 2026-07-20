@@ -6,8 +6,6 @@ from utils.config import EXCEPTION_FILE
 from utils.status import fs_stats
 import uos as os # pylint: disable=import-error
 
-DEBUGGING = False
-
 #Print and send status messages
 def status(message, logit=False, handling_exception=False):
     """Function for reporting status."""
@@ -28,13 +26,14 @@ def status(message, logit=False, handling_exception=False):
 
 #Print and send status messages
 def debug(message, subtopic = None, logit=False):
-    if logit:
-        log(message)
-    message = myid.pico + ": " + message
-    topic = 'pico/'+myid.pico+'/debug'
-    if not subtopic is None:
-        topic = topic + "/" + subtopic
-    mqtt.send_mqtt(topic,message)
+    if settings.debug:
+        if logit:
+            log(message)
+        message = myid.pico + ": " + message
+        topic = 'pico/'+myid.pico+'/debug'
+        if not subtopic is None:
+            topic = topic + "/" + subtopic
+        mqtt.send_mqtt(topic,message)
 
 _in_prune_log = False
 

@@ -6,8 +6,7 @@ from ruuvitag import RuuviTag
 from utils import mqtt
 from utils import log
 from utils.timeutils import strftime
-
-log.DEBUGGING = True
+from utils import settings
 
 no_ruuvi_since_start = True
 got_one = False
@@ -16,6 +15,8 @@ found = []
 
 mytags = { 'f34584d173cb': "lounge", 'dc7eb48031b4': "kitchen", 'fab5c40c4095': "orangery",  'f9a8d010746c': "utility" }
 discovered_macs = set()
+
+settings.debug = True #Enable debugging for systems supporting RuuviTags
 
 def get_status():
     log.status(f"no_ruuvi_since_start: {no_ruuvi_since_start}")
