@@ -4,6 +4,7 @@ from utils import mqtt
 from utils.timeutils import strftime
 from utils.config import EXCEPTION_FILE
 from utils.status import fs_stats
+from utils import settings
 import uos as os # pylint: disable=import-error
 
 #Print and send status messages
