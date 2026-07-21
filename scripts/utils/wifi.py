@@ -47,7 +47,7 @@ def wlan_connect(hostname): # pylint: disable=unused-argument
 # module-level cache for rate-limited checks
 _last_wifi_check = 0
 _last_wifi_status = True
-_wifi_check_interval = 10  # seconds
+_wifi_check_interval = 60  # seconds
 
 def check_wifi(force=False):
     global wifi_reason, _last_wifi_check, _last_wifi_status # pylint: disable=global-statement
@@ -88,7 +88,7 @@ def check_wifi(force=False):
                     wifi_reason = "Network connectivity test failed"
                 else:
                     log.debug(f"Retrying network connectivity test (attempt {tries})")
-                    time.sleep(1)
+                    time.sleep(2)
 
         result = network_working
 
