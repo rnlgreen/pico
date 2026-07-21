@@ -54,6 +54,8 @@ def switch_callback(pin):
 
 #Called my main.py
 def main(standalone = False):
+    settings.debug = True
+
     standalone = False
     if standalone:
         status("Running standalone")
