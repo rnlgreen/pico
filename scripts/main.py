@@ -103,8 +103,8 @@ if not TESTMODE:
             if main_result == "Wi-Fi Lost":
                 from utils import wifi
                 main_result = f"Wi-Fi Lost: {wifi.wifi_reason}"
-
-            slack.send_msg(pico, f":warning: Restarting after dropping through: {main_result}")
+            else:
+                slack.send_msg(pico, f":warning: Restarting after dropping through: {main_result}")
 
             restart(f"Dropped through: {main_result}")
 
