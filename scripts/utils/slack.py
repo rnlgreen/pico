@@ -11,8 +11,8 @@ def send_msg(pico,msg):
     if do_slack:
         # Truncate long messages to prevent large memory allocations
         # Exception tracebacks can be very long
-        if len(msg) > 100:
-            msg = msg[:100] + "...(truncated)"
+        if len(msg) > 200:
+            msg = msg[:200] + "...(truncated)"
 
         # Free up memory before HTTP request to avoid ENOMEM errors
         gc.collect()

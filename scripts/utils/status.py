@@ -18,12 +18,22 @@ def read_internal_temperature():
 
     return str(round(temperature_celsius,1))
 
+#Function to return percentage of free space
+def fs_stats_percentage():
+    fs_stat = uos.statvfs('/')
+    t = fs_stat[0] * fs_stat[2]
+    f = fs_stat[0] * fs_stat[3]
+    p = round(100*f/t, 1)
+    log_module.debug(f"Percentage storage free: {p}%")
+    return p
+
 #Function to return total and free space
 def fs_stats():
     fs_stat = uos.statvfs('/')
-    t = fs_stat[0] * fs_stat[2] / 1024
-    f = fs_stat[0] * fs_stat[3] / 1024
-    return round(100*f/t, 1)
+    t = fs_stat[0] * fs_stat[2]
+    f = fs_stat[0] * fs_stat[3]
+    log_module.debug(f"Storage total={t}B, free={f}B")
+    return (t,f)
 
 def log_versions():
     """Log MicroPython version information"""

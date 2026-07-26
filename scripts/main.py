@@ -77,11 +77,11 @@ if not TESTMODE:
             gc.collect()
             log.status(f"MicroPython {mp_release}")
             log.status(f"Free memory: {gc.mem_free()}", logit=True) # pylint: disable=no-member
-            log.status(f"Free storage: {status.fs_stats()}%", logit=True)
+            log.status(f"Free storage: {status.fs_stats_percentage()}%", logit=True)
             log.status(f"Initialisation: {init_result.init_duration_ms/1000:.1f}s", logit=True)
 
             # Warn if storage is low
-            if float(status.fs_stats()) < 10:
+            if float(status.fs_stats_percentage()) < 10:
                 log.status("Warning: Free storage is low", logit=True)
                 slack.send_msg(pico, ":warning: Warning: Free storage is low")
 

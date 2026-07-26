@@ -3,7 +3,7 @@ from utils import myid
 from utils import mqtt
 from utils.timeutils import strftime
 from utils.config import EXCEPTION_FILE
-from utils.status import fs_stats
+from utils.status import fs_stats, fs_stats_percentage
 from utils import settings
 import uos as os # pylint: disable=import-error
 
@@ -50,8 +50,7 @@ def prune_log():
         with open(EXCEPTION_FILE, "r", encoding="utf-8") as src:
             for _ in src:
                 total_lines += 1
-        remove_count = int(total_lines * 0.2) #Remove 20% of lines
-        status(f"Pruning exception log as free storage is at {fs_stats()}%", logit=True)
+        remove_count = int(total_lines * 0.3) #Remove 30% of lines
         tmp_name = EXCEPTION_FILE + ".tmp"
         with open(EXCEPTION_FILE, "r", encoding="utf-8") as src, open(tmp_name, "w", encoding="utf-8") as dst:
             for i, line in enumerate(src):
@@ -67,9 +66,10 @@ def prune_log():
         except Exception:# pylint: disable=broad-except
             status("Failed to rename new exception log")
         status(f"Pruned exception log by {remove_count} lines", logit=True)
-        status(f"Free storage now: {fs_stats()}%", logit=True)
+        status(f"Free storage now: {fs_stats_percentage()}%", logit=True)
     except Exception as e:  # pylint: disable=broad-except
         status(f"Unable to prune exception log {e}", logit=True)
+    upload_exceptions()
     _in_prune_log = False
 
 def log(message):
@@ -77,8 +77,15 @@ def log(message):
     try:
         with open(EXCEPTION_FILE,"at",encoding="utf-8") as file:
             file.write(f"{strftime()}: {myid.pico} {message}\n")
-        if fs_stats() < 20 and not _in_prune_log: # avoid recursion
+        #get the size of the file and prune it if the free space is less than double the size of the file
+        exception_file_size = os.stat(EXCEPTION_FILE)[6]
+        (_, free_space) = fs_stats()
+        if (exception_file_size * 2 > free_space) and not _in_prune_log: # avoid recursion
+            status(f"Pruning exception log as free storage is at {fs_stats_percentage()}%", logit=True)
+            status(f"Exception log size: {exception_file_size} bytes, free space: {free_space} bytes")
             prune_log()
+        else:
+            debug(f"Exception log size: {exception_file_size} bytes, free space: {free_space} bytes")
     except Exception as e: # pylint: disable=broad-except
         status(f"Unable to log message to file: {e}")
 

@@ -7,6 +7,7 @@ from utils import leds
 from utils import wifi
 from utils import settings
 from utils.log import status
+from utils.log import debug
 
 def get_status():
     wifi.wifi_status()
@@ -34,12 +35,22 @@ def main():
     GPIO = 28
     leds.init_strip(strip_type,pixels,GPIO)
 
+    settings.debug = True
+
     if mqtt.client is not False:
         mqtt.client.subscribe("pico/lights") # type: ignore
+
+    now = time.time()
+    debug_interval = 5 #debug internal in seconds
 
     while True:
         if mqtt.client is not False:
             mqtt.client.check_msg()
+
+        #if debug_interval has passed, print debug info
+        if time.time() - now >= debug_interval:
+            debug("still here")
+            now = time.time()
 
         #Check WiFi status
         if not wifi.check_wifi():
