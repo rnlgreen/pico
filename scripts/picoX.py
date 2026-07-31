@@ -44,7 +44,7 @@ def main(standalone = False):
     leds.init_strip(strip_type,pixels,GPIO)
 
     if standalone:
-        brightness = 20
+        brightness = 50
         set_brightness(brightness)
         settings.speed = 90
         effect_duration = 300 # Was -1, but if we want to check the time of day to turn off we need to come back
