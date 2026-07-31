@@ -14,6 +14,7 @@ def restart(reason):
             mqtt.client.disconnect()
         except Exception as e: # pylint: disable=broad-except
             log.log_exception(e)
+    mqtt.client = False
     time.sleep(1)
     log.log("... in restart, about to reset()")
     try:
