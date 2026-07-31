@@ -152,7 +152,7 @@ def fade_to_black(duration=5000):
                     set_pixel(i, r, g, b, w, 1)
             show()
             time.sleep(delay)
-    new_brightness(0)
+    set_brightness(0)
     log.debug("Fade complete")
 
 #Show the LED changes
@@ -216,6 +216,7 @@ def set_speed(new_speed):
 #Function to set the brightness
 def set_brightness(new_brightness_level):
     """Function to set the brightness"""
+    log.debug(f"Setting brightness to {new_brightness_level}")
     if not settings.brightness == new_brightness_level:
         settings.brightness = new_brightness_level
         settings.strip.brightness(settings.brightness)
@@ -253,6 +254,7 @@ def new_brightness(new_level):
     """Fade to new brightness"""
     old_level = settings.brightness
     if new_level != old_level:
+        log.debug(f"Fading to new brightness level: {new_level}")
         sleeptime = 3 #number of seconds to make the transition
         sleepstep = sleeptime / abs(new_level - old_level)
         if old_level < new_level:
@@ -266,7 +268,7 @@ def new_brightness(new_level):
         for nb in range(start, end, step):
             set_brightness(nb)
             time.sleep(sleepstep)
-        #status("Fade complete")
+        log.debug("Fade complete")
     if settings.master or not settings.auto:
         mqtt.send_mqtt("pico/"+myid.pico+"/status/brightness",str(settings.brightness))
 
@@ -335,7 +337,7 @@ def off(from_auto=False):
         while settings.running:
             sleep(0.1)
     fade_to_black()
-    new_brightness(0)
+    set_brightness(0)
     settings.strip.clear()
     if settings.strip2 is not None:
         settings.strip2.clear()
