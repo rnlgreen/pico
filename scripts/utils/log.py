@@ -10,7 +10,6 @@ import uos as os # pylint: disable=import-error
 #Print and send status messages
 def status(message, logit=False, handling_exception=False):
     """Function for reporting status."""
-    print(message)
     if logit:
         log(message)
     if mqtt.client is not False:
@@ -28,6 +27,7 @@ def status(message, logit=False, handling_exception=False):
 #Print and send status messages
 def debug(message, subtopic = None, logit=False):
     if settings.debug:
+        print(message)
         if logit:
             log(message)
         message = myid.pico + ": " + message
@@ -45,6 +45,8 @@ def prune_log():
     global _in_prune_log # pylint: disable=global-statement
     _in_prune_log = True
     try:
+        # Upload the current exception file before pruning
+        upload_exceptions()
         # Stream: count lines, then rewrite skipping first 10% without loading all lines
         total_lines = 0
         with open(EXCEPTION_FILE, "r", encoding="utf-8") as src:
@@ -66,10 +68,11 @@ def prune_log():
         except Exception:# pylint: disable=broad-except
             status("Failed to rename new exception log")
         status(f"Pruned exception log by {remove_count} lines", logit=True)
-        status(f"Free storage now: {fs_stats_percentage()}%", logit=True)
+        exception_file_size = os.stat(EXCEPTION_FILE)[6]
+        (_, free_space) = fs_stats()
+        status(f"Log file now {exception_file_size} bytes, free space: {free_space} bytes", logit=True)
     except Exception as e:  # pylint: disable=broad-except
         status(f"Unable to prune exception log {e}", logit=True)
-    upload_exceptions()
     _in_prune_log = False
 
 def log(message):
@@ -81,8 +84,7 @@ def log(message):
         exception_file_size = os.stat(EXCEPTION_FILE)[6]
         (_, free_space) = fs_stats()
         if (exception_file_size * 2 > free_space) and not _in_prune_log: # avoid recursion
-            status(f"Pruning exception log as free storage is at {fs_stats_percentage()}%", logit=True)
-            status(f"Exception log size: {exception_file_size} bytes, free space: {free_space} bytes")
+            status(f"Pruning exception log {exception_file_size} bytes, free space: {free_space} bytes")
             prune_log()
         else:
             debug(f"Exception log size: {exception_file_size} bytes, free space: {free_space} bytes")
@@ -97,7 +99,7 @@ def log_exception(e):
     sys.print_exception(e, output) # pylint: disable=maybe-no-member
     exception1=output.getvalue()
     #Write exception to logfile
-    print("Writing exception to storage")
+    debug("Writing exception to storage")
     try:
         file = open(EXCEPTION_FILE,"at",encoding="utf-8")
         file.write(f"{strftime()}: {myid.pico} Detected exception:\n{e}:{exception1}")
@@ -105,7 +107,7 @@ def log_exception(e):
     except Exception as f: # pylint: disable=broad-except
         output2 = io.StringIO()
         sys.print_exception(f, output2) # pylint: disable=maybe-no-member
-        print(f"Failed to write exception:\n{output2.getvalue()}")
+        debug(f"Failed to write exception:\n{output2.getvalue()}")
     #Try sending the original exception to MQTT
     if mqtt.client is not False:
         try:
@@ -135,7 +137,7 @@ def upload_exceptions():
     from utils.filesystem import file_exists  #pylint: disable=import-outside-toplevel
     import secrets  #pylint: disable=import-outside-toplevel
 
-    print("Uploading latest exception file")
+    debug("Uploading latest exception file")
     if file_exists(EXCEPTION_FILE):
         try:
             session = ftp.login(secrets.ftphost, secrets.ftpuser, secrets.ftppw)
