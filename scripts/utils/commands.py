@@ -53,6 +53,8 @@ def handle_status(pico, timeInit, get_status_func=None): # pylint: disable=unuse
     """Handle status command"""
     log.status(f"Uptime: {uptime(timeInit)}")
     log.status(f"My temperature: {status_module.read_internal_temperature()}C")
+    log.status(f"Filesystem stats: {status_module.fs_stats()}")
+    log.status(f"Filesystem usage: {status_module.fs_stats_percentage()}%")
     if get_status_func:
         get_status_func()
 
@@ -127,12 +129,16 @@ def process_message(topic, payload, pico, timeInit, main_module=None):
         # If not handled by custom handlers, try main module handlers
         if not handled and main_module:
             # Check for LED control topics
-            if topic in ["pico/lights", "pico/xlights", "pico/plights"]:
+            if topic in ["pico/lights", "pico/xlights", "pico/plights", "pico/klights"]:
+                #ignore payloads of "ha:on" and "ha:off"
+                if payload in ["ha:on", "ha:off"]:
+                    log.debug(f"Ignoring payload: {payload} for topic: {topic}")
+                    return
                 if hasattr(main_module, 'led_control'):
                     if myid.pico not in ["pico3","pico4","pico5"]:
-                        log.debug(f"Calling led_control from main_module with topic: {topic}, payload: {payload}", logit=True)
+                        log.debug(f"Calling led_control with topic: {topic}, payload: {payload}", logit=True)
                     else:
-                        log.debug(f"Calling led_control from main_module with topic: {topic}, payload: {payload}", logit=False)
+                        log.debug(f"Calling led_control with topic: {topic}, payload: {payload}", logit=False)
                     main_module.led_control(topic, payload)
             # Check for heartbeat (used by some picos)
             elif topic == "pico/pico2w0/heartbeat":
