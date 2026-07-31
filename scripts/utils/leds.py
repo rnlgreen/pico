@@ -24,11 +24,14 @@ INITIAL_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,INITIAL_COLOUR)) + ")"
 DEFAULT_COLOUR = [128, 255, 255]
 DEFAULT_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,DEFAULT_COLOUR)) + ")"
 
-#Light thresholds
-DIM = 70 #(was 45)
-BRIGHT = 80 #(was 55)
+#Light thresholds, with hysteresis to avoid fluttering on the edge of the threshold and the effect of the lights themselves
+#DIM is the point at which the lights are turned on if the light is less than this
+DIM = 80 #(was 45, then 70)
 
-#Light On/Off Schedule
+#BRIGHT is the point at which the lights are turned off as there's no point
+BRIGHT = 90 #(was 55, then 80)
+
+#Light On/Off Schedule, turn off between these times
 LIGHTS_OFF = 1
 LIGHTS_ON = 7
 
@@ -324,7 +327,7 @@ def manage_lights():
                 #If the brightness level has changed check for hysteresis
                 h = light.check_hysteresis(lightlevel)
                 if settings.brightness != new_brightness_level or (now - last_control > 60):
-                    #Only change for large steps or significant hysteresis
+                    #Only change for large steps or significant hysteresis and time has elapsed
                     if abs(new_brightness_level - settings.brightness) > 5 or h > 0.1 or (now - last_control > 60):
                         #If the lights are off then we need to turn them on
                         if settings.lightsoff:
@@ -334,6 +337,8 @@ def manage_lights():
                                 send_control(settings.previously_running)
                             if settings.colour == [0, 0, 0]:
                                 send_control(DEFAULT_COLOUR_COMMAND)
+                            else:
+                                send_control(f"rgb({settings.colour[0]}, {settings.colour[1]}, {settings.colour[2]})")
                         send_control(f"brightness:{new_brightness_level}")
                         last_control = now
                         updated = True

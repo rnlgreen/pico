@@ -3,8 +3,10 @@ from machine import Pin, ADC # type: ignore # pylint: disable=import-error
 from utils import mqtt
 
 photoPIN = 26 #GPIO26, Pin 31 # pylint: disable=invalid-name
+
+#Brightness limits
 MIN_BRIGHTNESS = 15
-MAX_BRIGHTNESS = 80
+MAX_BRIGHTNESS = 100
 
 #Measure light levels
 def readLight(photoGP=photoPIN):
@@ -38,7 +40,7 @@ def rolling_average():
 def get_brightness(lightlevel,boost=False):
     """Returns new brightness level"""
     if boost:
-        b = min(MAX_BRIGHTNESS,max(MIN_BRIGHTNESS,(round((lightlevel * 2)/5) * 5) + 10))
+        b = min(MAX_BRIGHTNESS,max(MIN_BRIGHTNESS,(round((lightlevel * 2)/5) * 5) + 20))
     else:
         b = min(MAX_BRIGHTNESS,max(MIN_BRIGHTNESS,(round((lightlevel * 2)/5) * 5) - 10))
     return b
