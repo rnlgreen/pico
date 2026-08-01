@@ -237,10 +237,13 @@ def set_brightness(new_brightness_level):
 def set_colour(new_colour):
     """set the colour"""
     if not settings.colour == new_colour:
+        log.debug(f"Setting colour to {new_colour}")
         settings.colour = new_colour
         set_all(settings.colour[0],settings.colour[1],settings.colour[2])
         show()
         send_colour()
+    else:
+        log.debug(f"Colour already set to {new_colour}, not changing")
 
 #Send settings.colour update to NodeRed
 def send_colour():
