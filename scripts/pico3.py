@@ -30,12 +30,12 @@ def led_control(topic,payload):
 
 #Called my main.py
 def main():
+    settings.debug = True
+
     strip_type = "GRB"
     pixels = 69
     GPIO = 28
     leds.init_strip(strip_type,pixels,GPIO)
-
-    settings.debug = True
 
     if mqtt.client is not False:
         mqtt.client.subscribe("pico/lights") # type: ignore

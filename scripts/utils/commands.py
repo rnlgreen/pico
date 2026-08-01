@@ -6,6 +6,7 @@ from utils.blink import blink
 from utils.control import restart
 from utils.timeutils import strftime, uptime
 from utils import myid
+from utils import settings
 
 # Command registry - maps command names to handler functions
 _command_handlers = {}
@@ -68,6 +69,16 @@ def handle_upload_log(pico, timeInit): # pylint: disable=unused-argument
     log.status("Uploading exception log")
     log.upload_exceptions()
 
+def handle_debug_on(pico, timeInit): # pylint: disable=unused-argument
+    """Handle debug_on command to enable debug logging"""
+    log.status("Enabling debug logging")
+    settings.debug = True
+
+def handle_debug_off(pico, timeInit): # pylint: disable=unused-argument
+    """Handle debug_off command to disable debug logging"""
+    log.status("Disabling debug logging")
+    settings.debug = False
+
 # Register default commands
 def _init_default_commands():
     """Initialize default command handlers"""
@@ -79,6 +90,8 @@ def _init_default_commands():
     register_command("clear", handle_clear)
     register_command("status", handle_status)
     register_command("upload_log", handle_upload_log)
+    register_command("debug_on", handle_debug_on)
+    register_command("debug_off", handle_debug_off)
 # Initialize on module load
 _init_default_commands()
 

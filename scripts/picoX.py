@@ -32,6 +32,8 @@ def led_control(topic,payload):
 
 #Called by main.py
 def main(standalone = False):
+    settings.debug = True
+
     standalone = True
     if standalone:
         settings.standalone = True # Set this so it can be accessed by other functions

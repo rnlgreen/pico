@@ -95,6 +95,7 @@ def debug_logging():
     debug(f"time since on: {utime.time() - settings.time_on}")
 
 def main():
+    settings.debug = True
     strip_type = "GRB"
     pixels = 60 #need strips to be the same length, for now...
     GPIO1 = 28
