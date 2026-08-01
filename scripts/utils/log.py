@@ -3,7 +3,7 @@ from utils import myid
 from utils import mqtt
 from utils.timeutils import strftime
 from utils.config import EXCEPTION_FILE
-from utils.status import fs_stats, fs_stats_percentage
+from utils.status import fs_stats
 from utils import settings
 import uos as os # pylint: disable=import-error
 
@@ -44,6 +44,9 @@ def prune_log():
     """Function to prune the exception log file to a manageable size (memory-safe)."""
     global _in_prune_log # pylint: disable=global-statement
     _in_prune_log = True
+    exception_file_size = os.stat(EXCEPTION_FILE)[6]
+    (_, free_space) = fs_stats()
+    status(f"Pruning exception log, log is {exception_file_size} bytes, free space: {free_space} bytes", logit=True)
     try:
         # Upload the current exception file before pruning
         upload_exceptions()
