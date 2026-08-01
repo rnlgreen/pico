@@ -36,6 +36,7 @@ def main():
     pixels = 69
     GPIO = 28
     leds.init_strip(strip_type,pixels,GPIO)
+    leds.set_colour(leds.DEFAULT_COLOUR)
 
     if mqtt.client is not False:
         mqtt.client.subscribe("pico/lights") # type: ignore
