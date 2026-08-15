@@ -40,9 +40,9 @@ def rolling_average():
 def get_brightness(lightlevel,boost=False):
     """Returns new brightness level"""
     if boost:
-        b = min(MAX_BRIGHTNESS,max(MIN_BRIGHTNESS,(round((lightlevel * 2)/5) * 5) + 20))
+        b = min(MAX_BRIGHTNESS,max(MIN_BRIGHTNESS,(round((lightlevel * 2)/5) * 7) + 20))
     else:
-        b = min(MAX_BRIGHTNESS,max(MIN_BRIGHTNESS,(round((lightlevel * 2)/5) * 5) - 10))
+        b = min(MAX_BRIGHTNESS,max(MIN_BRIGHTNESS,(round((lightlevel * 2)/5) * 7) - 10))
     return b
 
 #Send measurement

@@ -29,7 +29,7 @@ DEFAULT_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,DEFAULT_COLOUR)) + ")"
 DIM = 80 #(was 45, then 70)
 
 #BRIGHT is the point at which the lights are turned off as there's no point
-BRIGHT = 90 #(was 55, then 80)
+BRIGHT = 60 #(was 55, then 80)
 
 #Light On/Off Schedule, turn off between these times
 LIGHTS_OFF = 1
@@ -322,8 +322,8 @@ def manage_lights():
             #Turn on or adjust for low light levels
             elif lightlevel < DIM:
                 new_brightness_level = light.get_brightness(lightlevel,settings.boost)
-                if late():
-                    new_brightness_level = int(new_brightness_level * 0.5) #Dim the lights a bit more late at night
+#                if late():
+#                    new_brightness_level = int(new_brightness_level * 0.5) #Dim the lights a bit more late at night
                 #If the brightness level has changed check for hysteresis
                 h = light.check_hysteresis(lightlevel)
                 if settings.brightness != new_brightness_level or (now - last_control > 60):
