@@ -42,6 +42,7 @@ def main():
     pixels = 73
     GPIO = 28
     settings.master = True
+    settings.boost = True
     leds.init_strip(strip_type,pixels,GPIO)
     leds.send_control(leds.INITIAL_COLOUR_COMMAND)
 
