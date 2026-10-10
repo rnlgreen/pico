@@ -216,7 +216,7 @@ def set_speed(new_speed):
 #Function to set the brightness
 def set_brightness(new_brightness_level):
     """Function to set the brightness"""
-    log.debug(f"Setting brightness to {new_brightness_level}")
+    #log.debug(f"Setting brightness to {new_brightness_level}")
     if not settings.brightness == new_brightness_level:
         settings.brightness = new_brightness_level
         settings.strip.brightness(settings.brightness)

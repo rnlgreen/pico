@@ -21,15 +21,15 @@ from lib.neopixel import Neopixel # pylint: disable=import-error
 #INITIAL_COLOUR = [128, 255, 255]
 INITIAL_COLOUR = [0, 0, 0]
 INITIAL_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,INITIAL_COLOUR)) + ")"
-DEFAULT_COLOUR = [128, 255, 255]
+DEFAULT_COLOUR = [255, 200, 60]
 DEFAULT_COLOUR_COMMAND = "rgb(" + ", ".join(map(str,DEFAULT_COLOUR)) + ")"
 
 #Light thresholds, with hysteresis to avoid fluttering on the edge of the threshold and the effect of the lights themselves
 #DIM is the point at which the lights are turned on if the light is less than this
-DIM = 80 #(was 45, then 70)
+DIM = 70 #(was 45, then 70) !!! make sure this smaller than BRIGHT !!!
 
 #BRIGHT is the point at which the lights are turned off as there's no point
-BRIGHT = 60 #(was 55, then 80)
+BRIGHT = 90 #(was 55, then 80) !!! make sure this is bigger than DIM !!!
 
 #Light On/Off Schedule, turn off between these times
 LIGHTS_OFF = 1
@@ -311,8 +311,8 @@ def manage_lights():
             now = time.time()
             #Turn off for high light levels
             if lightlevel > BRIGHT and not settings.lightsoff:
-                log.status("Turning lights off (auto)")
-                log.debug("lightlevel: {lightlevel}")
+                log.status("Turning lights off (auto) (it's bright)")
+                last_control = time.time()
                 if settings.running: #Remember if we were running a lighting effect before we turn off
                     settings.previously_running = settings.effect
                 else:
@@ -347,7 +347,7 @@ def manage_lights():
                         msg += f" to avoid flutter ({h}), brightness: {lightlevel}"
                         #log.debug(msg)
         elif not settings.lightsoff: #If out of control hours then turn off
-            log.status("Turning lights off (auto)")
+            log.status("Turning lights off (auto - outside hours")
             if settings.running: #Remember if we were running a lighting effect before we turn off
                 log.status(f"Remembering effect: {settings.effect}")
                 settings.previously_running = settings.effect

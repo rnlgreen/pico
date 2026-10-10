@@ -89,8 +89,8 @@ def log(message):
         if (exception_file_size * 2 > free_space) and not _in_prune_log: # avoid recursion
             status(f"Pruning exception log {exception_file_size} bytes, free space: {free_space} bytes")
             prune_log()
-        else:
-            debug(f"Exception log size: {exception_file_size} bytes, free space: {free_space} bytes")
+        #else:
+        #    debug(f"Exception log size: {exception_file_size} bytes, free space: {free_space} bytes")
     except Exception as e: # pylint: disable=broad-except
         status(f"Unable to log message to file: {e}")
 

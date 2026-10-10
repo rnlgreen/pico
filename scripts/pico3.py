@@ -30,7 +30,7 @@ def led_control(topic,payload):
 
 #Called my main.py
 def main():
-    settings.debug = True
+    settings.debug = False
 
     strip_type = "GRB"
     pixels = 69
