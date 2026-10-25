@@ -28,6 +28,10 @@ def send_mqtt(topic, payload):
     if not client is False:
         try:
             ## DO NOT TRY AND LOG.DEBUG HERE, IT WILL CAUSE A RECURSION ERROR
+            if isinstance(payload, str):
+                # umqtt.simple sizes the packet using len(payload), which counts characters not bytes,
+                # so non-ASCII text (e.g. "°C") gets its last byte(s) truncated. Send bytes instead.
+                payload = payload.encode("utf-8")
             client.publish(topic,payload)
             return True
         except Exception as e: # pylint: disable=broad-except

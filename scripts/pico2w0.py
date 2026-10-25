@@ -54,7 +54,7 @@ def switch_callback(pin):
 
 #Called my main.py
 def main(standalone = False):
-    settings.debug = True
+    settings.debug = False
 
     standalone = False
     if standalone:

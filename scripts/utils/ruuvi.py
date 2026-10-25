@@ -58,10 +58,12 @@ def battery_voltage_to_percent(v):
 def publish_discovery(mac):
     base = f"homeassistant/sensor/ruuvi_{mac}"
     state_topic = f"ruuvi/{mac}/data"
+    location = mytags.get(mac, mac)
 
     sensors = {
         "temperature": {
-            # HA infers °C automatically from device_class
+            # Unit must be explicit for MQTT sensors
+            "unit": "\u00b0C",
             "template": "{{ value_json.temperature }}",
             "device_class": "temperature",
             "state_class": "measurement"
@@ -107,14 +109,15 @@ def publish_discovery(mac):
         topic = f"{base}/{key}/config"
 
         payload = {
-            "name": f"Ruuvi {mac} {friendly[key]}",
+            "name": friendly[key],
+            "has_entity_name": True,
             "state_topic": state_topic,
             "value_template": cfg["template"],
             "unique_id": f"ruuvi_{mac}_{key}",
             "state_class": cfg["state_class"],
             "device": {
                 "identifiers": [f"ruuvi_{mac}"],
-                "name": f"RuuviTag {mac}",
+                "name": f"RuuviTag {location[:1].upper() + location[1:]}", # str.capitalize() doesn't exist in MicroPython
                 "manufacturer": "Ruuvi"
             }
         }
@@ -157,8 +160,13 @@ def ruuvicb(ruuvitag):
         mac = ruuvitag.mac.decode('ascii')
         if mac not in discovered_macs:
             discovered_macs.add(mac)
-            log.debug(f"Discovered new RuuviTag: {mac}", "ruuvi")
-            publish_discovery(mac)
+            log.debug(f"Discovered new RuuviTag: {mac}; publishing to HA", "ruuvi")
+            try:
+                publish_discovery(mac)
+            except Exception as e: # pylint: disable=broad-exception-caught
+                # Don't let a discovery failure stop the readings; retry discovery on the next scan
+                discovered_macs.discard(mac)
+                print("Ruuvi discovery failed for", mac, ":", e)
         last_ruuvi = utime.ticks_ms()
         last_ruuvi_time = strftime()
         got_one = True

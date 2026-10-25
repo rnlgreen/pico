@@ -1,0 +1,19 @@
+[Unit]
+Description=Relay pico Slack messages from MQTT to Slack
+After=network-online.target mosquitto.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Adjust the user and paths to suit your Pi
+User=pi
+ExecStart=/usr/bin/python3 /home/pi/slack_relay/slack_relay.py
+# Put the secrets in this file, one per line, e.g.:
+#SLACK_WEBHOOK=https://hooks.slack.com/services/xxxx
+# MQTT_HOST=condor.rghome
+EnvironmentFile=/etc/slack-relay.env
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

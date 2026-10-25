@@ -35,6 +35,8 @@ lib/ftplib.py - MicroPython compatible ftplib module
 
 lib/neopixel.py - Neopixel library to drive WS2812 LED strips
 
+pi/slack_relay.py - Runs on the Raspberry Pi (not synced to the picos). Subscribes to the 'pico/slack' MQTT topic and posts the messages to the Slack webhook, so the picos don't need to do TLS. utils/slack.py falls back to posting directly to Slack if MQTT is unavailable. pi/slack-relay.service is an example systemd unit; the webhook is supplied via the SLACK_WEBHOOK environment variable.
+
 The utils folder contains the following modules:
 * am2320.py - module for reporting the temperature and humiditiy from an AM2320 sensor
 * blink.py - simple module used for making the on-board LED blink
